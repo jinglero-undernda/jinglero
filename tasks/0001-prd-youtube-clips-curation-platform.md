@@ -2,7 +2,7 @@
 
 ## Introduction/Overview
 
-This platform provides a curated interface for accessing and analyzing specific YouTube clips from the show "La Fabrica de Jingles" by the streaming station Gelatina. The system focuses on music-related content, featuring clips ("Jingles") that are based on a specific song with audience contributions. The platform will utilize React for the frontend, Flask for the backend, and Neo4j for the knowledge database, with potential deployment on Render and Vercel.
+This platform provides a curated interface for accessing and analyzing specific YouTube clips ("Jingles") from the show "La Fabrica de Jingles" by the streaming station Gelatina. The system focuses on music-related content, where each Jingle represents a performance based on an original song ("Cancion") by performers ("Artistas") with specific themes ("Tematicas"). Each show episode ("Fabrica") contains multiple Jingles. The platform will utilize React for the frontend, Flask for the backend, and Neo4j for the knowledge database, with potential deployment on Render and Vercel.
 
 ## Goals
 
@@ -16,10 +16,10 @@ This platform provides a curated interface for accessing and analyzing specific 
 
 ### Authentication & Access
 
-- As a guest user, I want to browse the clip database to discover interesting content ("Jingles", song adaptations)
-- As a member, I want to access detailed trend analysis to understand popular topics and contributions
-- As an administrator, I want to manage clip data and user roles to maintain platform quality
-- As a contributor, I want to claim my contributions to establish my presence in the community
+- As a guest user, I want to browse the Jingle database to discover interesting content and song adaptations
+- As a Usuario (MEMBER), I want to access detailed trend analysis to understand popular Tematicas and contributions
+- As a Usuario (ADMIN), I want to manage Jingle data and user roles to maintain platform quality
+- As an Artista, I want to claim my Jingles through the SOY_YO verification process to establish my presence in the community
 
 ### Content Discovery
 
@@ -27,6 +27,7 @@ This platform provides a curated interface for accessing and analyzing specific 
 - As a user, I want to see related clips to discover more content about similar topics or artists
 - As a member, I want to analyze trends in topics and contributions to understand community interests
 - As an administrator, I want to curate featured content to highlight important or popular clips
+- As a member, I want to react to a Jingle, voting it as a Like (ME_GUSTA), Jinglazo, or Jinglazo del Dia - to express how much I liked the content.
 
 ## Functional Requirements
 
@@ -52,17 +53,17 @@ This platform provides a curated interface for accessing and analyzing specific 
 7. Store user preferences and activity data
 8. Support basic user profile management
 
-### Clip Management
+### Jingle Management
 
-9. Enable manual creation and editing of clip entries by administrators
-10. Store clip metadata including:
-    - Song details (title, artist, genre, year, YouTube Music link)
-    - Contributor information (optional, with verification status)
-    - Stream details (title, date)
-    - Clip title (optional)
-    - Topic/theme tags
-    - YouTube URL with timestamp
-    - Special markers ("Jinglazo" and "Precario")
+9. Enable manual creation and editing of Jingle entries by Usuarios (ADMIN)
+10. Store Jingle metadata including:
+    - Cancion details (title, artist, genre, year, YouTube Music link)
+    - Artista information (with JINGLERO_DE status)
+    - Fabrica details (title, date)
+    - Jingle title (optional)
+    - Tematica tags
+    - Timestamp in Fabrica
+    - Special markers (isJinglazo, isJinglazoDelDia, isPrecario)
 
 ### Search and Navigation
 
@@ -154,17 +155,21 @@ This platform provides a curated interface for accessing and analyzing specific 
 
 ### Database (Neo4j)
 
-- Design graph schema for:
-  - Users and roles
-  - Clips and metadata
-  - Relationships between entities
-  - Analytics data
-  - Community terminology and relationships
-- Implement flexible schema to accommodate:
-  - Term definitions and contexts
-  - Relationships between standard and community-specific terms
-  - Term usage statistics and trends
-  - Term categorization and tagging
+- Implement graph schema for core entities:
+  - Usuario (platform users with roles)
+  - Jingle (clips with metadata)
+  - Fabrica (source videos)
+  - Cancion (original songs)
+  - Artista (performers and original artists)
+  - Tematica (themes and categories)
+- Implement relationships:
+  - APPEARS_IN (Jingle to Fabrica)
+  - JINGLERO_DE (Artista to Jingle)
+  - AUTOR_DE (Artista to Cancion)
+  - VERSIONA (Jingle to Cancion)
+  - TAGGED_WITH (Jingle to Tematica)
+  - SOY_YO (Usuario to Artista verification)
+  - REACCIONA_A (Usuario reactions to Jingle)
 
 ## Success Metrics
 

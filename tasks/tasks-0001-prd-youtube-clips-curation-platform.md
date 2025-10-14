@@ -31,7 +31,7 @@
 
   - [x] 1.1 Create project skeleton for server (Node/TypeScript + Flask alternative notes)
   - [x] 1.2 Add DB client wrapper for Neo4j in `src/server/db/index.ts`
-  - [ ] 1.3 Design initial graph schema for: Users, Clips, Songs, Artists, Streams, Terms
+  - [x] 1.3 Design initial graph schema for: Users, Clips, Songs, Artists, Streams, Terms
   - [ ] 1.4 Implement migration/seed script to create example nodes and relationships
   - [ ] 1.5 Create REST API endpoints for CRUD on Clips and Terms in `src/server/api/videos.ts`
   - [ ] 1.6 Add environment configuration and `.env.example`

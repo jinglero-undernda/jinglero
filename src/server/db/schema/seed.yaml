@@ -1,0 +1,102 @@
+# Seed data for Jinglero database
+# Replace the example values with real data from your records
+# Note: UUIDs will be generated during seeding, you can use meaningful placeholders here
+
+nodes:
+  usuarios:
+    - id: "admin-user" # Will be replaced with UUID
+      email: "jingle.com"
+      role: "ADMIN"
+      youtubeHandle: "jingleroAdmin"
+      createdAt: "2025-10-14T10:00:00Z"
+      lastLogin: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+  jingles:
+    - id: "example-jingle" # Will be replaced with UUID
+      youtubeUrl: "https://youtube.com/watch?v=videoId&t=123"
+      timestamp: 123
+      title: "Example Transition"
+      comment: "Classic transition using the bass line"
+      commentAuthor: "jingleroAdmin"
+      lyrics: "Partial lyrics if available"
+      songTitle: "Original Song Title"
+      artistName: "Original Artist"
+      genre: "Rock"
+      isJinglazo: true
+      isJinglazoDelDia: false
+      isPrecario: false
+      createdAt: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+  artistas:
+    - id: "example-artist" # Will be replaced with UUID
+      name: "Original Artist"
+      isUsuario: false
+      createdAt: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+  canciones:
+    - id: "example-song" # Will be replaced with UUID
+      title: "Original Song Title"
+      album: "Album Name"
+      year: 2020
+      genre: "Rock"
+      youtubeMusic: "https://music.youtube.com/watch?v=musicId"
+      lyrics: "https://genius.com/songs/xyz"
+      createdAt: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+  fabricas:
+    - id: "videoId" # Use actual YouTube video ID
+      title: "La Fabrica de Jingles - Episode Title"
+      date: "2025-10-14T10:00:00Z"
+      youtubeUrl: "https://youtube.com/watch?v=videoId"
+      visualizations: 1000
+      likes: 100
+      description: "Full episode description from YouTube"
+      contents: "Timestamped content list from YouTube comment"
+      status: "COMPLETED"
+      createdAt: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+  tematicas:
+    - id: "example-topic" # Will be replaced with UUID
+      name: "Sample Topic"
+      category: "CULTURA" # One of: ACTUALIDAD, POLITICA, CULTURA, GELATINA
+      description: "Description of the topic and its significance"
+      createdAt: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+relationships:
+  - type: "APPEARS_IN"
+    from:
+      type: "jingles"
+      id: "example-jingle"
+    to:
+      type: "fabricas"
+      id: "videoId"
+    properties:
+      order: 1
+      timestamp: 123
+
+  - type: "JINGLERO_DE"
+    from:
+      type: "artistas"
+      id: "example-artist"
+    to:
+      type: "jingles"
+      id: "example-jingle"
+    properties:
+      status: "CONFIRMED"
+      createdAt: "2025-10-14T10:00:00Z"
+
+  - type: "AUTOR_DE"
+    from:
+      type: "artistas"
+      id: "example-artist"
+    to:
+      type: "canciones"
+      id: "example-song"
+    properties:
+      createdAt: "2025-10-14T10:00:00Z"
