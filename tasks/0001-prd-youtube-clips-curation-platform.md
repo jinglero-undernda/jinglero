@@ -1,8 +1,8 @@
-# Product Requirements Document: YouTube Clips Curation Platform
+# Product Requirements Document: "La Usina de la Fabrica de Jingles"
 
 ## Introduction/Overview
 
-This platform provides a curated interface for accessing and analyzing specific YouTube clips from a streaming show. The system focuses on music-related content, featuring clips that discuss specific songs with audience contributions. The platform will utilize React for the frontend, Flask for the backend, and Neo4j for the knowledge database, with potential deployment on Render and Vercel.
+This platform provides a curated interface for accessing and analyzing specific YouTube clips from the show "La Fabrica de Jingles" by the streaming station Gelatina. The system focuses on music-related content, featuring clips ("Jingles") that are based on a specific song with audience contributions. The platform will utilize React for the frontend, Flask for the backend, and Neo4j for the knowledge database, with potential deployment on Render and Vercel.
 
 ## Goals
 
@@ -16,7 +16,7 @@ This platform provides a curated interface for accessing and analyzing specific 
 
 ### Authentication & Access
 
-- As a guest user, I want to browse the clip database to discover interesting music-related content
+- As a guest user, I want to browse the clip database to discover interesting content ("Jingles", song adaptations)
 - As a member, I want to access detailed trend analysis to understand popular topics and contributions
 - As an administrator, I want to manage clip data and user roles to maintain platform quality
 - As a contributor, I want to claim my contributions to establish my presence in the community
