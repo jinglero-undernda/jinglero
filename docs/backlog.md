@@ -1,18 +1,29 @@
-Backlog ideas
+# Backlog ideas
 
-Engine loading gif
-Fábrica resumen
-Tarjeta de personal
-Menú de la cantina
-Remito salida
-Listado de materiales 
+## Interface
+- Engine loading gif
+- Fábrica resumen
+  - Lista de Jingleros: Tarjeta de personal
+  - Lista de tematicas: Menú de la cantina
+  - Lista de Jingles: Remito salida
+  - Lista de Canciones: Listado de materiales 
 
-Entrada del personal
-Libro de quejas
-Presencia sindical
+- Login:
+  - Member: Puerta de Entrada del personal
+  - Subscripcion: Entrada a la Usina
+  - Admin: Gerencia
+- Interaccion:
+  - Libro de quejas
+  - Pedidos de mejoras: Presencia sindical
+  - Me gusta?
+  - 
 
-Merchandise digital
-Stickers
-Merchandise fisico
-Remera, gorra, tazas
+## Monetizar
+- Merchandise digital
+  - Stickers
+- Merchandise fisico
+  - Remera
+  - Gorra
+  - Tazas
+  - Llaveros
 
