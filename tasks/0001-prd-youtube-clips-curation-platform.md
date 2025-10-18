@@ -23,8 +23,9 @@ This platform provides a curated interface for accessing and analyzing specific 
 
 ### Content Discovery
 
-- As a user, I want to search for clips by song, artist, show date, or topic to find specific content
-- As a user, I want to see related clips to discover more content about similar topics or artists
+- As a Usuario, I want to see a summary page of a specific Fabrica, including track list, Authors list, Themes.
+- As a Usuario, I want to search for clips by song, artist, show date, or topic to find specific content
+- As a Usuario, I want to see related clips to discover more content about similar topics or artists
 - As a member, I want to analyze trends in topics and contributions to understand community interests
 - As an administrator, I want to curate featured content to highlight important or popular clips
 - As a member, I want to react to a Jingle, voting it as a Like (ME_GUSTA), Jinglazo, or Jinglazo del Dia - to express how much I liked the content.
