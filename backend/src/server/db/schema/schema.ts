@@ -9,7 +9,7 @@ Nodes:
    Properties:
    - id: string (UUID)
    - email: string (unique)
-   - role: string (enum: ADMIN, MEMBER, SUBSCRIBER)
+   - role: string (enum: ADMIN, GUEST)
    - artistId: string (optional, indicates if the user is also an artist, inherited from relationship)
    - displayName: string
    - profilePictureUrl: string (optional)

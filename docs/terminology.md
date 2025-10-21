@@ -9,7 +9,7 @@ This document serves as the official reference for terms used in the Jinglero pl
 A YouTube video episode of "La Fabrica de Jingles" show. Each Fabrica represents a complete streaming session.
 
 - Properties include title, date, YouTube metrics, and content markers
-- Status can be: DRAFT, PROCESSING, or COMPLETED, to allow for tracking of new episodes data being collected and parsed, and future automation scripts.
+- Status can be: DRAFT, PROCESSING, or COMPLETED, to allow for tracking of new episodes data being collected and parsed, for future automation scripts.
 
 ### Jingle
 
@@ -17,15 +17,15 @@ A specific clip or segment from a Fabrica where a song is adapted.
 
 - Contains timestamp information linking it to the source Fabrica
 - Can be marked as "Jinglazo" or "Precario"
-- Includes optional title.
+- Includes optional title. If no title is provided, use the Cancion title as reference.
 - Core information of the song is usually captured by a one-line comment in the video description or by a YouTube user.
-- Links to the original song (Cancion) it's based on
+- Is associated to the original song (Cancion) it was based on
 
 ### Cancion
 
 An original song that serves as the basis for one or more Jingles.
 
-- Includes basic song metadata (title, album, year, genre)
+- May Include basic song metadata (title, album, year, genre)
 - Can link to YouTube Music
 - May include lyrics URL
 

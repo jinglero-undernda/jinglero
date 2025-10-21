@@ -1,8 +1,6 @@
 export enum UserRole {
   ADMIN = 'ADMIN',
-  MEMBER = 'MEMBER',
-  GUEST = 'GUEST',
-  SUBSCRIBER = 'SUBSCRIBER'
+  GUEST = 'GUEST'
 }
 
 export enum ProcessStatus {
@@ -12,68 +10,12 @@ export enum ProcessStatus {
 }
 
 export enum CategoriaTematica {
-  ACTUALIDAD = 'ACTUALIDAD', 
-  CULTURA = 'CULTURA', 
-  GELATINA = 'GELATINA',
-  GENTE = 'GENTE', 
-  POLITICA = 'POTITICA' 
+  ACTUALIDAD = 'ACTUALIDAD', // For news and current events
+  CULTURA = 'CULTURA', // For customary, folklore and traditions, everyday topics
+  GELATINA = 'GELATINA', // For Stream-related "slang", inside jokes or reference to the community
+  GENTE = 'GENTE', // For people, characters, personalities
+  POLITICA = 'POTITICA' // For elections, candidates, political views
 }
-
-/*
-export interface User {
-  id: string;
-  email: string;
-  role: UserRole;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Clip {
-  id: string;
-  youtubeUrl: string;
-  timestamp: number;
-  title?: string;
-  songTitle: string;
-  artistName: string;
-  genre?: string;
-  year?: number;
-  streamTitle: string;
-  streamDate: Date;
-  contributorId?: string;
-  isJinglazo: boolean;
-  isPrecario: boolean;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Term {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  usage: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Artist {
-  id: string;
-  name: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-export interface Song {
-  id: string;
-  title: string;
-  artistId: string;
-  year?: number;
-  genre?: string;
-  youtubeMusic?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
-*/
 
 export interface Usuario {
   id: string;
