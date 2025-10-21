@@ -1,0 +1,4 @@
+id,email,role,artistId,displayName,profilePictureUrl,twitterHandle,instagramHandle,facebookProfile,youtubeHandle,contributionsCount,createdAt,lastLogin,updatedAt
+U0001,jinglero.longres@gmail.com,ADMIN,,El Jinglero sabe,,,,,,,2025-10-19,2025-10-19,2025-10-19
+U0002,arqlopezcampo@gmail.com,USER,,Guillermo,,,,,,,2025-10-19,2025-10-19,2025-10-19
+U0003,example@email.com,USER,ART-004,Lucas Niro,,,,,,,2025-10-19,2025-10-19,2025-10-19

@@ -5,24 +5,34 @@ Nodes:
 ------
 1. Usuario
    Labels: Usuario
+   Import file: node-Usuario-YYYY-MM-DD.csv
    Properties:
    - id: string (UUID)
    - email: string (unique)
-   - role: string (enum: ADMIN, MEMBER)
+   - role: string (enum: ADMIN, MEMBER, SUBSCRIBER)
+   - artistId: string (optional, indicates if the user is also an artist, inherited from relationship)
+   - displayName: string
+   - profilePictureUrl: string (optional)
+   - twitterHandle: string (optional, unique)
+   - instagramHandle: string (optional, unique)
+   - facebookProfile: string (optional, unique)
    - youtubeHandle: string (optional, unique)
+   - contributionsCount: number
    - createdAt: datetime
    - lastLogin: datetime (optional)
    - updatedAt: datetime
 
+
 2. Jingle
    Labels: Jingle
+   Import file: node-Jingle-YYYY-MM-DD.csv
    Properties:
    - id: string (UUID)
    - youtubeUrl: string (based on the Fabrica URL and timestamp)
    - timestamp: number (in seconds, derived from the relationship to Fabrica)
+   - youtubeClipUrl: string (for clips of the jingle on YouTube)
    - title: string (optional)
    - comment: string (optional)
-   - commentAuthor: string (optional)
    - lyrics: string (optional)
    - songTitle: string (inherited from the associated Cancion)
    - artistName: string (inherited from the associated Cancion's Artista)
@@ -35,15 +45,26 @@ Nodes:
 
 3. Artista
    Labels: Artista
+   Import file: node-Artista-YYYY-MM-DD.csv
    Properties:
    - id: string (UUID)
    - name: string (unique)
-   - isUsuario: boolean (indicates if the artist is also a user ,inherited from relationship)
+   - stageName: string (optional)
+   - idUsuario: string (optional, indicates if the artist is also a user ,inherited from relationship)
+   - nationality: string (optional)
+   - isArg: boolean (indicates if the artist is from Argentina)
+   - youtubeHandle: string (optional)
+   - instagramHandle: string (optional)
+   - twitterHandle: string (optional)
+   - facebookProfile: string (optional)
+   - website: string (optional)
+   - bio: string (optional)
    - createdAt: datetime
    - updatedAt: datetime
 
 4. Cancion 
    Labels: Cancion
+   Import file: node-Cancion-YYYY-MM-DD.csv
    Properties:
    - id: string (UUID)
    - title: string
@@ -57,6 +78,7 @@ Nodes:
 
 5. Fabrica
    Labels: Fabrica
+   Import file: node-Fabrica-YYYY-MM-DD.csv
    Properties:
    - id: string (UUID - Youtube video ID)
    - title: string
@@ -72,10 +94,11 @@ Nodes:
 
 6. Tematica
    Labels: Tematica
+   Import file: node-Tematica-YYYY-MM-DD.csv
    Properties:
    - id: string (UUID)
    - name: string (unique)
-   - category: string (optional enum: ACTUALIDAD, POLITICA, CULTURA, GELATINA)
+   - category: string (optional enum: ACTUALIDAD, POLITICA, CULTURA, GENTE, GELATINA)
    - description: string
    - createdAt: datetime
    - updatedAt: datetime
@@ -85,6 +108,7 @@ Relationships:
 1. APPEARS_IN
    Start Node: Jingle
    End Node: Fabrica
+   Import file: rel-Jingle-APPEARS_IN-Fabrica-YYYY-MM-DD.csv
    Properties:
    - order: number
    - timestamp: number
@@ -92,6 +116,7 @@ Relationships:
 2. JINGLERO_DE
    Start Node: Artista
    End Node: Jingle
+   Import file: rel-Artista-JINGLERO_DE-Jingle-YYYY-MM-DD.csv
    Properties:
    - status: string (enum: DRAFT, CONFIRMED)
    - createdAt: datetime
@@ -99,6 +124,7 @@ Relationships:
 3. AUTOR_DE
    Start Node: Artista
    End Node: Cancion
+   Import file: rel-Artista-AUTOR_DE-Cancion-YYYY-MM-DD.csv
    Properties:
    - status: string (enum: DRAFT, CONFIRMED)
    - createdAt: datetime
@@ -106,28 +132,35 @@ Relationships:
 4. VERSIONA
    Start Node: Jingle
    End Node: Cancion
+   Import file: rel-Jingle-VERSIONA-Cancion-YYYY-MM-DD.csv
    Properties:
+   - status: string (enum: DRAFT, CONFIRMED)
    - createdAt: datetime
 
 5. TAGGED_WITH
    Start Node: Jingle
    End Node: Tematica
+   Import file: rel-Jingle-TAGGED_WITH-Tematica-YYYY-MM-DD.csv
    Properties:
+   - isPrimary: boolean
+   - status: string (enum: DRAFT, CONFIRMED)
    - createdAt: datetime
    
 6. SOY_YO
    Start Node: Usuario
    End Node: Artista
+   Import file: rel-Usuario-SOY_YO-Artista-YYYY-MM-DD.csv
    Properties:
    - status: string (enum: REQUESTED, REJECTED, APPROVED)
    - requestedAt: datetime
-   - verified: boolean (if APPROVED)
+   - isVerified: boolean (if APPROVED)
    - verifiedAt: datetime (either APPROVED or REJECTED date)
    - verifiedBy: string (user ID)
 
 7. REACCIONA_A
    Start Node: Usuario
    End Node: Jingle
+   Import file: rel-Usuario-REACCIONA_A-Jingle-YYYY-MM-DD.csv
    Properties:
    - type: string (enum: ME_GUSTA, JINGLAZO, JINGLAZO_DEL_DIA)
    - createdAt: datetime

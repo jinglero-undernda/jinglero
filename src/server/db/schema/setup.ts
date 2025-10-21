@@ -1,28 +1,13 @@
 import { Neo4jClient } from '..';
 
 const constraints = [
-  // Unique ID constraints
-  'CREATE CONSTRAINT FOR (u:Usuario) REQUIRE u.id IS UNIQUE',
-  'CREATE CONSTRAINT FOR (j:Jingle) REQUIRE j.id IS UNIQUE',
-  'CREATE CONSTRAINT FOR (a:Artista) REQUIRE a.id IS UNIQUE',
-  'CREATE CONSTRAINT FOR (c:Cancion) REQUIRE c.id IS UNIQUE',
-  'CREATE CONSTRAINT FOR (f:Fabrica) REQUIRE f.id IS UNIQUE',
-  'CREATE CONSTRAINT FOR (t:Tematica) REQUIRE t.id IS UNIQUE',
-
-  // Other unique constraints
-  'CREATE CONSTRAINT FOR (u:Usuario) REQUIRE u.email IS UNIQUE',
-  'CREATE CONSTRAINT FOR (u:Usuario) REQUIRE (u.youtubeHandle IS NOT NULL AND u.youtubeHandle IS UNIQUE)',
-  'CREATE CONSTRAINT FOR (a:Artista) REQUIRE a.name IS UNIQUE',
-  'CREATE CONSTRAINT FOR (t:Tematica) REQUIRE t.name IS UNIQUE',
-  'CREATE CONSTRAINT FOR (f:Fabrica) REQUIRE f.youtubeUrl IS UNIQUE',
-
-  // Required property constraints
-  'CREATE CONSTRAINT FOR (u:Usuario) REQUIRE (u.email IS NOT NULL AND u.role IS NOT NULL)',
-  'CREATE CONSTRAINT FOR (j:Jingle) REQUIRE j.youtubeUrl IS NOT NULL',
-  'CREATE CONSTRAINT FOR (a:Artista) REQUIRE a.name IS NOT NULL',
-  'CREATE CONSTRAINT FOR (c:Cancion) REQUIRE c.title IS NOT NULL',
-  'CREATE CONSTRAINT FOR (f:Fabrica) REQUIRE (f.title IS NOT NULL AND f.date IS NOT NULL AND f.youtubeUrl IS NOT NULL)',
-  'CREATE CONSTRAINT FOR (t:Tematica) REQUIRE t.name IS NOT NULL'
+  // Unique ID constraints only - matching successful import
+  'CREATE CONSTRAINT id_Artista_uniq IF NOT EXISTS FOR (n:Artista) REQUIRE (n.id) IS UNIQUE',
+  'CREATE CONSTRAINT id_Cancion_uniq IF NOT EXISTS FOR (n:Cancion) REQUIRE (n.id) IS UNIQUE',
+  'CREATE CONSTRAINT id_Fabrica_uniq IF NOT EXISTS FOR (n:Fabrica) REQUIRE (n.id) IS UNIQUE',
+  'CREATE CONSTRAINT id_Jingle_uniq IF NOT EXISTS FOR (n:Jingle) REQUIRE (n.id) IS UNIQUE',
+  'CREATE CONSTRAINT id_Tematica_uniq IF NOT EXISTS FOR (n:Tematica) REQUIRE (n.id) IS UNIQUE',
+  'CREATE CONSTRAINT id_Usuario_uniq IF NOT EXISTS FOR (n:Usuario) REQUIRE (n.id) IS UNIQUE'
 ];
 
 const indexes = [
@@ -43,7 +28,10 @@ export async function setupSchema() {
     console.log('Dropping existing constraints and indexes...');
     // Get existing constraints
     const existingConstraints = await client.executeQuery<{ name: string }>(
-      'SHOW CONSTRAINTS'
+      'SHOW CONSTRAINTS',
+      {},
+      undefined,
+      true
     );
     
     // Drop existing constraints

@@ -5,7 +5,7 @@
 nodes:
   usuarios:
     - id: "admin-user" # Will be replaced with UUID
-      email: "jingle.com"
+      email: "jinglero.londres@gmail.com"
       role: "ADMIN"
       youtubeHandle: "jingleroAdmin"
       createdAt: "2025-10-14T10:00:00Z"
@@ -13,15 +13,15 @@ nodes:
       updatedAt: "2025-10-14T10:00:00Z"
 
   jingles:
-    - id: "example-jingle" # Will be replaced with UUID
-      youtubeUrl: "https://youtube.com/watch?v=videoId&t=123"
-      timestamp: 123
-      title: "Example Transition"
-      comment: "Classic transition using the bass line"
-      commentAuthor: "jingleroAdmin"
+    - id: "JIN-XZABC" # Will be replaced with UUID
+      youtubeUrl: "https://youtube.com/watch?v=kRsGOApOqkQ&t=1275"
+      timestamp: 1275
+      title: "Nunca serás un jinglero"
+      comment: "21:15 -  Raros peinados nuevos - Charly García // Nunca serás un jinglero - Lucas Niro"
+      commentAuthor: "cammymooncarp4833"
       lyrics: "Partial lyrics if available"
-      songTitle: "Original Song Title"
-      artistName: "Original Artist"
+      songTitle: "Raros peinados nuevos"
+      artistName: "Charly García"
       genre: "Rock"
       isJinglazo: true
       isJinglazoDelDia: false
@@ -30,41 +30,47 @@ nodes:
       updatedAt: "2025-10-14T10:00:00Z"
 
   artistas:
-    - id: "example-artist" # Will be replaced with UUID
-      name: "Original Artist"
+    - id: "example-autor" # Will be replaced with UUID
+      name: "Charly García"
+      isUsuario: false
+      createdAt: "2025-10-14T10:00:00Z"
+      updatedAt: "2025-10-14T10:00:00Z"
+
+    - id: "example-jinglero" # Will be replaced with UUID
+      name: "Lucas Niro"
       isUsuario: false
       createdAt: "2025-10-14T10:00:00Z"
       updatedAt: "2025-10-14T10:00:00Z"
 
   canciones:
     - id: "example-song" # Will be replaced with UUID
-      title: "Original Song Title"
-      album: "Album Name"
-      year: 2020
+      title: "Raros peinados nuevos"
+      album: "Piano Bar"
+      year: 1984
       genre: "Rock"
-      youtubeMusic: "https://music.youtube.com/watch?v=musicId"
-      lyrics: "https://genius.com/songs/xyz"
+      youtubeMusic: "https://www.youtube.com/watch?v=chy_OocVVmo"
+      lyrics: "https://www.letras.com/charly-garcia/196776/"
       createdAt: "2025-10-14T10:00:00Z"
       updatedAt: "2025-10-14T10:00:00Z"
 
   fabricas:
-    - id: "videoId" # Use actual YouTube video ID
-      title: "La Fabrica de Jingles - Episode Title"
-      date: "2025-10-14T10:00:00Z"
-      youtubeUrl: "https://youtube.com/watch?v=videoId"
-      visualizations: 1000
+    - id: "kRsGOApOqkQ" # Use actual YouTube video ID
+      title: "REIMPRIMIME LA BOLETA | LA FÁBRICA DE JINGLES"
+      date: "2025-10-09T10:00:00Z"
+      youtubeUrl: "https://youtube.com/watch?v=kRsGOApOqkQ"
+      visualizations: 125836
       likes: 100
       description: "Full episode description from YouTube"
-      contents: "Timestamped content list from YouTube comment"
+      contents: "2:55 - Pepas - Farruko // Reimprimime la boleta que las del pelado ya nos quedan viejas - el Negro Andante\n4:46 - Pasame la botella // Cambiame la boleta voy a poner a Karen Reichardt\n6:00 - La Sirenita- Bajo del mar// abrigado en el movistar - Jinglera princesa\n8:16 - Hava Naguila - Abraham idelsohn// Lava Karina Lava - \n10:32 - Amor de verano - Airbag//Pago de Fred Machado \n12:56 - El pájaro vio el cielo y se voló- Perro Serrano (los autenticos decadentes)//  - Marquitos \n16:21 - Tu Vicio - Charly García// Soy un virgo más \n18:05 - 19 días y 500 noches - Sabina //  Lauti el monje cortoplacista\n21:15 -  Raros peinados nuevos - Charly García // Nunca serás un jinglero - Lucas Niro\n24:17 - Reyes de la noche - Guasones // que demencia hay en la libertad.  - Nico Díaz\n 26:41 -  Cerca de la revolución- Charly García // Mi Pelopincho - Nico Alvarez\n 28:32 -  Pijamas - Babasónicos // te llame Diego Iglesias - FONAMOR\n31:21 - Azucar Amargo - Fey // Eres amigo de un narco jajajajajjja - Mati Mowszet\n 34:16 - Hay que venir al sur- Rafaella Carrá // para joder al peluca hay que votar al Fitu\n35:42 - Hasta abajo - Don Omar // Y el pelado se bajó - Pedrillom \n37:13 -  Bésame - la Champions Liga // Jose luis Espert - Los jingleros troskos"
       status: "COMPLETED"
       createdAt: "2025-10-14T10:00:00Z"
       updatedAt: "2025-10-14T10:00:00Z"
 
   tematicas:
     - id: "example-topic" # Will be replaced with UUID
-      name: "Sample Topic"
-      category: "CULTURA" # One of: ACTUALIDAD, POLITICA, CULTURA, GELATINA
-      description: "Description of the topic and its significance"
+      name: "Milei en Movistar Arena"
+      category: "ACTUALIDAD" # One of: ACTUALIDAD, POLITICA, CULTURA, GELATINA
+      description: "Milei hizo un concierto en el Movistar Arena y canto Jingles."
       createdAt: "2025-10-14T10:00:00Z"
       updatedAt: "2025-10-14T10:00:00Z"
 
@@ -72,21 +78,21 @@ relationships:
   - type: "APPEARS_IN"
     from:
       type: "jingles"
-      id: "example-jingle"
+      id: "JIN-XZABC"
     to:
       type: "fabricas"
-      id: "videoId"
+      id: "kRsGOApOqkQ"
     properties:
-      order: 1
-      timestamp: 123
+      order: 9
+      timestamp: 1275
 
   - type: "JINGLERO_DE"
     from:
       type: "artistas"
-      id: "example-artist"
+      id: "example-jinglero"
     to:
       type: "jingles"
-      id: "example-jingle"
+      id: "JIN-XZABC"
     properties:
       status: "CONFIRMED"
       createdAt: "2025-10-14T10:00:00Z"
@@ -94,7 +100,7 @@ relationships:
   - type: "AUTOR_DE"
     from:
       type: "artistas"
-      id: "example-artist"
+      id: "example-autor"
     to:
       type: "canciones"
       id: "example-song"

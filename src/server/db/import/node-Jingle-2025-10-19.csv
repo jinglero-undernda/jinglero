@@ -1,0 +1,5 @@
+id,youtubeUrl,timestamp,youtubeClipUrl,title,comment,lyrics,songTitle,artistName,genre,isJinglazo,isJinglazoDelDia,isPrecario,isLive,createdAt,updatedAt
+JIN-0001,,00:02:50,,Cluacas,"2:50 - Manuel Santillán, el León - Los Fabulosos Cadillacs - Lucas Niro - cluacas",,"Manuel Santillán, el León",Los Fabulosos Cadillacs,Reggae,TRUE,TRUE,FALSE,FALSE,2025-10-19,2025-10-19
+JIN-0002,,00:05:10,,,5:10 - El Infierno Está Encantador Esta Noche - Patricio Rey y sus Redonditos de Ricota - Mati Mowszet & Héctor Camaño - por qué el peaje no pagó,,El Infierno Está Encantador Esta Noche,Patricio Rey y sus Redonditos de Ricota,Rock,TRUE,FALSE,TRUE,FALSE,2025-10-19,2025-10-19
+JIN-0003,,00:07:14,,,7:14 - Estás Frito Angelito - Patricio Rey y sus Redonditos de Ricota - Lucas Torres,,Estás Frito Angelito,Patricio Rey y sus Redonditos de Ricota,Rock,FALSE,FALSE,FALSE,FALSE,2025-10-19,2025-10-19
+JIN-0004,,00:09:06,,,9:06 - Esperando el Impacto - Bersuit Vergarabat - Octa - JINGLAZO EMOTIVO,,Esperando el Impacto,Bersuit Vergarabat,Pop,TRUE,FALSE,TRUE,FALSE,2025-10-19,2025-10-19

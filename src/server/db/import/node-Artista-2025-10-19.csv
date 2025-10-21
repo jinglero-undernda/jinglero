@@ -1,0 +1,10 @@
+id,name,stageName,idUsuario,nationality,isArg,youtubeHandle,instagramHandle,twitterHandle,facebookProfile,website,bio,createdAt,updatedAt
+ART-001,Los Fabulosos Cadillacs,,,EE UU,FALSE,https://music.youtube.com/channel/UCS7dfokaYTjV6M-cLJEW5RA,,testTwitter,,,Test bio,2025-10-19,2025-10-19
+ART-002,Patricio Rey y sus Redonditos de Ricota,,,Argentina,TRUE,,,,,Test website,,2025-10-19,2025-10-19
+ART-003,Bersuit Vergarabat,,,Argentina,TRUE,,,,Test facebook,,,2025-10-19,2025-10-19
+ART-004,Lucas Niro,,,Argentina,TRUE,,,,,,,2025-10-19,2025-10-19
+ART-005,Matias Mowszet,Mati Mowszet,,Gelatina,FALSE,,,,,,,2025-10-19,2025-10-19
+ART-006,Héctor Camaño,,,Brasil,FALSE,,,,,,,2025-10-19,2025-10-19
+ART-007,Lucas Torres,,,Argentina,TRUE,,,,,,,2025-10-19,2025-10-19
+ART-008,Octavio Gencarelli,Octa,,Argentina,TRUE,,,,,,,2025-10-19,2025-10-19
+ART-009,Javier Reznik,,,,,@javirez_ahre,,,,,,,

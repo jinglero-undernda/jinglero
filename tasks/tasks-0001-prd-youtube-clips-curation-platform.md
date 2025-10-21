@@ -33,8 +33,8 @@
   - [x] 1.2 Add DB client wrapper for Neo4j in `src/server/db/index.ts`
   - [x] 1.3 Design initial graph schema for: Users, Clips, Songs, Artists, Streams, Terms
   - [x] 1.4 Implement migration/seed script to create example nodes and relationships
-  - [ ] 1.5 Create REST API endpoints for CRUD on Clips and Terms in `src/server/api/videos.ts`
-  - [ ] 1.6 Add environment configuration and `.env.example`
+  - [x] 1.5 Create REST API endpoints for CRUD on Clips and Terms in `src/server/api/videos.ts`
+  - [x] 1.6 Add environment configuration and `.env.example`
   - [ ] 1.7 Document API surface in a `docs/api.md` (minimal OpenAPI/endpoint list)
   - [ ] 1.8 Add a simple in-memory fallback mode for tests/local dev
   - [ ] Acceptance: Automated migration runs and seed data load; integration test that creates/reads a Clip via the API and validates graph relationships

@@ -1,4 +1,4 @@
-import neo4j, { Driver, Session, Transaction } from 'neo4j-driver';
+import neo4j, { Driver, Session, ManagedTransaction, Record as Neo4jRecord } from 'neo4j-driver';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -17,8 +17,14 @@ export class Neo4jClient {
       throw new Error('NEO4J_PASSWORD must be set in environment variables');
     }
 
+    // Configure database options for AuraDB
+    const config = {
+      maxConnectionPoolSize: 100,
+      connectionTimeout: 30000,
+    };
+
     // For AuraDB, encryption is handled by the neo4j+s:// protocol
-    this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password));
+    this.driver = neo4j.driver(uri, neo4j.auth.basic(user, password), config);
   }
 
   public static getInstance(): Neo4jClient {
@@ -28,23 +34,28 @@ export class Neo4jClient {
     return Neo4jClient.instance;
   }
 
-  public async getSession(): Promise<Session> {
-    return this.driver.session();
+  public async getSession(database?: string): Promise<Session> {
+    return this.driver.session({ database });
   }
 
   public async executeQuery<T>(
     cypher: string,
     params: Record<string, any> = {},
-    database?: string
+    database?: string,
+    isWrite: boolean = false
   ): Promise<T[]> {
-    const session = this.driver.session({ database });
+    const session = this.driver.session({
+      database,
+      defaultAccessMode: isWrite ? 'WRITE' : 'READ'
+    });
     try {
-      const result = await session.executeRead(async (tx) => {
+      const execute = isWrite ? session.executeWrite.bind(session) : session.executeRead.bind(session);
+      const result = await execute(async (tx: ManagedTransaction) => {
         const queryResult = await tx.run(cypher, params);
-        return queryResult.records.map(record => {
-          const item: any = {};
-          record.keys.forEach(key => {
-            item[key] = record.get(key);
+        return queryResult.records.map((record: Neo4jRecord) => {
+          const item: Record<string, any> = {};
+          record.keys.forEach((key: PropertyKey) => {
+            item[key.toString()] = record.get(key.toString());
           });
           return item as T;
         });

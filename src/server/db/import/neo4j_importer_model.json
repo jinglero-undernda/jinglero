@@ -1,0 +1,2619 @@
+{
+  "version": "2.4.0-beta.0",
+  "visualisation": {
+    "nodes": [
+      {
+        "id": "n:0",
+        "position": {
+          "x": 145.30425705617014,
+          "y": 64.00161930149443
+        }
+      },
+      {
+        "id": "n:1",
+        "position": {
+          "x": 49.94380189667628,
+          "y": 76.36258977652011
+        }
+      },
+      {
+        "id": "n:2",
+        "position": {
+          "x": 142.21530845047425,
+          "y": -35.024626284861355
+        }
+      },
+      {
+        "id": "n:3",
+        "position": {
+          "x": 15.365243107982678,
+          "y": -32.32484796284916
+        }
+      },
+      {
+        "id": "n:4",
+        "position": {
+          "x": 97.61876737444386,
+          "y": -173.337206566178
+        }
+      },
+      {
+        "id": "n:5",
+        "position": {
+          "x": -90.78306906804036,
+          "y": 94.76824405529771
+        }
+      }
+    ]
+  },
+  "dataModel": {
+    "version": "2.4.0-beta.0",
+    "graphSchemaRepresentation": {
+      "version": "1.0.0",
+      "graphSchema": {
+        "nodeLabels": [
+          {
+            "$id": "nl:0",
+            "token": "Artista",
+            "properties": [
+              {
+                "$id": "p:0_0",
+                "token": "id",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_1",
+                "token": "name",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_2",
+                "token": "stageName",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_3",
+                "token": "idUsuario",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_4",
+                "token": "nationality",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_5",
+                "token": "isArg",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_6",
+                "token": "youtubeHandle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_7",
+                "token": "instagramHandle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_8",
+                "token": "twitterHandle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_9",
+                "token": "facebookProfile",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_10",
+                "token": "website",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_11",
+                "token": "bio",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_12",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:0_13",
+                "token": "updatedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              }
+            ]
+          },
+          {
+            "$id": "nl:1",
+            "token": "Cancion",
+            "properties": [
+              {
+                "$id": "p:1_0",
+                "token": "id",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_1",
+                "token": "title",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_2",
+                "token": "album",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_3",
+                "token": "year",
+                "type": {
+                  "type": "integer"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_4",
+                "token": "genre",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_5",
+                "token": "youtubeMusic",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_6",
+                "token": "lyrics",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_7",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:1_8",
+                "token": "updatedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              }
+            ]
+          },
+          {
+            "$id": "nl:2",
+            "token": "Fabrica",
+            "properties": [
+              {
+                "$id": "p:2_0",
+                "token": "id",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_1",
+                "token": "title",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_2",
+                "token": "date",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_3",
+                "token": "youtubeUrl",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_4",
+                "token": "visualizations",
+                "type": {
+                  "type": "integer"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_5",
+                "token": "likes",
+                "type": {
+                  "type": "integer"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_6",
+                "token": "description",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_7",
+                "token": "contents",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_8",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_9",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:2_10",
+                "token": "updatedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              }
+            ]
+          },
+          {
+            "$id": "nl:3",
+            "token": "Jingle",
+            "properties": [
+              {
+                "$id": "p:3_0",
+                "token": "id",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_1",
+                "token": "youtubeUrl",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_2",
+                "token": "timestamp",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_3",
+                "token": "youtubeClipUrl",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_4",
+                "token": "title",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_5",
+                "token": "comment",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_6",
+                "token": "lyrics",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_7",
+                "token": "songTitle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_8",
+                "token": "artistName",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_9",
+                "token": "genre",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_10",
+                "token": "isJinglazo",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_11",
+                "token": "isJinglazoDelDia",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_12",
+                "token": "isPrecario",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_13",
+                "token": "isLive",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_14",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:3_15",
+                "token": "updatedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              }
+            ]
+          },
+          {
+            "$id": "nl:4",
+            "token": "Tematica",
+            "properties": [
+              {
+                "$id": "p:4_0",
+                "token": "id",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:4_1",
+                "token": "name",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:4_2",
+                "token": "category",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:4_3",
+                "token": "description",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:4_4",
+                "token": "createdAt",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:4_5",
+                "token": "updatedAt",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              }
+            ]
+          },
+          {
+            "$id": "nl:5",
+            "token": "Usuario",
+            "properties": [
+              {
+                "$id": "p:5_0",
+                "token": "id",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_1",
+                "token": "email",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_2",
+                "token": "role",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_3",
+                "token": "artistId",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_4",
+                "token": "displayName",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_5",
+                "token": "profilePictureUrl",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_6",
+                "token": "twitterHandle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_7",
+                "token": "instagramHandle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_8",
+                "token": "facebookProfile",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_9",
+                "token": "youtubeHandle",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_10",
+                "token": "contributionsCount",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_11",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_12",
+                "token": "lastLogin",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              },
+              {
+                "$id": "p:5_13",
+                "token": "updatedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": false
+              }
+            ]
+          }
+        ],
+        "relationshipTypes": [
+          {
+            "$id": "rt:1",
+            "token": "APPEARS_IN",
+            "properties": [
+              {
+                "$id": "p:1",
+                "token": "order",
+                "type": {
+                  "type": "integer"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:2",
+                "token": "timestamp",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "rt:2",
+            "token": "VERSIONA",
+            "properties": [
+              {
+                "$id": "p:3",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:4",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "rt:3",
+            "token": "TAGGED_WITH",
+            "properties": [
+              {
+                "$id": "p:5",
+                "token": "isPrimary",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:6",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "rt:4",
+            "token": "AUTOR_DE",
+            "properties": [
+              {
+                "$id": "p:7",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:8",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "rt:5",
+            "token": "JINGLERO_DE",
+            "properties": [
+              {
+                "$id": "p:9",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:10",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "rt:6",
+            "token": "SOY_YO",
+            "properties": [
+              {
+                "$id": "p:11",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:12",
+                "token": "requestedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:13",
+                "token": "isVerified",
+                "type": {
+                  "type": "boolean"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:14",
+                "token": "verifiedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:15",
+                "token": "verifiedBy",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          },
+          {
+            "$id": "rt:7",
+            "token": "REACCION_A",
+            "properties": [
+              {
+                "$id": "p:16",
+                "token": "type",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:17",
+                "token": "createdAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:18",
+                "token": "updatedAt",
+                "type": {
+                  "type": "datetime"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:19",
+                "token": "removedAt",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              }
+            ]
+          }
+        ],
+        "nodeObjectTypes": [
+          {
+            "$id": "n:0",
+            "labels": [
+              {
+                "$ref": "#nl:0"
+              }
+            ]
+          },
+          {
+            "$id": "n:1",
+            "labels": [
+              {
+                "$ref": "#nl:1"
+              }
+            ]
+          },
+          {
+            "$id": "n:2",
+            "labels": [
+              {
+                "$ref": "#nl:2"
+              }
+            ]
+          },
+          {
+            "$id": "n:3",
+            "labels": [
+              {
+                "$ref": "#nl:3"
+              }
+            ]
+          },
+          {
+            "$id": "n:4",
+            "labels": [
+              {
+                "$ref": "#nl:4"
+              }
+            ]
+          },
+          {
+            "$id": "n:5",
+            "labels": [
+              {
+                "$ref": "#nl:5"
+              }
+            ]
+          }
+        ],
+        "relationshipObjectTypes": [
+          {
+            "$id": "r:1",
+            "type": {
+              "$ref": "#rt:1"
+            },
+            "from": {
+              "$ref": "#n:3"
+            },
+            "to": {
+              "$ref": "#n:2"
+            }
+          },
+          {
+            "$id": "r:2",
+            "type": {
+              "$ref": "#rt:2"
+            },
+            "from": {
+              "$ref": "#n:3"
+            },
+            "to": {
+              "$ref": "#n:1"
+            }
+          },
+          {
+            "$id": "r:3",
+            "type": {
+              "$ref": "#rt:3"
+            },
+            "from": {
+              "$ref": "#n:3"
+            },
+            "to": {
+              "$ref": "#n:4"
+            }
+          },
+          {
+            "$id": "r:4",
+            "type": {
+              "$ref": "#rt:4"
+            },
+            "from": {
+              "$ref": "#n:0"
+            },
+            "to": {
+              "$ref": "#n:1"
+            }
+          },
+          {
+            "$id": "r:5",
+            "type": {
+              "$ref": "#rt:5"
+            },
+            "from": {
+              "$ref": "#n:0"
+            },
+            "to": {
+              "$ref": "#n:3"
+            }
+          },
+          {
+            "$id": "r:6",
+            "type": {
+              "$ref": "#rt:6"
+            },
+            "from": {
+              "$ref": "#n:5"
+            },
+            "to": {
+              "$ref": "#n:0"
+            }
+          },
+          {
+            "$id": "r:7",
+            "type": {
+              "$ref": "#rt:7"
+            },
+            "from": {
+              "$ref": "#n:5"
+            },
+            "to": {
+              "$ref": "#n:3"
+            }
+          }
+        ],
+        "constraints": [
+          {
+            "$id": "c:1",
+            "name": "id_Cancion_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:1"
+            },
+            "properties": [
+              {
+                "$ref": "#p:1_0"
+              }
+            ]
+          },
+          {
+            "$id": "c:2",
+            "name": "id_Jingle_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:3"
+            },
+            "properties": [
+              {
+                "$ref": "#p:3_0"
+              }
+            ]
+          },
+          {
+            "$id": "c:3",
+            "name": "id_Fabrica_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:2"
+            },
+            "properties": [
+              {
+                "$ref": "#p:2_0"
+              }
+            ]
+          },
+          {
+            "$id": "c:4",
+            "name": "id_Usuario_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:5"
+            },
+            "properties": [
+              {
+                "$ref": "#p:5_0"
+              }
+            ]
+          },
+          {
+            "$id": "c:5",
+            "name": "id_Artista_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:0"
+            },
+            "properties": [
+              {
+                "$ref": "#p:0_0"
+              }
+            ]
+          },
+          {
+            "$id": "c:6",
+            "name": "id_Tematica_uniq",
+            "constraintType": "uniqueness",
+            "entityType": "node",
+            "nodeLabel": {
+              "$ref": "#nl:4"
+            },
+            "properties": [
+              {
+                "$ref": "#p:4_0"
+              }
+            ]
+          }
+        ],
+        "indexes": []
+      }
+    },
+    "graphSchemaExtensionsRepresentation": {
+      "nodeKeyProperties": [
+        {
+          "node": {
+            "$ref": "#n:1"
+          },
+          "keyProperty": {
+            "$ref": "#p:1_0"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:3"
+          },
+          "keyProperty": {
+            "$ref": "#p:3_0"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:2"
+          },
+          "keyProperty": {
+            "$ref": "#p:2_0"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:5"
+          },
+          "keyProperty": {
+            "$ref": "#p:5_0"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:0"
+          },
+          "keyProperty": {
+            "$ref": "#p:0_0"
+          }
+        },
+        {
+          "node": {
+            "$ref": "#n:4"
+          },
+          "keyProperty": {
+            "$ref": "#p:4_0"
+          }
+        }
+      ]
+    },
+    "graphMappingRepresentation": {
+      "dataSourceSchema": {
+        "type": "local",
+        "tableSchemas": [
+          {
+            "name": "node-Artista-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": "id",
+                "sample": "ART-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "name",
+                "sample": "Los Fabulosos Cadillacs",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "stageName",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "idUsuario",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "nationality",
+                "sample": "EE UU",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "isArg",
+                "sample": "FALSE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "youtubeHandle",
+                "sample": "https://music.youtube.com/channel/UCS7dfokaYTjV6M-cLJEW5RA",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "instagramHandle",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "twitterHandle",
+                "sample": "testTwitter",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "facebookProfile",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "website",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "bio",
+                "sample": "Test bio",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "node-Cancion-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": "id",
+                "sample": "CAN-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "title",
+                "sample": "Manuel Santillán, el León",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "album",
+                "sample": "El Leon",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "year",
+                "sample": "1992",
+                "recommendedType": {
+                  "type": "integer"
+                }
+              },
+              {
+                "name": "genre",
+                "sample": "Reggae",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "youtubeMusic",
+                "sample": "https://music.youtube.com/watch?v=3iMg1D-eFXM",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "lyrics",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-09-10",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "node-Fabrica-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": "id",
+                "sample": "0hmxZPp0xq0",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "title",
+                "sample": "Quisiera ser de Glew",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "date",
+                "sample": "2025-06-05",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "youtubeUrl",
+                "sample": "https://www.youtube.com/watch?v=0hmxZPp0xq0",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "visualizations",
+                "sample": "200",
+                "recommendedType": {
+                  "type": "integer"
+                }
+              },
+              {
+                "name": "likes",
+                "sample": "100",
+                "recommendedType": {
+                  "type": "integer"
+                }
+              },
+              {
+                "name": "description",
+                "sample": "Test Description",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "contents",
+                "sample": "Test Contents",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "status",
+                "sample": "TBC",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-06-05",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "node-Jingle-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": "id",
+                "sample": "JIN-0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "youtubeUrl",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "timestamp",
+                "sample": "00:02:50",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "youtubeClipUrl",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "title",
+                "sample": "Cluacas",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "comment",
+                "sample": "2:50 - Manuel Santillán, el León - Los Fabulosos Cadillacs - Lucas Niro - cluacas",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "lyrics",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "songTitle",
+                "sample": "Manuel Santillán, el León",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "artistName",
+                "sample": "Los Fabulosos Cadillacs",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "genre",
+                "sample": "Reggae",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "isJinglazo",
+                "sample": "TRUE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "isJinglazoDelDia",
+                "sample": "TRUE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "isPrecario",
+                "sample": "FALSE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "isLive",
+                "sample": "FALSE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "node-Tematica-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": "id",
+                "sample": "TEM-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "name",
+                "sample": "Juliana Santillan",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "category",
+                "sample": "GENTE",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "description",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          {
+            "name": "node-Usuario-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": "id",
+                "sample": "U0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "email",
+                "sample": "jinglero.longres@gmail.com",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "role",
+                "sample": "ADMIN",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "artistId",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "displayName",
+                "sample": "El Jinglero sabe",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "profilePictureUrl",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "twitterHandle",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "instagramHandle",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "facebookProfile",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "youtubeHandle",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "contributionsCount",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "lastLogin",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Artista-AUTOR_DE-Cancion-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "ART-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "CAN-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "status",
+                "sample": "CONFIRMED",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Artista-JINGLERO_DE-Jingle-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "ART-004",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "JIN-0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "status",
+                "sample": "CONFIRMED",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Jingle-APPEARS_IN-Fabrica-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "JIN-0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "0hmxZPp0xq0",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "order",
+                "sample": "1",
+                "recommendedType": {
+                  "type": "integer"
+                }
+              },
+              {
+                "name": "timestamp",
+                "sample": "00:02:50",
+                "recommendedType": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Jingle-TAGGED_WITH-Tematica-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "JIN-0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "TEM-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "isPrimary",
+                "sample": "FALSE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Jingle-VERSIONA-Cancion-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "JIN-0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "CAN-001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "status",
+                "sample": "DRAFT",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Usuario-REACCIONA_A-Jingle-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "U0002",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "JIN-0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "type",
+                "sample": "ME_GUSTA",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "createdAt",
+                "sample": "2025-09-25",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "updatedAt",
+                "sample": "2025-09-25",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "removedAt",
+                "sample": "",
+                "recommendedType": {
+                  "type": "string"
+                }
+              }
+            ]
+          },
+          {
+            "name": "rel-Usuario-SOY_YO-Artista-2025-10-19.csv",
+            "expanded": true,
+            "fields": [
+              {
+                "name": ":START_ID",
+                "sample": "U0003",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": ":END_ID",
+                "sample": "ART-004",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "status",
+                "sample": "VERIFIED",
+                "recommendedType": {
+                  "type": "string"
+                }
+              },
+              {
+                "name": "requestedAt",
+                "sample": "2025-09-25",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "isVerified",
+                "sample": "TRUE",
+                "recommendedType": {
+                  "type": "boolean"
+                }
+              },
+              {
+                "name": "verifiedAt",
+                "sample": "2025-10-19",
+                "recommendedType": {
+                  "type": "datetime"
+                }
+              },
+              {
+                "name": "verifiedBy",
+                "sample": "U0001",
+                "recommendedType": {
+                  "type": "string"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "nodeMappings": [
+        {
+          "node": {
+            "$ref": "#n:0"
+          },
+          "tableName": "node-Artista-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:0_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_1"
+              },
+              "fieldName": "name"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_2"
+              },
+              "fieldName": "stageName"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_3"
+              },
+              "fieldName": "idUsuario"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_4"
+              },
+              "fieldName": "nationality"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_5"
+              },
+              "fieldName": "isArg"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_6"
+              },
+              "fieldName": "youtubeHandle"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_7"
+              },
+              "fieldName": "instagramHandle"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_8"
+              },
+              "fieldName": "twitterHandle"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_9"
+              },
+              "fieldName": "facebookProfile"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_10"
+              },
+              "fieldName": "website"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_11"
+              },
+              "fieldName": "bio"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_12"
+              },
+              "fieldName": "createdAt"
+            },
+            {
+              "property": {
+                "$ref": "#p:0_13"
+              },
+              "fieldName": "updatedAt"
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:1"
+          },
+          "tableName": "node-Cancion-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:1_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_1"
+              },
+              "fieldName": "title"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_2"
+              },
+              "fieldName": "album"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_3"
+              },
+              "fieldName": "year"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_4"
+              },
+              "fieldName": "genre"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_5"
+              },
+              "fieldName": "youtubeMusic"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_6"
+              },
+              "fieldName": "lyrics"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_7"
+              },
+              "fieldName": "createdAt"
+            },
+            {
+              "property": {
+                "$ref": "#p:1_8"
+              },
+              "fieldName": "updatedAt"
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:2"
+          },
+          "tableName": "node-Fabrica-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:2_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_1"
+              },
+              "fieldName": "title"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_2"
+              },
+              "fieldName": "date"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_3"
+              },
+              "fieldName": "youtubeUrl"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_4"
+              },
+              "fieldName": "visualizations"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_5"
+              },
+              "fieldName": "likes"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_6"
+              },
+              "fieldName": "description"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_7"
+              },
+              "fieldName": "contents"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_8"
+              },
+              "fieldName": "status"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_9"
+              },
+              "fieldName": "createdAt"
+            },
+            {
+              "property": {
+                "$ref": "#p:2_10"
+              },
+              "fieldName": "updatedAt"
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:3"
+          },
+          "tableName": "node-Jingle-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:3_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_1"
+              },
+              "fieldName": "youtubeUrl"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_2"
+              },
+              "fieldName": "timestamp"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_3"
+              },
+              "fieldName": "youtubeClipUrl"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_4"
+              },
+              "fieldName": "title"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_5"
+              },
+              "fieldName": "comment"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_6"
+              },
+              "fieldName": "lyrics"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_7"
+              },
+              "fieldName": "songTitle"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_8"
+              },
+              "fieldName": "artistName"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_9"
+              },
+              "fieldName": "genre"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_10"
+              },
+              "fieldName": "isJinglazo"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_11"
+              },
+              "fieldName": "isJinglazoDelDia"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_12"
+              },
+              "fieldName": "isPrecario"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_13"
+              },
+              "fieldName": "isLive"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_14"
+              },
+              "fieldName": "createdAt"
+            },
+            {
+              "property": {
+                "$ref": "#p:3_15"
+              },
+              "fieldName": "updatedAt"
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:4"
+          },
+          "tableName": "node-Tematica-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:4_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:4_1"
+              },
+              "fieldName": "name"
+            },
+            {
+              "property": {
+                "$ref": "#p:4_2"
+              },
+              "fieldName": "category"
+            },
+            {
+              "property": {
+                "$ref": "#p:4_3"
+              },
+              "fieldName": "description"
+            },
+            {
+              "property": {
+                "$ref": "#p:4_4"
+              },
+              "fieldName": "createdAt"
+            },
+            {
+              "property": {
+                "$ref": "#p:4_5"
+              },
+              "fieldName": "updatedAt"
+            }
+          ]
+        },
+        {
+          "node": {
+            "$ref": "#n:5"
+          },
+          "tableName": "node-Usuario-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "property": {
+                "$ref": "#p:5_0"
+              },
+              "fieldName": "id"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_1"
+              },
+              "fieldName": "email"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_2"
+              },
+              "fieldName": "role"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_3"
+              },
+              "fieldName": "artistId"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_4"
+              },
+              "fieldName": "displayName"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_5"
+              },
+              "fieldName": "profilePictureUrl"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_6"
+              },
+              "fieldName": "twitterHandle"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_7"
+              },
+              "fieldName": "instagramHandle"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_8"
+              },
+              "fieldName": "facebookProfile"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_9"
+              },
+              "fieldName": "youtubeHandle"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_10"
+              },
+              "fieldName": "contributionsCount"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_11"
+              },
+              "fieldName": "createdAt"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_12"
+              },
+              "fieldName": "lastLogin"
+            },
+            {
+              "property": {
+                "$ref": "#p:5_13"
+              },
+              "fieldName": "updatedAt"
+            }
+          ]
+        }
+      ],
+      "relationshipMappings": [
+        {
+          "relationship": {
+            "$ref": "#r:1"
+          },
+          "tableName": "rel-Jingle-APPEARS_IN-Fabrica-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "order",
+              "property": {
+                "$ref": "#p:1"
+              }
+            },
+            {
+              "fieldName": "timestamp",
+              "property": {
+                "$ref": "#p:2"
+              }
+            }
+          ],
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          },
+          "toMapping": {
+            "fieldName": ":END_ID"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:2"
+          },
+          "tableName": "rel-Jingle-VERSIONA-Cancion-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "status",
+              "property": {
+                "$ref": "#p:3"
+              }
+            },
+            {
+              "fieldName": "createdAt",
+              "property": {
+                "$ref": "#p:4"
+              }
+            }
+          ],
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          },
+          "toMapping": {
+            "fieldName": ":END_ID"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:3"
+          },
+          "tableName": "rel-Jingle-TAGGED_WITH-Tematica-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "isPrimary",
+              "property": {
+                "$ref": "#p:5"
+              }
+            },
+            {
+              "fieldName": "createdAt",
+              "property": {
+                "$ref": "#p:6"
+              }
+            }
+          ],
+          "toMapping": {
+            "fieldName": ":END_ID"
+          },
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:4"
+          },
+          "tableName": "rel-Artista-AUTOR_DE-Cancion-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "status",
+              "property": {
+                "$ref": "#p:7"
+              }
+            },
+            {
+              "fieldName": "createdAt",
+              "property": {
+                "$ref": "#p:8"
+              }
+            }
+          ],
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          },
+          "toMapping": {
+            "fieldName": ":END_ID"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:5"
+          },
+          "tableName": "rel-Artista-JINGLERO_DE-Jingle-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "status",
+              "property": {
+                "$ref": "#p:9"
+              }
+            },
+            {
+              "fieldName": "createdAt",
+              "property": {
+                "$ref": "#p:10"
+              }
+            }
+          ],
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          },
+          "toMapping": {
+            "fieldName": ":END_ID"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:6"
+          },
+          "tableName": "rel-Usuario-SOY_YO-Artista-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "status",
+              "property": {
+                "$ref": "#p:11"
+              }
+            },
+            {
+              "fieldName": "requestedAt",
+              "property": {
+                "$ref": "#p:12"
+              }
+            },
+            {
+              "fieldName": "isVerified",
+              "property": {
+                "$ref": "#p:13"
+              }
+            },
+            {
+              "fieldName": "verifiedAt",
+              "property": {
+                "$ref": "#p:14"
+              }
+            },
+            {
+              "fieldName": "verifiedBy",
+              "property": {
+                "$ref": "#p:15"
+              }
+            }
+          ],
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          },
+          "toMapping": {
+            "fieldName": ":END_ID"
+          }
+        },
+        {
+          "relationship": {
+            "$ref": "#r:7"
+          },
+          "tableName": "rel-Usuario-REACCIONA_A-Jingle-2025-10-19.csv",
+          "propertyMappings": [
+            {
+              "fieldName": "type",
+              "property": {
+                "$ref": "#p:16"
+              }
+            },
+            {
+              "fieldName": "createdAt",
+              "property": {
+                "$ref": "#p:17"
+              }
+            },
+            {
+              "fieldName": "updatedAt",
+              "property": {
+                "$ref": "#p:18"
+              }
+            },
+            {
+              "fieldName": "removedAt",
+              "property": {
+                "$ref": "#p:19"
+              }
+            }
+          ],
+          "fromMapping": {
+            "fieldName": ":START_ID"
+          },
+          "toMapping": {
+            "fieldName": ":END_ID"
+          }
+        }
+      ]
+    },
+    "configurations": {
+      "idsToIgnore": []
+    }
+  }
+}
