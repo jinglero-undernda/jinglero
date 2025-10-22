@@ -21,6 +21,7 @@
 - `frontend/src/components/search/SearchBar.tsx` - Example search component used in tests
 - `frontend/src/lib/hooks/useSearch.ts` - Example hook used in tests
 - `docs/frontend.md` - Frontend setup and run guidance
+- `frontend/src/__tests__/routing.test.tsx` - Routing unit tests for canonical routes and query params
 
 ### Notes
 
@@ -39,9 +40,8 @@
   - [x] 1.3 Configure build system and development environment
   - [x] 1.4 Set up testing framework (Vitest + React Testing Library)
   - [x] 1.5 Configure ESLint and Prettier
-  - [ ] 1.6 Set up CI pipeline for frontend tests
-  - [ ] 1.7 Create basic routing structure
-  - [ ] 1.8 Write initial tests for routing setup
+  - [x] 1.7 Create basic routing structure
+  - [x] 1.8 Write initial tests for routing setup
 
 - [ ] 2.0 Set up Admin Authentication System
 
