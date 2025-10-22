@@ -56,16 +56,18 @@
 
 - [ ] 3.0 Develop Database Management Interface
 
-  - [ ] 3.1 Create entity type definitions and validation schemas
-  - [ ] 3.2 Build CSV file upload/validation component
-  - [ ] 3.3 Implement CSV parsing and validation service
-  - [ ] 3.4 Create entity list view component with filtering
-  - [ ] 3.5 Build entity creation/edit forms
-  - [ ] 3.6 Implement batch update functionality
-  - [ ] 3.7 Add error handling and user feedback
-  - [ ] 3.8 Create export functionality for each entity type
-  - [ ] 3.9 Write integration tests for database operations
-  - [ ] 3.10 Add data validation unit tests
+  - [ ] 3.1 Update seed.yaml to match the properties definition in types.ts, schema.ts (monitor for discrepancies; if any, types.ts supersedes schema.ts - make updates to if needed). Populate the contents from the x13 .csv files in db/import/ . Where information is not clear add a TBC marker for manual edit.
+  - [ ] 3.3 Create a RESTful API to retrieve entities from seed.yaml file, that will be later replaced by the Core API layer.
+  - [ ] 3.4 Build entity creation/edit forms: CRUD for each node type (x6), CRUD for relationships (x7) with drop-down selection of relevant nodes - (separate edit page per entity, with routes listed in the Admin page body).
+  - [ ] 3.5 Create entity list view component with filtering and link to the entity edit page
+  - [ ] 3.6 Implement CSV parsing and validation service
+  - [ ] 3.7 Implement batch update functionality
+  - [ ] 3.8 Add error handling and user feedback (including confirm deletion)
+  - [ ] 3.9 Create CSV export functionality for each entity type
+  - [ ] 3.10 Build CSV file upload/validation component - add to each entity edit page
+  - [ ] 3.11 Confirm entity type definitions and validation reviewing against changes to db schema definition.
+  - [ ] 3.12 Write integration tests for database operations
+  - [ ] 3.13 Add data validation unit tests
 
 - [ ] 4.0 Design System Integration
 

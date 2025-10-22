@@ -23,13 +23,15 @@ export default function FabricaPage() {
 
   return (
     <main>
+      <nav>
+        <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
+      </nav>
       <h1>Fabrica: {fabrica?.titulo ?? fabricaId}</h1>
       {jingleIndex ? (
         <p>Saltando al jingle #{jingleIndex}</p>
       ) : (
         <p>Lista de jingles disponible aquí.</p>
       )}
-      <Link to="/">Volver al inicio</Link>
     </main>
   );
 }

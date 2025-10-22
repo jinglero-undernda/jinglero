@@ -19,7 +19,15 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Start server
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+// Mount API routes
+import searchRouter from './api/search';
+app.use('/api/search', searchRouter);
+
+// Start server only if this file is the entrypoint
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}
+
+export default app;

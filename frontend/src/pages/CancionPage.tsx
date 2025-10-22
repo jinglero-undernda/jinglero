@@ -14,9 +14,11 @@ export default function CancionPage() {
 
   return (
     <main>
+      <nav>
+        <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
+      </nav>
       <h1>Cancion: {cancion?.titulo ?? cancionId}</h1>
       <p>Información de la cancion aquí.</p>
-      <Link to="/">Volver al inicio</Link>
     </main>
   );
 }
