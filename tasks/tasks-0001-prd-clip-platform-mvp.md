@@ -37,9 +37,8 @@
   - [x] 1.1 Initialize React project with Vite and TypeScript
   - [x] 1.2 Set up project structure (components, pages, lib, styles)
   - [x] 1.3 Configure build system and development environment
-  - [ ] 1.4 Set up testing framework (Jest + React Testing Library)
   - [x] 1.4 Set up testing framework (Vitest + React Testing Library)
-  - [ ] 1.5 Configure ESLint and Prettier
+  - [x] 1.5 Configure ESLint and Prettier
   - [ ] 1.6 Set up CI pipeline for frontend tests
   - [ ] 1.7 Create basic routing structure
   - [ ] 1.8 Write initial tests for routing setup

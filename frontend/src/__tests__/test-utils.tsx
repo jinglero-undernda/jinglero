@@ -26,8 +26,8 @@ function render(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
   return rtlRender(ui, { wrapper: Wrapper, ...options });
 }
 
-// Re-export everything
-export * from '@testing-library/react';
+// Re-export commonly used utilities from testing-library
+export { screen, fireEvent, waitFor, within } from '@testing-library/react';
 
-// Override render method
+// Override render method as default export named render
 export { render };
