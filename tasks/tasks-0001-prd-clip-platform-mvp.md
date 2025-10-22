@@ -12,15 +12,15 @@
 - `src/lib/validation/csvSchema.ts` - CSV validation schemas
 - `src/pages/admin/index.tsx` - Admin dashboard page
 - `src/styles/admin.css` - Admin interface styles
- - `frontend/vite.config.ts` - Vite configuration with path aliases and proxy
- - `frontend/vitest.config.ts` - Vitest configuration for unit tests
- - `frontend/src/__tests__/setup.ts` - Global test setup (Testing Library integration)
- - `frontend/src/__tests__/test-utils.tsx` - Custom render helper with providers
- - `frontend/src/components/__tests__/SearchBar.test.tsx` - Example component tests
- - `frontend/src/lib/__tests__/useSearch.test.ts` - Example hook tests
- - `frontend/src/components/search/SearchBar.tsx` - Example search component used in tests
- - `frontend/src/lib/hooks/useSearch.ts` - Example hook used in tests
- - `docs/frontend.md` - Frontend setup and run guidance
+- `frontend/vite.config.ts` - Vite configuration with path aliases and proxy
+- `frontend/vitest.config.ts` - Vitest configuration for unit tests
+- `frontend/src/__tests__/setup.ts` - Global test setup (Testing Library integration)
+- `frontend/src/__tests__/test-utils.tsx` - Custom render helper with providers
+- `frontend/src/components/__tests__/SearchBar.test.tsx` - Example component tests
+- `frontend/src/lib/__tests__/useSearch.test.ts` - Example hook tests
+- `frontend/src/components/search/SearchBar.tsx` - Example search component used in tests
+- `frontend/src/lib/hooks/useSearch.ts` - Example hook used in tests
+- `docs/frontend.md` - Frontend setup and run guidance
 
 ### Notes
 
@@ -38,7 +38,7 @@
   - [x] 1.2 Set up project structure (components, pages, lib, styles)
   - [x] 1.3 Configure build system and development environment
   - [ ] 1.4 Set up testing framework (Jest + React Testing Library)
-   - [x] 1.4 Set up testing framework (Vitest + React Testing Library)
+  - [x] 1.4 Set up testing framework (Vitest + React Testing Library)
   - [ ] 1.5 Configure ESLint and Prettier
   - [ ] 1.6 Set up CI pipeline for frontend tests
   - [ ] 1.7 Create basic routing structure
