@@ -1,3 +1,6 @@
+// THIS FILE IS NOW SUPERSEDED BY THE CONTENTS IN seed.yaml
+// It may be used as a reference when developing the Core API Layer
+
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { Neo4jClient } from '..';

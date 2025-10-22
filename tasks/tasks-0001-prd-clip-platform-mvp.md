@@ -56,8 +56,11 @@
 
 - [ ] 3.0 Develop Database Management Interface
 
-  - [ ] 3.1 Update seed.yaml to match the properties definition in types.ts, schema.ts (monitor for discrepancies; if any, types.ts supersedes schema.ts - make updates to if needed). Populate the contents from the x13 .csv files in db/import/ . Where information is not clear add a TBC marker for manual edit.
-  - [ ] 3.3 Create a RESTful API to retrieve entities from seed.yaml file, that will be later replaced by the Core API layer.
+  - [x] 3.1 Update seed.yaml to match the properties definition in types.ts, schema.ts (monitor for discrepancies; if any, types.ts supersedes schema.ts - make updates to if needed). Populate the contents from the x13 .csv files in db/import/ . Where information is not clear add a TBC marker for manual edit.
+  - [x] 3.2 Import relationships from rel CSVs
+    - Parsed rel-\*.csv files and added relationship entries under `relationships` in `backend/src/server/db/seed.yaml`.
+  - `backend/src/server/db/seed.yaml` - Seed data generated from CSV imports (created from node-\*.csv files)
+  - [ ] 3.3 Create a RESTful API to CRUD entities from seed.yaml file, that will be later replaced by the Core API layer.
   - [ ] 3.4 Build entity creation/edit forms: CRUD for each node type (x6), CRUD for relationships (x7) with drop-down selection of relevant nodes - (separate edit page per entity, with routes listed in the Admin page body).
   - [ ] 3.5 Create entity list view component with filtering and link to the entity edit page
   - [ ] 3.6 Implement CSV parsing and validation service

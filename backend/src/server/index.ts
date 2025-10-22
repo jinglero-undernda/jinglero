@@ -21,7 +21,9 @@ app.get('/health', (req, res) => {
 
 // Mount API routes
 import searchRouter from './api/search';
+import seedRouter from './api/seed';
 app.use('/api/search', searchRouter);
+app.use('/api/seed', seedRouter);
 
 // Start server only if this file is the entrypoint
 if (require.main === module) {

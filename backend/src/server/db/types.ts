@@ -14,7 +14,7 @@ export enum CategoriaTematica {
   CULTURA = 'CULTURA', // For customary, folklore and traditions, everyday topics
   GELATINA = 'GELATINA', // For Stream-related "slang", inside jokes or reference to the community
   GENTE = 'GENTE', // For people, characters, personalities
-  POLITICA = 'POTITICA' // For elections, candidates, political views
+  POLITICA = 'POLITICA' // For elections, candidates, political views
 }
 
 export interface Usuario {
