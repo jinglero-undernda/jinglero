@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [react()],
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
+    environment: 'happy-dom',
+    setupFiles: './src/__tests__/setup.ts',
     css: true,
     coverage: {
       reporter: ['text', 'json', 'html'],
