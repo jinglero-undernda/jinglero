@@ -1,13 +1,16 @@
-import { Link } from 'react-router-dom';
+import { Link, Routes, Route } from 'react-router-dom';
+import AdminDashboard from './admin/AdminDashboard';
 
 export default function AdminPage() {
   return (
     <main>
       <nav>
-        <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
+        <Link to="/">Inicio</Link> | <Link to="/admin">Admin</Link> | <Link to="/admin/dashboard">Panel</Link>
       </nav>
-      <h1>Admin Dashboard</h1>
-      <p>Área restringida para administradores.</p>
+      <Routes>
+        <Route path="dashboard/*" element={<AdminDashboard />} />
+        <Route path="*" element={<div><h1>Admin</h1><p>Área restringida para administradores.</p></div>} />
+      </Routes>
     </main>
   );
 }

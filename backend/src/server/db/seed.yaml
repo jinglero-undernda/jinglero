@@ -172,6 +172,14 @@ artistas:
     id: ART_t1h2_UZ8c
     createdAt: '2025-10-22T14:16:52.098Z'
     updatedAt: '2025-10-22T14:16:52.098Z'
+  - name: El cuarteto de Nos
+    id: ART_4aDL_H9Vs
+    createdAt: '2025-10-22T15:12:07.186Z'
+    updatedAt: '2025-10-22T15:12:07.186Z'
+  - name: FONAMOR
+    id: ART_dwGC_TJ7l
+    createdAt: '2025-10-22T15:13:38.282Z'
+    updatedAt: '2025-10-22T15:13:38.282Z'
 canciones:
   - id: CAN-001
     title: Manuel Santillán, el León
@@ -221,6 +229,11 @@ fabricas:
     status: TBC
     createdAt: '2025-06-05T00:00:00Z'
     updatedAt: '2025-10-19T00:00:00Z'
+  - title: HOLA QUE TAL SOY DONALD TRUMP
+    youtubeUrl: https://www.youtube.com/watch?v=DBbyI99TtIM
+    id: DBbyI99TtIM
+    createdAt: '2025-10-22T14:39:36.051Z'
+    updatedAt: '2025-10-22T14:39:45.586Z'
 tematicas:
   - id: TEM-001
     name: Juliana Santillan
@@ -264,6 +277,11 @@ tematicas:
     description: null
     createdAt: TBC
     updatedAt: TBC
+  - name: Donald Trump
+    category: GENTE
+    id: TEM_Zj9q_MyJc
+    createdAt: '2025-10-22T15:00:14.342Z'
+    updatedAt: '2025-10-22T15:00:14.342Z'
 jingles:
   - id: JIN-0001
     youtubeUrl: null
@@ -336,6 +354,13 @@ jingles:
     isLive: false
     createdAt: '2025-10-19'
     updatedAt: '2025-10-19'
+  - title: >-
+      3:44 Yendo a la casa de Damián - El Cuarteto de Nos // Humillado en la
+      white house, soy la p*** de Donald Trump - FONAMOR
+    timestamp: '00:03:44'
+    id: JIN_UHUG_MBuT
+    createdAt: '2025-10-22T14:40:26.249Z'
+    updatedAt: '2025-10-22T14:40:26.249Z'
 relationships:
   autor_de:
     - start: ART-001
@@ -375,6 +400,15 @@ relationships:
       end: JIN-0004
       status: CONFIRMED
       createdAt: '2025-10-19'
+    - start: JIN_UHUG_MBuT
+      end: DBbyI99TtIM
+      createdAt: '2025-10-22T14:40:40.741Z'
+    - start: ART-008
+      end: JIN-0001
+      createdAt: '2025-10-22T14:57:50.011Z'
+    - start: ART_dwGC_TJ7l
+      end: JIN_UHUG_MBuT
+      createdAt: '2025-10-22T15:13:50.138Z'
   appears_in:
     - start: JIN-0001
       end: 0hmxZPp0xq0
@@ -421,6 +455,9 @@ relationships:
       end: TEM-007
       isPrimary: true
       createdAt: '2025-10-19'
+    - start: JIN_UHUG_MBuT
+      end: TEM_Zj9q_MyJc
+      createdAt: '2025-10-22T15:00:23.520Z'
   versiona:
     - start: JIN-0001
       end: CAN-001
@@ -457,6 +494,9 @@ relationships:
       createdAt: '2025-09-25'
       updatedAt: '2025-10-19'
       removedAt: null
+    - start: U0003
+      end: JIN-0001
+      createdAt: '2025-10-22T14:59:16.459Z'
   soy_yo:
     - start: U0003
       end: ART-004

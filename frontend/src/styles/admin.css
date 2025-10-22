@@ -1,0 +1,23 @@
+.admin-list {
+  text-align: left;
+  margin: 0;
+  padding: 0;
+}
+.admin-list ul {
+  list-style: none;
+  padding-left: 0;
+}
+.admin-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.entity-form, .entity-edit, .relationship-form {
+  margin: 12px 0;
+  text-align: left;
+}
+.entity-form label, .entity-edit label, .relationship-form label {
+  display: block;
+  margin-bottom: 8px;
+}
+.entity-edit textarea { width: 100%; font-family: monospace; }
+.admin-fabrica-list { max-width: 800px; }
