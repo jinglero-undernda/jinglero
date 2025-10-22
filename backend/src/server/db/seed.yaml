@@ -1,98 +1,94 @@
-# Generated seed.yaml from import CSVs (node-*.csv)
-# Note: Dates are strings in ISO-like format. Fields marked TBC require manual review.
-
 usuarios:
-  - id: "U0001"
-    email: "jinglero.longres@gmail.com"
-    role: "ADMIN"
+  - id: U0001
+    email: jinglero.londres@gmail.com
+    role: ADMIN
     artistId: null
-    displayName: "El Jinglero sabe"
+    displayName: El Jinglero sabe
     profilePictureUrl: null
     twitterHandle: null
     instagramHandle: null
     facebookProfile: null
     youtubeHandle: null
     contributionsCount: 0
-    createdAt: "2025-10-19T00:00:00Z"
-    lastLogin: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "U0002"
-    email: "arqlopezcampo@gmail.com"
-    role: "GUEST"
+    createdAt: '2025-10-19T00:00:00Z'
+    lastLogin: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-22T14:13:45.014Z'
+  - id: U0002
+    email: arqlopezcampo@gmail.com
+    role: GUEST
     artistId: null
-    displayName: "Guillermo"
+    displayName: Guillermo
     profilePictureUrl: null
     twitterHandle: null
     instagramHandle: null
     facebookProfile: null
     youtubeHandle: null
     contributionsCount: 0
-    createdAt: "2025-10-19T00:00:00Z"
-    lastLogin: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "U0003"
-    email: "example@email.com"
-    role: "GUEST"
-    artistId: "ART-004"
-    displayName: "Lucas Niro"
+    createdAt: '2025-10-19T00:00:00Z'
+    lastLogin: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: U0003
+    email: example@email.com
+    role: GUEST
+    artistId: ART-004
+    displayName: Lucas Niro
     profilePictureUrl: null
     twitterHandle: null
     instagramHandle: null
     facebookProfile: null
     youtubeHandle: null
     contributionsCount: 0
-    createdAt: "2025-10-19T00:00:00Z"
-    lastLogin: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-
+    createdAt: '2025-10-19T00:00:00Z'
+    lastLogin: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
 artistas:
-  - id: "ART-001"
-    name: "Los Fabulosos Cadillacs"
+  - id: ART-001
+    name: Los Fabulosos Cadillacs
     stageName: null
     idUsuario: null
-    nationality: "EE UU"
+    nationality: EE UU
     isArg: false
-    youtubeHandle: "https://music.youtube.com/channel/UCS7dfokaYTjV6M-cLJEW5RA"
+    youtubeHandle: https://music.youtube.com/channel/UCS7dfokaYTjV6M-cLJEW5RA
     instagramHandle: null
-    twitterHandle: "testTwitter"
+    twitterHandle: testTwitter
     facebookProfile: null
     website: null
-    bio: "Test bio"
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-002"
-    name: "Patricio Rey y sus Redonditos de Ricota"
+    bio: Test bio
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-002
+    name: Patricio Rey y sus Redonditos de Ricota
     stageName: null
     idUsuario: null
-    nationality: "Argentina"
+    nationality: Argentina
     isArg: true
     youtubeHandle: null
     instagramHandle: null
     twitterHandle: null
     facebookProfile: null
-    website: "Test website"
+    website: Test website
     bio: null
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-003"
-    name: "Bersuit Vergarabat"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-003
+    name: Bersuit Vergarabat
     stageName: null
     idUsuario: null
-    nationality: "Argentina"
+    nationality: Argentina
     isArg: true
     youtubeHandle: null
     instagramHandle: null
     twitterHandle: null
-    facebookProfile: "Test facebook"
+    facebookProfile: Test facebook
     website: null
     bio: null
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-004"
-    name: "Lucas Niro"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-004
+    name: Lucas Niro
     stageName: null
     idUsuario: null
-    nationality: "Argentina"
+    nationality: Argentina
     isArg: true
     youtubeHandle: null
     instagramHandle: null
@@ -100,27 +96,13 @@ artistas:
     facebookProfile: null
     website: null
     bio: null
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-005"
-    name: "Matias Mowszet"
-    stageName: "Mati Mowszet"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-005
+    name: Matias Mowszet
+    stageName: Mati Mowszet
     idUsuario: null
-    nationality: "Gelatina"
-    isArg: false
-    youtubeHandle: null
-    instagramHandle: null
-    twitterHandle: null
-    facebookProfile: null
-    website: null
-    bio: null
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-006"
-    name: "Héctor Camaño"
-    stageName: null
-    idUsuario: null
-    nationality: "Brasil"
+    nationality: Gelatina
     isArg: false
     youtubeHandle: null
     instagramHandle: null
@@ -128,27 +110,27 @@ artistas:
     facebookProfile: null
     website: null
     bio: null
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-007"
-    name: "Lucas Torres"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-006
+    name: Héctor Camaño
     stageName: null
     idUsuario: null
-    nationality: "Argentina"
-    isArg: true
+    nationality: Brasil
+    isArg: false
     youtubeHandle: null
     instagramHandle: null
     twitterHandle: null
     facebookProfile: null
     website: null
     bio: null
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "ART-008"
-    name: "Octavio Gencarelli"
-    stageName: "Octa"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-007
+    name: Lucas Torres
+    stageName: null
     idUsuario: null
-    nationality: "Argentina"
+    nationality: Argentina
     isArg: true
     youtubeHandle: null
     instagramHandle: null
@@ -156,318 +138,330 @@ artistas:
     facebookProfile: null
     website: null
     bio: null
-    createdAt: "2025-10-19"
-    updatedAt: "2025-10-19"
-  - id: "ART-009"
-    name: "Javier Reznik"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: ART-008
+    name: Octavio Gencarelli
+    stageName: Octa
+    idUsuario: null
+    nationality: Argentina
+    isArg: true
+    youtubeHandle: null
+    instagramHandle: null
+    twitterHandle: null
+    facebookProfile: null
+    website: null
+    bio: null
+    createdAt: '2025-10-19'
+    updatedAt: '2025-10-19'
+  - id: ART-009
+    name: Javier Reznik
     stageName: null
     idUsuario: null
     nationality: null
     isArg: false
     youtubeHandle: null
-    instagramHandle: "@javirez_ahre"
+    instagramHandle: '@javirez_ahre'
     twitterHandle: null
     facebookProfile: null
     website: null
     bio: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-
+    createdAt: TBC
+    updatedAt: TBC
+  - name: El Nuevo Artista
+    id: ART_t1h2_UZ8c
+    createdAt: '2025-10-22T14:16:52.098Z'
+    updatedAt: '2025-10-22T14:16:52.098Z'
 canciones:
-  - id: "CAN-001"
-    title: "Manuel Santillán, el León"
-    album: "El Leon"
+  - id: CAN-001
+    title: Manuel Santillán, el León
+    album: El Leon
     year: 1992
-    genre: "Reggae"
-    youtubeMusic: "https://music.youtube.com/watch?v=3iMg1D-eFXM"
+    genre: Reggae
+    youtubeMusic: https://music.youtube.com/watch?v=3iMg1D-eFXM
     lyrics: null
-    createdAt: "2025-09-10T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "CAN-002"
-    title: "El Infierno Está Encantador Esta Noche"
-    album: "Gulp!"
+    createdAt: '2025-09-10T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: CAN-002
+    title: El Infierno Está Encantador Esta Noche
+    album: Gulp!
     year: 1985
-    genre: "Rock Nacional"
-    youtubeMusic: "https://music.youtube.com/watch?v=tXzkP1FbdRw"
+    genre: Rock Nacional
+    youtubeMusic: https://music.youtube.com/watch?v=tXzkP1FbdRw
     lyrics: null
-    createdAt: "2025-09-10T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "CAN-003"
-    title: "Estás Frito Angelito"
-    album: "Ultimo bondi a Finisterre"
+    createdAt: '2025-09-10T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: CAN-003
+    title: Estás Frito Angelito
+    album: Ultimo bondi a Finisterre
     year: 1998
-    genre: "Rock Nacional"
-    youtubeMusic: "https://music.youtube.com/watch?v=k9FokVjN2wg"
+    genre: Rock Nacional
+    youtubeMusic: https://music.youtube.com/watch?v=k9FokVjN2wg
     lyrics: null
-    createdAt: "2025-09-25T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "CAN-004"
-    title: "Esperando el Impacto"
-    album: "Test Testosterona"
+    createdAt: '2025-09-25T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: CAN-004
+    title: Esperando el Impacto
+    album: Test Testosterona
     year: 2005
-    genre: "Pop"
-    youtubeMusic: "https://music.youtube.com/watch?v=nl2_vPev5ig"
+    genre: Pop
+    youtubeMusic: https://music.youtube.com/watch?v=nl2_vPev5ig
     lyrics: null
-    createdAt: "2025-09-25T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-
+    createdAt: '2025-09-25T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
 fabricas:
-  - id: "0hmxZPp0xq0"
-    title: "Quisiera ser de Glew"
-    date: "2025-06-05T00:00:00Z"
-    youtubeUrl: "https://www.youtube.com/watch?v=0hmxZPp0xq0"
+  - id: 0hmxZPp0xq0
+    title: Quisiera ser de Glew
+    date: '2025-06-05T00:00:00Z'
+    youtubeUrl: https://www.youtube.com/watch?v=0hmxZPp0xq0
     visualizations: 200
     likes: 100
-    description: "Test Description"
-    contents: "Test Contents"
-    status: "TBC"
-    createdAt: "2025-06-05T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-
+    description: Test Description
+    contents: Test Contents
+    status: TBC
+    createdAt: '2025-06-05T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
 tematicas:
-  - id: "TEM-001"
-    name: "Juliana Santillan"
-    category: "GENTE"
+  - id: TEM-001
+    name: Juliana Santillan
+    category: GENTE
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-  - id: "TEM-002"
-    name: "Cloacas en PBA"
-    category: "ACTUALIDAD"
+    createdAt: TBC
+    updatedAt: TBC
+  - id: TEM-002
+    name: Cloacas en PBA
+    category: ACTUALIDAD
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-  - id: "TEM-003"
-    name: "Ian Moche"
-    category: "GENTE"
+    createdAt: TBC
+    updatedAt: TBC
+  - id: TEM-003
+    name: Ian Moche
+    category: GENTE
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-  - id: "TEM-004"
-    name: "Peaje"
-    category: "ACTUALIDAD"
+    createdAt: TBC
+    updatedAt: TBC
+  - id: TEM-004
+    name: Peaje
+    category: ACTUALIDAD
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-  - id: "TEM-005"
-    name: "Futbol"
-    category: "CULTURA"
+    createdAt: TBC
+    updatedAt: TBC
+  - id: TEM-005
+    name: Futbol
+    category: CULTURA
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-  - id: "TEM-006"
-    name: "Angel Di Maria"
-    category: "GENTE"
+    createdAt: TBC
+    updatedAt: TBC
+  - id: TEM-006
+    name: Angel Di Maria
+    category: GENTE
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-  - id: "TEM-007"
-    name: "Actualidad"
-    category: "ACTUALIDAD"
+    createdAt: TBC
+    updatedAt: TBC
+  - id: TEM-007
+    name: Actualidad
+    category: ACTUALIDAD
     description: null
-    createdAt: "TBC"
-    updatedAt: "TBC"
-
+    createdAt: TBC
+    updatedAt: TBC
 jingles:
-  - id: "JIN-0001"
+  - id: JIN-0001
     youtubeUrl: null
-    timestamp: "00:02:50"
+    timestamp: '00:02:50'
     youtubeClipUrl: null
-    title: "Cluacas"
-    comment: "2:50 - Manuel Santillán, el León - Los Fabulosos Cadillacs - Lucas Niro - cluacas"
+    title: Cluacas
+    comment: >-
+      2:50 - Manuel Santillán, el León - Los Fabulosos Cadillacs - Lucas Niro -
+      cluacas
     lyrics: null
-    songTitle: "Manuel Santillán, el León"
-    artistName: "Los Fabulosos Cadillacs"
-    genre: "Reggae"
+    songTitle: Manuel Santillán, el León
+    artistName: Los Fabulosos Cadillacs
+    genre: Reggae
     isJinglazo: true
     isJinglazoDelDia: true
     isPrecario: false
     isLive: false
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "JIN-0002"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-19T00:00:00Z'
+  - id: JIN-0002
     youtubeUrl: null
-    timestamp: "00:05:10"
+    timestamp: '00:05:10'
     youtubeClipUrl: null
-    title: null
-    comment: "5:10 - El Infierno Está Encantador Esta Noche - Patricio Rey y sus Redonditos de Ricota - Mati Mowszet & Héctor Camaño - por qué el peaje no pagó"
+    title: El Infierno Está Encantador Esta Noche
+    comment: >-
+      5:10 - El Infierno Está Encantador Esta Noche - Patricio Rey y sus
+      Redonditos de Ricota - Mati Mowszet & Héctor Camaño - por qué el peaje no
+      pagó
     lyrics: null
-    songTitle: "El Infierno Está Encantador Esta Noche"
-    artistName: "Patricio Rey y sus Redonditos de Ricota"
-    genre: "Rock"
+    songTitle: El Infierno Está Encantador Esta Noche
+    artistName: Patricio Rey y sus Redonditos de Ricota
+    genre: Rock
     isJinglazo: true
     isJinglazoDelDia: false
     isPrecario: true
     isLive: false
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "JIN-0003"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-22T14:15:44.217Z'
+  - id: JIN-0003
     youtubeUrl: null
-    timestamp: "00:07:14"
+    timestamp: '00:07:14'
     youtubeClipUrl: null
-    title: null
-    comment: "7:14 - Estás Frito Angelito - Patricio Rey y sus Redonditos de Ricota - Lucas Torres"
+    title: Estás Frito Angelito
+    comment: >-
+      7:14 - Estás Frito Angelito - Patricio Rey y sus Redonditos de Ricota -
+      Lucas Torres
     lyrics: null
-    songTitle: "Estás Frito Angelito"
-    artistName: "Patricio Rey y sus Redonditos de Ricota"
-    genre: "Rock"
+    songTitle: Estás Frito Angelito
+    artistName: Patricio Rey y sus Redonditos de Ricota
+    genre: Rock
     isJinglazo: false
     isJinglazoDelDia: false
     isPrecario: false
     isLive: false
-    createdAt: "2025-10-19T00:00:00Z"
-    updatedAt: "2025-10-19T00:00:00Z"
-  - id: "JIN-0004"
+    createdAt: '2025-10-19T00:00:00Z'
+    updatedAt: '2025-10-22T14:18:35.977Z'
+  - id: JIN-0004
     youtubeUrl: null
-    timestamp: "00:09:06"
+    timestamp: '00:09:06'
     youtubeClipUrl: null
     title: null
-    comment: "9:06 - Esperando el Impacto - Bersuit Vergarabat - Octa - JINGLAZO EMOTIVO"
+    comment: 9:06 - Esperando el Impacto - Bersuit Vergarabat - Octa - JINGLAZO EMOTIVO
     lyrics: null
-    songTitle: "Esperando el Impacto"
-    artistName: "Bersuit Vergarabat"
-    genre: "Pop"
+    songTitle: Esperando el Impacto
+    artistName: Bersuit Vergarabat
+    genre: Pop
     isJinglazo: true
     isJinglazoDelDia: false
     isPrecario: true
     isLive: false
-    createdAt: "2025-10-19"
-    updatedAt: "2025-10-19"
-# Relationships are not fully represented here - those should be added in a later subtask
-# For missing or ambiguous fields we added "TBC" as requested in the task description.
-
+    createdAt: '2025-10-19'
+    updatedAt: '2025-10-19'
 relationships:
   autor_de:
-    - start: "ART-001"
-      end: "CAN-001"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-    - start: "ART-002"
-      end: "CAN-002"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-    - start: "ART-002"
-      end: "CAN-003"
-      status: "DRAFT"
-      createdAt: "2025-10-19"
-    - start: "ART-003"
-      end: "CAN-004"
-      status: "DRAFT"
-      createdAt: "2025-10-19"
-
+    - start: ART-001
+      end: CAN-001
+      status: CONFIRMED
+      createdAt: '2025-10-19'
+    - start: ART-002
+      end: CAN-002
+      status: CONFIRMED
+      createdAt: '2025-10-19'
+    - start: ART-002
+      end: CAN-003
+      status: DRAFT
+      createdAt: '2025-10-19'
+    - start: ART-003
+      end: CAN-004
+      status: DRAFT
+      createdAt: '2025-10-19'
   jinglero_de:
-    - start: "ART-004"
-      end: "JIN-0001"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-    - start: "ART-005"
-      end: "JIN-0002"
-      status: "DRAFT"
-      createdAt: "2025-10-19"
-    - start: "ART-006"
-      end: "JIN-0002"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-    - start: "ART-007"
-      end: "JIN-0003"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-    - start: "ART-008"
-      end: "JIN-0004"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-
+    - start: ART-004
+      end: JIN-0001
+      status: CONFIRMED
+      createdAt: '2025-10-19'
+    - start: ART-005
+      end: JIN-0002
+      status: DRAFT
+      createdAt: '2025-10-19'
+    - start: ART-006
+      end: JIN-0002
+      status: CONFIRMED
+      createdAt: '2025-10-19'
+    - start: ART-007
+      end: JIN-0003
+      status: CONFIRMED
+      createdAt: '2025-10-19'
+    - start: ART-008
+      end: JIN-0004
+      status: CONFIRMED
+      createdAt: '2025-10-19'
   appears_in:
-    - start: "JIN-0001"
-      end: "0hmxZPp0xq0"
+    - start: JIN-0001
+      end: 0hmxZPp0xq0
       order: 1
-      timestamp: "00:02:50"
-    - start: "JIN-0002"
-      end: "0hmxZPp0xq0"
+      timestamp: '00:02:50'
+    - start: JIN-0002
+      end: 0hmxZPp0xq0
       order: 2
-      timestamp: "00:05:10"
-    - start: "JIN-0003"
-      end: "0hmxZPp0xq0"
+      timestamp: '00:05:10'
+    - start: JIN-0003
+      end: 0hmxZPp0xq0
       order: 3
-      timestamp: "00:07:14"
-    - start: "JIN-0004"
-      end: "0hmxZPp0xq0"
+      timestamp: '00:07:14'
+    - start: JIN-0004
+      end: 0hmxZPp0xq0
       order: 4
-      timestamp: "00:09:06"
-
+      timestamp: '00:09:06'
   tagged_with:
-    - start: "JIN-0001"
-      end: "TEM-001"
+    - start: JIN-0001
+      end: TEM-001
       isPrimary: false
-      createdAt: "2025-10-19"
-    - start: "JIN-0001"
-      end: "TEM-002"
+      createdAt: '2025-10-19'
+    - start: JIN-0001
+      end: TEM-002
       isPrimary: true
-      createdAt: "2025-10-19"
-    - start: "JIN-0002"
-      end: "TEM-003"
+      createdAt: '2025-10-19'
+    - start: JIN-0002
+      end: TEM-003
       isPrimary: false
-      createdAt: "2025-10-19"
-    - start: "JIN-0002"
-      end: "TEM-004"
+      createdAt: '2025-10-19'
+    - start: JIN-0002
+      end: TEM-004
       isPrimary: true
-      createdAt: "2025-10-19"
-    - start: "JIN-0003"
-      end: "TEM-005"
+      createdAt: '2025-10-19'
+    - start: JIN-0003
+      end: TEM-005
       isPrimary: false
-      createdAt: "2025-10-19"
-    - start: "JIN-0003"
-      end: "TEM-006"
+      createdAt: '2025-10-19'
+    - start: JIN-0003
+      end: TEM-006
       isPrimary: true
-      createdAt: "2025-10-19"
-    - start: "JIN-0004"
-      end: "TEM-007"
+      createdAt: '2025-10-19'
+    - start: JIN-0004
+      end: TEM-007
       isPrimary: true
-      createdAt: "2025-10-19"
-
+      createdAt: '2025-10-19'
   versiona:
-    - start: "JIN-0001"
-      end: "CAN-001"
-      status: "DRAFT"
-      createdAt: "2025-10-19"
-    - start: "JIN-0002"
-      end: "CAN-002"
-      status: "DRAFT"
-      createdAt: "2025-10-19"
-    - start: "JIN-0003"
-      end: "CAN-003"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-    - start: "JIN-0004"
-      end: "CAN-004"
-      status: "CONFIRMED"
-      createdAt: "2025-10-19"
-
+    - start: JIN-0001
+      end: CAN-001
+      status: DRAFT
+      createdAt: '2025-10-19'
+    - start: JIN-0002
+      end: CAN-002
+      status: DRAFT
+      createdAt: '2025-10-19'
+    - start: JIN-0003
+      end: CAN-003
+      status: CONFIRMED
+      createdAt: '2025-10-19'
+    - start: JIN-0004
+      end: CAN-004
+      status: CONFIRMED
+      createdAt: '2025-10-19'
   reacciona_a:
-    - start: "U0002"
-      end: "JIN-0001"
-      type: "ME_GUSTA"
-      createdAt: "2025-09-25"
-      updatedAt: "2025-09-25"
+    - start: U0002
+      end: JIN-0001
+      type: ME_GUSTA
+      createdAt: '2025-09-25'
+      updatedAt: '2025-09-25'
       removedAt: null
-    - start: "U0002"
-      end: "JIN-0002"
-      type: "ME_GUSTA"
-      createdAt: "2025-09-25"
-      updatedAt: "2025-10-19"
+    - start: U0002
+      end: JIN-0002
+      type: ME_GUSTA
+      createdAt: '2025-09-25'
+      updatedAt: '2025-10-19'
       removedAt: null
-    - start: "U0002"
-      end: "JIN-0002"
-      type: "JINGLAZO"
-      createdAt: "2025-09-25"
-      updatedAt: "2025-10-19"
+    - start: U0002
+      end: JIN-0002
+      type: JINGLAZO
+      createdAt: '2025-09-25'
+      updatedAt: '2025-10-19'
       removedAt: null
-
   soy_yo:
-    - start: "U0003"
-      end: "ART-004"
-      status: "VERIFIED"
-      requestedAt: "2025-09-25"
+    - start: U0003
+      end: ART-004
+      status: VERIFIED
+      requestedAt: '2025-09-25'
       isVerified: true
-      verifiedAt: "2025-10-19"
-      verifiedBy: "U0001"
+      verifiedAt: '2025-10-19'
+      verifiedBy: U0001
