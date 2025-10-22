@@ -1,0 +1,29 @@
+import { useEffect, useState } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import type { Jingle } from '../types';
+
+export default function JinglePage() {
+  const { jingleId } = useParams();
+  const [jingle, setJingle] = useState<Jingle | null>(null);
+
+  useEffect(() => {
+    if (jingleId) {
+      setJingle({
+        id: jingleId,
+        titulo: `Jingle ${jingleId}`,
+        jinglero: { id: 'a1', nombre: 'Jinglero', tipo: 'JINGLERO' },
+        cancionOriginal: { id: 'c1', titulo: 'Cancion', autor: { id: 'ar1', nombre: 'Autor', tipo: 'AUTOR' } },
+        tematicas: [],
+        timestamp: 0,
+      });
+    }
+  }, [jingleId]);
+
+  return (
+    <main>
+      <h1>Jingle: {jingle?.titulo ?? jingleId}</h1>
+      <p>Información del Jingle aquí.</p>
+      <Link to="/">Volver al inicio</Link>
+    </main>
+  );
+}

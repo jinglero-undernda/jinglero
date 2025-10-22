@@ -4,8 +4,8 @@ This document provides instructions for setting up and running the frontend appl
 
 ## Prerequisites
 
-- Node.js 20.11.1 or later
-- npm 10.2.4 or later
+- Node.js 22.12.0 or later (we use Node 22.12.0 in development)
+- npm 10.x
 - nvm (Node Version Manager) recommended for version management
 
 ## Initial Setup
@@ -79,6 +79,31 @@ VITE_API_BASE_URL=http://localhost:3000
 ```
 
 ## Project Structure
+
+## Routing and Shareable Links
+
+The frontend uses React Router for client-side navigation. The main route patterns implemented in the MVP are:
+
+- Home: `/`
+- Fabrica detail: `/f/:fabricaId` — shareable by fabrica UUID. Example: `/f/6f9c2a3b-...`
+- Jingle detail: `/j/:jingleId` — direct link to a Jingle resource. Example: `/j/abcd1234`
+- Cancion detail: `/c/:cancionId` — link to a Cancion (song) page.
+
+Additionally, you can create links to a specific timestamp or jingle index within a Fabrica using query params. Examples:
+
+- Jump to jingle index in a Fabrica: `/f/:fabricaId?j=2` — jumps to the 3rd jingle (0-based indexing is an implementation detail; prefer 1-based for UX).
+- Share with timestamp (future): `/f/:fabricaId?t=123` — starts playback at t seconds.
+
+Notes:
+
+- The route format `/f/:fabricaId` is preferred for readability and SEO over query-only formats like `/f=UUID`.
+- When implementing deep links you should consider URL encoding and validation server-side.
+
+If you later choose to support legacy share tokens like `/f=UUID` and `/j=number` (query-like paths), add a redirect or router parse step to normalize them into the canonical routes above.
+
+## Performance / Data considerations (notes)
+
+If you plan to support fast search and filtering, consider denormalizing or adding useful scalar properties on Neo4j nodes (for example: `titulo`, `youtubeId`, `primaryTematica`, `artistName`) so search queries can match node properties directly instead of traversing relationships. This will improve search performance at the cost of some redundancy. (Do not act on this now; this is a design note only.)
 
 ```
 frontend/
