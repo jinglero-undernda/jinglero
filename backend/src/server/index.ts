@@ -21,10 +21,10 @@ app.get('/health', (req, res) => {
 
 // Mount API routes
 import searchRouter from './api/search';
-import seedRouter from './api/seed';
+import publicRouter from './api/public';
 import adminRouter from './api/admin';
 app.use('/api/search', searchRouter);
-app.use('/api/seed', seedRouter);
+app.use('/api/public', publicRouter);
 app.use('/api/admin', adminRouter);
 
 // Start server only if this file is the entrypoint

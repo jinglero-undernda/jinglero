@@ -1,268 +1,430 @@
 import { Router } from 'express';
-import fs from 'fs';
-import path from 'path';
-import yaml from 'js-yaml';
+import { Neo4jClient } from '../db';
+import { 
+  getSchemaInfo, 
+  addPropertyToEntity, 
+  createRelationshipType, 
+  createConstraint, 
+  dropConstraint 
+} from '../db/schema/setup';
 
 const router = Router();
+const db = Neo4jClient.getInstance();
 
-function seedPath() {
-  // When running from compiled `dist` the db file may be at ../db/seed.yaml
-  // but during development it's under ../../src/server/db/seed.yaml. Check both.
-  const possible = [
-    path.resolve(__dirname, '../db/seed.yaml'),
-    path.resolve(__dirname, '../../src/server/db/seed.yaml'),
-    path.resolve(__dirname, '../db/seed.yaml'),
-  ];
-  for (const p of possible) {
-    if (fs.existsSync(p)) return p;
-  }
-  // fallback to default
-  return path.resolve(__dirname, '../db/seed.yaml');
-}
-
-function loadSeed() {
-  const seedPathStr = seedPath();
-  const content = fs.readFileSync(seedPathStr, 'utf8');
-  return yaml.load(content) as any;
-}
-
-function saveSeed(seed: any) {
-  const seedPathStr = seedPath();
-  const content = yaml.dump(seed);
-  fs.writeFileSync(seedPathStr, content, 'utf8');
-}
-
-const ID_PREFIX: Record<string, string> = {
-  usuarios: 'USR',
-  artistas: 'ART',
-  canciones: 'CAN',
-  // fabricas: external UUIDs - do not auto-generate
-  tematicas: 'TEM',
-  jingles: 'JIN',
+// Entity type mapping
+const ENTITY_LABEL_MAP: Record<string, string> = {
+  usuarios: 'Usuario',
+  artistas: 'Artista',
+  canciones: 'Cancion',
+  fabricas: 'Fabrica',
+  tematicas: 'Tematica',
+  jingles: 'Jingle'
 };
 
-function randomBlock() {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let out = '';
-  for (let i = 0; i < 4; i++) {
-    const idx = Math.floor(Math.random() * chars.length);
-    out += chars[idx];
+// Relationship type mapping
+const RELATIONSHIP_TYPE_MAP: Record<string, string> = {
+  'autor_de': 'AUTOR_DE',
+  'jinglero_de': 'JINGLERO_DE',
+  'appears_in': 'APPEARS_IN',
+  'tagged_with': 'TAGGED_WITH',
+  'versiona': 'VERSIONA',
+  'reacciona_a': 'REACCIONA_A',
+  'soy_yo': 'SOY_YO'
+};
+
+function generateId(type: string): string {
+  // Use Neo4j's randomUUID() function
+  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+}
+
+// Schema management endpoints
+router.get('/schema', async (req, res) => {
+  try {
+    const schemaInfo = await getSchemaInfo();
+    res.json(schemaInfo);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to get schema info' });
   }
-  return out;
-}
+});
 
-function generateId(type: string) {
-  const prefix = ID_PREFIX[type] || 'GEN';
-  return `${prefix}_${randomBlock()}_${randomBlock()}`;
-}
+router.post('/schema/properties', async (req, res) => {
+  try {
+    const { entityType, propertyName, propertyType } = req.body;
+    if (!entityType || !propertyName) {
+      return res.status(400).json({ error: 'entityType and propertyName are required' });
+    }
+    
+    await addPropertyToEntity(entityType, propertyName, propertyType);
+    res.json({ message: `Property ${propertyName} added to ${entityType}` });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to add property' });
+  }
+});
 
-function ensureList(seed: any, type: string) {
-  if (!seed[type]) seed[type] = [];
-  return seed[type] as any[];
-}
+router.post('/schema/relationships', async (req, res) => {
+  try {
+    const { relType, startLabel, endLabel } = req.body;
+    if (!relType || !startLabel || !endLabel) {
+      return res.status(400).json({ error: 'relType, startLabel, and endLabel are required' });
+    }
+    
+    await createRelationshipType(relType, startLabel, endLabel);
+    res.json({ message: `Relationship type ${relType} created between ${startLabel} and ${endLabel}` });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to create relationship type' });
+  }
+});
 
-function ensureRelationships(seed: any) {
-  if (!seed.relationships) seed.relationships = {};
-  return seed.relationships as Record<string, any[]>;
-}
+router.get('/schema/constraints', async (req, res) => {
+  try {
+    const constraints = await db.executeQuery('SHOW CONSTRAINTS');
+    res.json(constraints);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to get constraints' });
+  }
+});
 
-function ensureRelList(seed: any, relType: string) {
-  const rels = ensureRelationships(seed);
-  if (!rels[relType]) rels[relType] = [];
-  return rels[relType];
-}
+router.post('/schema/constraints', async (req, res) => {
+  try {
+    const { constraintName, constraintType, entityType, propertyName } = req.body;
+    if (!constraintName || !constraintType || !entityType || !propertyName) {
+      return res.status(400).json({ error: 'constraintName, constraintType, entityType, and propertyName are required' });
+    }
+    
+    await createConstraint(constraintName, constraintType, entityType, propertyName);
+    res.json({ message: `Constraint ${constraintName} created` });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to create constraint' });
+  }
+});
+
+router.delete('/schema/constraints/:name', async (req, res) => {
+  try {
+    const { name } = req.params;
+    await dropConstraint(name);
+    res.json({ message: `Constraint ${name} dropped` });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to drop constraint' });
+  }
+});
 
 // Relationship endpoints
-// List all relationships by type
-router.get('/relationships', (req, res) => {
+router.get('/relationships', async (req, res) => {
   try {
-    const seed = loadSeed();
-    const rels = ensureRelationships(seed);
-    res.json(rels);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to load relationships' });
+    const relationships = await db.executeQuery(`
+      MATCH ()-[r]-()
+      RETURN DISTINCT type(r) as relType
+      ORDER BY relType
+    `);
+    res.json(relationships.map(r => r.relType));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to load relationships' });
   }
 });
 
 // List specific relationship type
-router.get('/relationships/:relType', (req, res) => {
+router.get('/relationships/:relType', async (req, res) => {
   try {
     const { relType } = req.params;
-    const seed = loadSeed();
-    const relList = (seed.relationships && seed.relationships[relType]) || null;
-    if (!relList) return res.status(404).json({ error: `Unknown relationship type: ${relType}` });
-    res.json(relList);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to load relationships' });
+    const neo4jRelType = RELATIONSHIP_TYPE_MAP[relType];
+    
+    if (!neo4jRelType) {
+      return res.status(404).json({ error: `Unknown relationship type: ${relType}` });
+    }
+    
+    const query = `
+      MATCH ()-[r:${neo4jRelType}]->()
+      RETURN r
+      ORDER BY r.createdAt DESC
+    `;
+    
+    const relationships = await db.executeQuery(query);
+    res.json(relationships.map(r => r.r));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to load relationships' });
   }
 });
 
-// Create a relationship entry under relationships.<relType>
-router.post('/relationships/:relType', (req, res) => {
+// Create a relationship
+router.post('/relationships/:relType', async (req, res) => {
   try {
     const { relType } = req.params;
     const payload = req.body || {};
+    
     if (!payload.start || !payload.end) {
       return res.status(400).json({ error: 'Payload must include start and end ids' });
     }
-    const seed = loadSeed();
-    const list = ensureRelList(seed, relType);
-
-    // Avoid exact duplicate (same start + end + same other keys)
-    const exists = (list as any[]).some((r) => {
-      if (r.start !== payload.start || r.end !== payload.end) return false;
-      // compare other keys
-      const keys = Object.keys(payload).filter((k) => k !== 'start' && k !== 'end');
-      return keys.every((k) => (r as any)[k] === payload[k]);
-    });
-    if (exists) return res.status(409).json({ error: 'Relationship already exists' });
-
-    const now = new Date().toISOString();
-    const item = { ...payload, createdAt: payload.createdAt || now };
-    list.push(item);
-    saveSeed(seed);
-    res.status(201).json(item);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to create relationship' });
+    
+    const neo4jRelType = RELATIONSHIP_TYPE_MAP[relType];
+    if (!neo4jRelType) {
+      return res.status(404).json({ error: `Unknown relationship type: ${relType}` });
+    }
+    
+    // Check if relationship already exists
+    const existsQuery = `
+      MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
+      RETURN r
+    `;
+    
+    const existing = await db.executeQuery(existsQuery, { start: payload.start, end: payload.end });
+    if (existing.length > 0) {
+      return res.status(409).json({ error: 'Relationship already exists' });
+    }
+    
+    // Create the relationship
+    const createQuery = `
+      MATCH (start { id: $start }), (end { id: $end })
+      CREATE (start)-[r:${neo4jRelType}]->(end)
+      SET r += $properties
+      RETURN r
+    `;
+    
+    const properties = { ...payload };
+    delete properties.start;
+    delete properties.end;
+    
+    const result = await db.executeQuery(createQuery, { 
+      start: payload.start, 
+      end: payload.end, 
+      properties 
+    }, undefined, true);
+    
+    res.status(201).json(result[0].r);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to create relationship' });
   }
 });
 
-// Delete a relationship by matching start/end and optional other fields (body)
-router.delete('/relationships/:relType', (req, res) => {
+// Delete a relationship
+router.delete('/relationships/:relType', async (req, res) => {
   try {
     const { relType } = req.params;
     const payload = req.body || {};
+    
     if (!payload.start || !payload.end) {
       return res.status(400).json({ error: 'Payload must include start and end ids to delete' });
     }
-    const seed = loadSeed();
-    const list = (seed.relationships && seed.relationships[relType]) as any[] | undefined;
-    if (!list) return res.status(404).json({ error: `Unknown relationship type: ${relType}` });
-
-    const idx = list.findIndex((r) => {
-      if (r.start !== payload.start || r.end !== payload.end) return false;
-      // if payload has other keys, they must match
-      const keys = Object.keys(payload).filter((k) => k !== 'start' && k !== 'end');
-      return keys.every((k) => r[k] === payload[k]);
-    });
-    if (idx === -1) return res.status(404).json({ error: 'Relationship not found' });
-    const removed = list.splice(idx, 1)[0];
-    saveSeed(seed);
-    res.json({ deleted: removed });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to delete relationship' });
+    
+    const neo4jRelType = RELATIONSHIP_TYPE_MAP[relType];
+    if (!neo4jRelType) {
+      return res.status(404).json({ error: `Unknown relationship type: ${relType}` });
+    }
+    
+    const deleteQuery = `
+      MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
+      DELETE r
+      RETURN count(r) as deletedCount
+    `;
+    
+    const result = await db.executeQuery(deleteQuery, { 
+      start: payload.start, 
+      end: payload.end 
+    }, undefined, true);
+    
+    if (result[0].deletedCount === 0) {
+      return res.status(404).json({ error: 'Relationship not found' });
+    }
+    
+    res.json({ message: 'Relationship deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to delete relationship' });
   }
 });
 
 
-// List entities
-router.get('/:type', (req, res) => {
+// Entity endpoints
+router.get('/:type', async (req, res) => {
   try {
     const { type } = req.params;
-    const seed = loadSeed();
-    const list = seed[type];
-    if (!list) return res.status(404).json({ error: `Unknown seed type: ${type}` });
-    res.json(list);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to load seed' });
+    const label = ENTITY_LABEL_MAP[type];
+    
+    if (!label) {
+      return res.status(404).json({ error: `Unknown entity type: ${type}` });
+    }
+    
+    const query = `
+      MATCH (n:${label})
+      RETURN n
+      ORDER BY n.createdAt DESC
+    `;
+    
+    const entities = await db.executeQuery(query);
+    res.json(entities.map(entity => entity.n));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to load entities' });
   }
 });
 
-// Get single
-router.get('/:type/:id', (req, res) => {
+router.get('/:type/:id', async (req, res) => {
   try {
     const { type, id } = req.params;
-    const seed = loadSeed();
-    const list = seed[type];
-    if (!list) return res.status(404).json({ error: `Unknown seed type: ${type}` });
-    const item = (list as any[]).find((i) => i.id === id);
-    if (!item) return res.status(404).json({ error: `Not found: ${type}/${id}` });
-    res.json(item);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to load seed' });
+    const label = ENTITY_LABEL_MAP[type];
+    
+    if (!label) {
+      return res.status(404).json({ error: `Unknown entity type: ${type}` });
+    }
+    
+    const query = `
+      MATCH (n:${label} { id: $id })
+      RETURN n
+    `;
+    
+    const result = await db.executeQuery(query, { id });
+    if (result.length === 0) {
+      return res.status(404).json({ error: `Not found: ${type}/${id}` });
+    }
+    
+    res.json(result[0].n);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to load entity' });
   }
 });
 
-// Create
-router.post('/:type', (req, res) => {
+router.post('/:type', async (req, res) => {
   try {
     const { type } = req.params;
     const payload = req.body || {};
-    const seed = loadSeed();
-    const list = ensureList(seed, type);
-
-    const id = payload.id || (type === 'fabricas' ? null : generateId(type));
-    if (type === 'fabricas' && !id) {
-      return res.status(400).json({ error: 'Fabricas require an external UUID; provide an id in the payload' });
+    const label = ENTITY_LABEL_MAP[type];
+    
+    if (!label) {
+      return res.status(404).json({ error: `Unknown entity type: ${type}` });
     }
-    if ((list as any[]).some((i) => i.id === id)) {
+    
+    // Generate ID if not provided
+    const id = payload.id || generateId(type);
+    
+    // Check if entity with this ID already exists
+    const existsQuery = `MATCH (n:${label} { id: $id }) RETURN n`;
+    const existing = await db.executeQuery(existsQuery, { id });
+    if (existing.length > 0) {
       return res.status(409).json({ error: `Entity with id already exists: ${id}` });
     }
-
+    
+    // Create the entity
     const now = new Date().toISOString();
-    const item = { ...payload, id, createdAt: payload.createdAt || now, updatedAt: payload.updatedAt || now };
-    list.push(item);
-    saveSeed(seed);
-    res.status(201).json(item);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to create entity' });
+    const createQuery = `
+      CREATE (n:${label} {
+        id: $id,
+        createdAt: datetime($createdAt),
+        updatedAt: datetime($updatedAt)
+      })
+      SET n += $properties
+      RETURN n
+    `;
+    
+    const properties = { ...payload, id };
+    delete properties.createdAt;
+    delete properties.updatedAt;
+    
+    const result = await db.executeQuery(createQuery, {
+      id,
+      createdAt: payload.createdAt || now,
+      updatedAt: payload.updatedAt || now,
+      properties
+    }, undefined, true);
+    
+    res.status(201).json(result[0].n);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to create entity' });
   }
 });
 
-// Update / Replace
-router.put('/:type/:id', (req, res) => {
+router.put('/:type/:id', async (req, res) => {
   try {
     const { type, id } = req.params;
     const payload = req.body || {};
-    const seed = loadSeed();
-    const list = seed[type];
-    if (!list) return res.status(404).json({ error: `Unknown seed type: ${type}` });
-    const idx = (list as any[]).findIndex((i) => i.id === id);
-    if (idx === -1) return res.status(404).json({ error: `Not found: ${type}/${id}` });
-    const now = new Date().toISOString();
-    const updated = { ...payload, id, updatedAt: now };
-    list[idx] = updated;
-    saveSeed(seed);
-    res.json(updated);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to update entity' });
+    const label = ENTITY_LABEL_MAP[type];
+    
+    if (!label) {
+      return res.status(404).json({ error: `Unknown entity type: ${type}` });
+    }
+    
+    const updateQuery = `
+      MATCH (n:${label} { id: $id })
+      SET n += $properties,
+          n.updatedAt = datetime()
+      RETURN n
+    `;
+    
+    const result = await db.executeQuery(updateQuery, { 
+      id, 
+      properties: payload 
+    }, undefined, true);
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: `Not found: ${type}/${id}` });
+    }
+    
+    res.json(result[0].n);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to update entity' });
   }
 });
 
-// Partial update
-router.patch('/:type/:id', (req, res) => {
+router.patch('/:type/:id', async (req, res) => {
   try {
     const { type, id } = req.params;
     const payload = req.body || {};
-    const seed = loadSeed();
-    const list = seed[type];
-    if (!list) return res.status(404).json({ error: `Unknown seed type: ${type}` });
-    const idx = (list as any[]).findIndex((i) => i.id === id);
-    if (idx === -1) return res.status(404).json({ error: `Not found: ${type}/${id}` });
-    const now = new Date().toISOString();
-    const updated = { ...list[idx], ...payload, id, updatedAt: now };
-    list[idx] = updated;
-    saveSeed(seed);
-    res.json(updated);
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to patch entity' });
+    const label = ENTITY_LABEL_MAP[type];
+    
+    if (!label) {
+      return res.status(404).json({ error: `Unknown entity type: ${type}` });
+    }
+    
+    // Get existing entity first
+    const getQuery = `MATCH (n:${label} { id: $id }) RETURN n`;
+    const existing = await db.executeQuery(getQuery, { id });
+    
+    if (existing.length === 0) {
+      return res.status(404).json({ error: `Not found: ${type}/${id}` });
+    }
+    
+    // Merge with existing properties
+    const existingProps = existing[0].n;
+    const mergedProps = { ...existingProps, ...payload, id };
+    
+    const updateQuery = `
+      MATCH (n:${label} { id: $id })
+      SET n = $properties,
+          n.updatedAt = datetime()
+      RETURN n
+    `;
+    
+    const result = await db.executeQuery(updateQuery, { 
+      id, 
+      properties: mergedProps 
+    }, undefined, true);
+    
+    res.json(result[0].n);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to patch entity' });
   }
 });
 
-// Delete
-router.delete('/:type/:id', (req, res) => {
+router.delete('/:type/:id', async (req, res) => {
   try {
     const { type, id } = req.params;
-    const seed = loadSeed();
-    const list = seed[type];
-    if (!list) return res.status(404).json({ error: `Unknown seed type: ${type}` });
-    const idx = (list as any[]).findIndex((i) => i.id === id);
-    if (idx === -1) return res.status(404).json({ error: `Not found: ${type}/${id}` });
-    const removed = list.splice(idx, 1)[0];
-    saveSeed(seed);
-    res.json({ deleted: removed });
-  } catch (err: any) {
-    res.status(500).json({ error: err?.message || 'Failed to delete entity' });
+    const label = ENTITY_LABEL_MAP[type];
+    
+    if (!label) {
+      return res.status(404).json({ error: `Unknown entity type: ${type}` });
+    }
+    
+    const deleteQuery = `
+      MATCH (n:${label} { id: $id })
+      DETACH DELETE n
+      RETURN count(n) as deletedCount
+    `;
+    
+    const result = await db.executeQuery(deleteQuery, { id }, undefined, true);
+    
+    if (result[0].deletedCount === 0) {
+      return res.status(404).json({ error: `Not found: ${type}/${id}` });
+    }
+    
+    res.json({ message: 'Entity deleted successfully' });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Failed to delete entity' });
   }
 });
 

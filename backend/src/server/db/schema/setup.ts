@@ -96,6 +96,38 @@ export async function setupSchema() {
   }
 }
 
+export async function getSchemaInfo() {
+  const client = Neo4jClient.getInstance();
+
+  try {
+    // Get all node labels
+    const labels = await client.executeQuery<{ label: string }>('CALL db.labels()');
+    
+    // Get all relationship types
+    const relationshipTypes = await client.executeQuery<{ relationshipType: string }>('CALL db.relationshipTypes()');
+    
+    // Get all property keys
+    const propertyKeys = await client.executeQuery<{ propertyKey: string }>('CALL db.propertyKeys()');
+    
+    // Get constraints
+    const constraints = await client.executeQuery<{ name: string; type: string; entityType: string; properties: string[] }>('SHOW CONSTRAINTS');
+    
+    // Get indexes
+    const indexes = await client.executeQuery<{ name: string; type: string; entityType: string; properties: string[] }>('SHOW INDEXES');
+    
+    return {
+      labels: labels.map(l => l.label),
+      relationshipTypes: relationshipTypes.map(r => r.relationshipType),
+      propertyKeys: propertyKeys.map(p => p.propertyKey),
+      constraints,
+      indexes
+    };
+  } catch (error) {
+    console.error('Error getting schema info:', error);
+    throw error;
+  }
+}
+
 export async function validateSchema() {
   const client = Neo4jClient.getInstance();
 
@@ -167,6 +199,134 @@ export async function validateSchema() {
     };
   } catch (error) {
     console.error('Error validating schema:', error);
+    throw error;
+  }
+}
+
+export async function addPropertyToEntity(
+  entityType: string,
+  propertyName: string,
+  propertyType: string = 'string'
+): Promise<void> {
+  const client = Neo4jClient.getInstance();
+  
+  try {
+    // Validate that the entity type exists
+    const labels = await client.executeQuery<{ label: string }>('CALL db.labels()');
+    const entityExists = labels.some(l => l.label === entityType);
+    
+    if (!entityExists) {
+      throw new Error(`Entity type ${entityType} does not exist`);
+    }
+    
+    // For now, we just log the addition since Neo4j is schema-flexible
+    // In a more sophisticated implementation, we could:
+    // 1. Create constraints for the new property
+    // 2. Update documentation
+    // 3. Validate property type
+    
+    console.log(`Property ${propertyName} of type ${propertyType} added to entity ${entityType}`);
+    
+    // Optional: Create a constraint if needed
+    if (propertyType === 'unique') {
+      const constraintQuery = `CREATE CONSTRAINT ${entityType.toLowerCase()}_${propertyName}_unique IF NOT EXISTS FOR (n:${entityType}) REQUIRE (n.${propertyName}) IS UNIQUE`;
+      await client.executeWrite(constraintQuery);
+      console.log(`Unique constraint created for ${entityType}.${propertyName}`);
+    }
+  } catch (error) {
+    console.error('Error adding property to entity:', error);
+    throw error;
+  }
+}
+
+export async function createRelationshipType(
+  relType: string,
+  startLabel: string,
+  endLabel: string
+): Promise<void> {
+  const client = Neo4jClient.getInstance();
+  
+  try {
+    // Validate that both node labels exist
+    const labels = await client.executeQuery<{ label: string }>('CALL db.labels()');
+    const startExists = labels.some(l => l.label === startLabel);
+    const endExists = labels.some(l => l.label === endLabel);
+    
+    if (!startExists) {
+      throw new Error(`Start label ${startLabel} does not exist`);
+    }
+    if (!endExists) {
+      throw new Error(`End label ${endLabel} does not exist`);
+    }
+    
+    // Check if relationship type already exists
+    const relationshipTypes = await client.executeQuery<{ relationshipType: string }>('CALL db.relationshipTypes()');
+    const relExists = relationshipTypes.some(r => r.relationshipType === relType);
+    
+    if (relExists) {
+      console.log(`Relationship type ${relType} already exists`);
+      return;
+    }
+    
+    // Create a sample relationship to establish the type
+    // This is a common pattern in Neo4j to "register" a relationship type
+    const sampleQuery = `
+      MATCH (start:${startLabel}), (end:${endLabel})
+      WITH start, end LIMIT 1
+      CREATE (start)-[r:${relType}]->(end)
+      DELETE r
+    `;
+    
+    await client.executeWrite(sampleQuery);
+    console.log(`Relationship type ${relType} created between ${startLabel} and ${endLabel}`);
+  } catch (error) {
+    console.error('Error creating relationship type:', error);
+    throw error;
+  }
+}
+
+export async function createConstraint(
+  constraintName: string,
+  constraintType: 'unique' | 'not_null' | 'exists',
+  entityType: string,
+  propertyName: string
+): Promise<void> {
+  const client = Neo4jClient.getInstance();
+  
+  try {
+    let constraintQuery: string;
+    
+    switch (constraintType) {
+      case 'unique':
+        constraintQuery = `CREATE CONSTRAINT ${constraintName} IF NOT EXISTS FOR (n:${entityType}) REQUIRE (n.${propertyName}) IS UNIQUE`;
+        break;
+      case 'not_null':
+        constraintQuery = `CREATE CONSTRAINT ${constraintName} IF NOT EXISTS FOR (n:${entityType}) REQUIRE (n.${propertyName}) IS NOT NULL`;
+        break;
+      case 'exists':
+        constraintQuery = `CREATE CONSTRAINT ${constraintName} IF NOT EXISTS FOR (n:${entityType}) REQUIRE (n.${propertyName}) IS NOT NULL`;
+        break;
+      default:
+        throw new Error(`Unsupported constraint type: ${constraintType}`);
+    }
+    
+    await client.executeWrite(constraintQuery);
+    console.log(`Constraint ${constraintName} created for ${entityType}.${propertyName}`);
+  } catch (error) {
+    console.error('Error creating constraint:', error);
+    throw error;
+  }
+}
+
+export async function dropConstraint(constraintName: string): Promise<void> {
+  const client = Neo4jClient.getInstance();
+  
+  try {
+    const dropQuery = `DROP CONSTRAINT ${constraintName}`;
+    await client.executeWrite(dropQuery);
+    console.log(`Constraint ${constraintName} dropped`);
+  } catch (error) {
+    console.error('Error dropping constraint:', error);
     throw error;
   }
 }

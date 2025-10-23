@@ -1,0 +1,613 @@
+{
+  "name": "Procesamiento de Fabrica de Jingles (GSheets, HTTP, Gemini)",
+  "flow": [
+    {
+      "id": 1,
+      "module": "google-sheets:searchRows",
+      "version": 2,
+      "parameters": {
+        "valueRenderOption": "FORMATTED_VALUE",
+        "dateTimeRenderOption": "FORMATTED_STRING",
+        "tableFirstRow": "A1:Z1"
+      },
+      "mapper": {
+        "spreadsheetId": "__SPREADSHEET_ID__",
+        "sheetName": "Q_Fabrica",
+        "limit": 1,
+        "criteria": [
+          {
+            "column": "Status",
+            "condition": "equal to",
+            "value": "PENDING"
+          }
+        ]
+      },
+      "metadata": {
+        "designer": {
+          "x": 0,
+          "y": 0,
+          "name": "1. Buscar Fila 'PENDING' (Q_Fabrica)"
+        },
+        "restore": {
+          "valueRenderOption": {
+            "mode": "chose",
+            "label": "Formatted value"
+          },
+          "dateTimeRenderOption": {
+            "mode": "chose",
+            "label": "Formatted string"
+          }
+        },
+        "parameters": [
+          {
+            "name": "__IMTCONN__",
+            "type": "account",
+            "label": "Connection",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "module": "builtin:BasicRouter",
+      "version": 1,
+      "mapper": null,
+      "metadata": {
+        "designer": {
+          "x": 200,
+          "y": 0,
+          "name": "Router: Video vs Jingle"
+        }
+      },
+      "routes": [
+        {
+          "flow": [
+            {
+              "id": 3,
+              "module": "http:Request",
+              "version": 1,
+              "parameters": {
+                "url": "https://www.googleapis.com/youtube/v3/videos",
+                "method": "GET",
+                "responseType": "parse",
+                "headers": [],
+                "body": null,
+                "followRedirect": true,
+                "globalResponse": true,
+                "compress": false,
+                "unlimitedTimeout": false,
+                "timeout": 40,
+                "dontParseResponse": false
+              },
+              "mapper": {
+                "queryString": [
+                  {
+                    "key": "part",
+                    "value": "snippet"
+                  },
+                  {
+                    "key": "id",
+                    "value": "{{1.Video ID}}"
+                  },
+                  {
+                    "key": "key",
+                    "value": "__YOUTUBE_API_KEY__"
+                  }
+                ]
+              },
+              "metadata": {
+                "designer": {
+                  "x": 400,
+                  "y": -100,
+                  "name": "3. HTTP: Info Video (GET: /videos)"
+                }
+              }
+            },
+            {
+              "id": 4,
+              "module": "google-sheets:updateRow",
+              "version": 2,
+              "parameters": {
+                "tableFirstRow": "A1:Z1"
+              },
+              "mapper": {
+                "spreadsheetId": "__SPREADSHEET_ID__",
+                "sheetName": "Q_Fabrica",
+                "rowNumber": "{{1.rowNumber}}",
+                "values": {
+                  "Titulo": "{{get(3.data.items; 1).snippet.title}}",
+                  "Descripcion": "{{get(3.data.items; 1).snippet.description}}",
+                  "Fecha": "{{get(3.data.items; 1).snippet.publishedAt}}",
+                  "Status": "IN PROGRESS"
+                }
+              },
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": -100,
+                  "name": "4. Actualizar Fila Fabrica (Info Video)"
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "flow": [
+            {
+              "id": 5,
+              "module": "google-gemini:generateContent",
+              "version": 1,
+              "mapper": {
+                "model": "gemini-2.5-flash",
+                "prompt": "Analiza este comentario: \"{{1.Comentario}}\". Extrae el tiempo del video (M:S), el tiempo en segundos, el título de la canción y el artista, y el autor del jingle. Devuelve el resultado en un JSON con las claves exactas: TiempoBruto, TiempoSegundos (solo número entero), Cancion, Autor, Jinglero. Ejemplo de formato: {TiempoBruto: \"M:S\", TiempoSegundos: 120, Cancion: \"Título Canción\", Autor: \"Artista\", Jinglero: \"Nombre\"}",
+                "temperature": 0.5,
+                "responseMimeType": "application/json",
+                "responseSchema": {
+                  "type": "OBJECT",
+                  "properties": {
+                    "TiempoBruto": { "type": "STRING" },
+                    "TiempoSegundos": { "type": "NUMBER" },
+                    "Cancion": { "type": "STRING" },
+                    "Autor": { "type": "STRING" },
+                    "Jinglero": { "type": "STRING" }
+                  }
+                }
+              },
+              "metadata": {
+                "designer": {
+                  "x": 400,
+                  "y": 100,
+                  "name": "5. Gemini: Interpretar Comentario (JSON)"
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account:google-gemini",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              }
+            },
+            {
+              "id": 7,
+              "module": "google-sheets:addRow",
+              "version": 2,
+              "parameters": {
+                "tableFirstRow": "A1:Z1"
+              },
+              "mapper": {
+                "spreadsheetId": "__SPREADSHEET_ID__",
+                "sheetName": "Q_JINGLES",
+                "values": {
+                  "Fabrica": "{{1.Video ID}}",
+                  "Comentario": "{{1.Comentario}}",
+                  "Tiempo": "{{5.TiempoBruto}}",
+                  "LINK FABRICA": "{{'https://youtu.be/' + 1.Video ID + '?t=' + 5.TiempoSegundos}}",
+                  "STATUS": "PENDING"
+                }
+              },
+              "metadata": {
+                "designer": {
+                  "x": 600,
+                  "y": 100,
+                  "name": "7. Añadir Fila Jingle (PENDING)"
+                },
+                "parameters": [
+                  {
+                    "name": "__IMTCONN__",
+                    "type": "account",
+                    "label": "Connection",
+                    "required": true
+                  }
+                ]
+              }
+            },
+            {
+              "id": 8,
+              "module": "builtin:BasicRouter",
+              "version": 1,
+              "mapper": null,
+              "metadata": {
+                "designer": {
+                  "x": 800,
+                  "y": 100,
+                  "name": "Router: Búsqueda Canción y Mantenimiento"
+                }
+              },
+              "routes": [
+                {
+                  "flow": [
+                    {
+                      "id": 9,
+                      "module": "http:Request",
+                      "version": 1,
+                      "parameters": {
+                        "url": "https://www.googleapis.com/youtube/v3/search",
+                        "method": "GET",
+                        "responseType": "parse",
+                        "headers": [],
+                        "body": null,
+                        "followRedirect": true,
+                        "globalResponse": true,
+                        "compress": false,
+                        "unlimitedTimeout": false,
+                        "timeout": 40,
+                        "dontParseResponse": false
+                      },
+                      "mapper": {
+                        "queryString": [
+                          {
+                            "key": "part",
+                            "value": "snippet"
+                          },
+                          {
+                            "key": "q",
+                            "value": "{{5.Cancion}} {{5.Autor}} music"
+                          },
+                          {
+                            "key": "type",
+                            "value": "video"
+                          },
+                          {
+                            "key": "maxResults",
+                            "value": "1"
+                          },
+                          {
+                            "key": "videoCategoryId",
+                            "value": "10"
+                          },
+                          {
+                            "key": "key",
+                            "value": "__YOUTUBE_API_KEY__"
+                          }
+                        ]
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1000,
+                          "y": 0,
+                          "name": "9. HTTP: Buscar Canción (GET: /search)"
+                        }
+                      }
+                    },
+                    {
+                      "id": 10,
+                      "module": "google-sheets:updateRow",
+                      "version": 2,
+                      "parameters": {
+                        "tableFirstRow": "A1:Z1"
+                      },
+                      "mapper": {
+                        "spreadsheetId": "__SPREADSHEET_ID__",
+                        "sheetName": "Q_JINGLES",
+                        "rowNumber": "{{7.rowNumber}}",
+                        "values": {
+                          "Cancion": "{{get(9.data.items; 1).snippet.title}}",
+                          "Autor": "{{get(9.data.items; 1).snippet.channelTitle}}",
+                          "LINK CANCION": "{{'https://www.youtube.com/watch?v=' + get(9.data.items; 1).id.videoId}}",
+                          "STATUS": "IN PROGRESS"
+                        }
+                      },
+                      "metadata": {
+                        "designer": {
+                          "x": 1200,
+                          "y": 0,
+                          "name": "10. Actualizar Fila Jingle (Info Canción)"
+                        },
+                        "parameters": [
+                          {
+                            "name": "__IMTCONN__",
+                            "type": "account",
+                            "label": "Connection",
+                            "required": true
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                },
+                {
+                  "flow": [
+                    {
+                      "id": 11,
+                      "module": "builtin:BasicRouter",
+                      "version": 1,
+                      "mapper": null,
+                      "metadata": {
+                        "designer": {
+                          "x": 1000,
+                          "y": 200,
+                          "name": "Router: Mantenimiento de Listas"
+                        }
+                      },
+                      "routes": [
+                        {
+                          "flow": [
+                            {
+                              "id": 12,
+                              "module": "google-sheets:searchRows",
+                              "version": 2,
+                              "parameters": {
+                                "valueRenderOption": "FORMATTED_VALUE",
+                                "dateTimeRenderOption": "FORMATTED_STRING",
+                                "tableFirstRow": "A1:Z1"
+                              },
+                              "mapper": {
+                                "spreadsheetId": "__SPREADSHEET_ID__",
+                                "sheetName": "Q_ARTISTA",
+                                "limit": 1,
+                                "criteria": [
+                                  {
+                                    "column": "StageName",
+                                    "condition": "equal to",
+                                    "value": "{{5.Autor}}"
+                                  }
+                                ]
+                              },
+                              "metadata": {
+                                "designer": {
+                                  "x": 1200,
+                                  "y": 100,
+                                  "name": "12. Buscar Artista (Q_ARTISTA)"
+                                },
+                                "parameters": [
+                                  {
+                                    "name": "__IMTCONN__",
+                                    "type": "account",
+                                    "label": "Connection",
+                                    "required": true
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "id": 13,
+                              "module": "google-sheets:addRow",
+                              "version": 2,
+                              "parameters": {
+                                "tableFirstRow": "A1:Z1"
+                              },
+                              "filter": {
+                                "type": "condition",
+                                "operator": "equal to",
+                                "text": "{{empty(12.array)}}",
+                                "operand": "true"
+                              },
+                              "mapper": {
+                                "spreadsheetId": "__SPREADSHEET_ID__",
+                                "sheetName": "Q_ARTISTA",
+                                "values": {
+                                  "StageName": "{{5.Autor}}",
+                                  "STATUS": "NEW"
+                                }
+                              },
+                              "metadata": {
+                                "designer": {
+                                  "x": 1400,
+                                  "y": 100,
+                                  "name": "13. Añadir Artista (Si NO existe)"
+                                },
+                                "parameters": [
+                                  {
+                                    "name": "__IMTCONN__",
+                                    "type": "account",
+                                    "label": "Connection",
+                                    "required": true
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "flow": [
+                            {
+                              "id": 14,
+                              "module": "google-sheets:searchRows",
+                              "version": 2,
+                              "parameters": {
+                                "valueRenderOption": "FORMATTED_VALUE",
+                                "dateTimeRenderOption": "FORMATTED_STRING",
+                                "tableFirstRow": "A1:Z1"
+                              },
+                              "mapper": {
+                                "spreadsheetId": "__SPREADSHEET_ID__",
+                                "sheetName": "Q_CANCION",
+                                "limit": 1,
+                                "criteria": [
+                                  {
+                                    "column": "Nombre",
+                                    "condition": "equal to",
+                                    "value": "{{5.Cancion}}"
+                                  },
+                                  {
+                                    "column": "Artista",
+                                    "condition": "equal to",
+                                    "value": "{{5.Autor}}"
+                                  }
+                                ]
+                              },
+                              "metadata": {
+                                "designer": {
+                                  "x": 1200,
+                                  "y": 300,
+                                  "name": "14. Buscar Canción (Q_CANCION)"
+                                },
+                                "parameters": [
+                                  {
+                                    "name": "__IMTCONN__",
+                                    "type": "account",
+                                    "label": "Connection",
+                                    "required": true
+                                  }
+                                ]
+                              }
+                            },
+                            {
+                              "id": 15,
+                              "module": "google-sheets:addRow",
+                              "version": 2,
+                              "parameters": {
+                                "tableFirstRow": "A1:Z1"
+                              },
+                              "filter": {
+                                "type": "condition",
+                                "operator": "equal to",
+                                "text": "{{empty(14.array)}}",
+                                "operand": "true"
+                              },
+                              "mapper": {
+                                "spreadsheetId": "__SPREADSHEET_ID__",
+                                "sheetName": "Q_CANCION",
+                                "values": {
+                                  "Nombre": "{{5.Cancion}}",
+                                  "Artista": "{{5.Autor}}",
+                                  "STATUS": "NEW"
+                                }
+                              },
+                              "metadata": {
+                                "designer": {
+                                  "x": 1400,
+                                  "y": 300,
+                                  "name": "15. Añadir Canción (Si NO existe)"
+                                },
+                                "parameters": [
+                                  {
+                                    "name": "__IMTCONN__",
+                                    "type": "account",
+                                    "label": "Connection",
+                                    "required": true
+                                  }
+                                ]
+                              }
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "instant": false,
+    "version": 1,
+    "scenario": {
+      "roundtrips": 1,
+      "maxErrors": 3,
+      "autoCommit": true,
+      "autoCommitTriggerLast": true,
+      "sequential": false,
+      "slots": null,
+      "confidential": false,
+      "dataloss": false,
+      "dlq": false,
+      "freshVariables": false
+    },
+    "designer": {
+      "orphans": []
+    },
+    "zone": "us2.make.com",
+    "notes": [
+      {
+        "moduleIds": [1],
+        "content": "<h1>1. Google Sheets - Buscar Filas</h1><p><strong>Propósito:</strong> Iniciar la automatización buscando la primera fila en el Tab <code>Q_Fabrica</code> cuyo estado sea <code>PENDING</code>. Esto asegura que solo se procese una fila a la vez por ejecución, permitiendo el control de flujo y la validación manual.</p><p><strong>Configuración:</strong></p><ul><li><strong>Hoja de cálculo:</strong> <code>__SPREADSHEET_ID__</code> (Reemplazar con el ID real de la hoja).</li><li><strong>Hoja:</strong> <code>Q_Fabrica</code>.</li><li><strong>Criterio de Búsqueda:</strong> Columna <code>Status</code> igual a <code>PENDING</code>.</li><li><strong>Límite:</strong> 1.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [2],
+        "content": "<h1>2. Router</h1><p><strong>Propósito:</strong> Dividir el flujo de procesamiento en dos ramas principales: la actualización de la información del video de YouTube (Ruta 1) y la generación de nuevos datos de Jingle usando Gemini (Ruta 2).</p><p><strong>Configuración:</strong> Sin configuración adicional, simplemente bifurca el camino.</p>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [3],
+        "content": "<h1>3. HTTP - Obtener Info de Video de YouTube</h1><p><strong>Propósito:</strong> Obtener el Título, Descripción y Fecha de publicación del video usando la API de YouTube Data v3 (endpoint <code>/videos</code>).</p><p><strong>Configuración:</strong></p><ul><li><strong>URL:</strong> <code>https://www.googleapis.com/youtube/v3/videos</code>.</li><li><strong>Método:</strong> GET.</li><li><strong>Query String:</strong> <code>part=snippet</code>, <code>id=__Video ID__</code>, y <code>key=__YOUTUBE_API_KEY__</code>.</li><li><strong>⚠ Reemplazar:</strong> <code>__YOUTUBE_API_KEY__</code> con tu clave de API de Google Cloud.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#FFC107" }
+      },
+      {
+        "moduleIds": [4],
+        "content": "<h1>4. Google Sheets - Actualizar una Fila (Q_Fabrica)</h1><p><strong>Propósito:</strong> Actualizar la fila original de <code>Q_Fabrica</code> con los metadatos obtenidos del Módulo 3 y cambiar el <code>Status</code> a <code>IN PROGRESS</code>.</p><p><strong>Configuración:</strong></p><ul><li><strong>ID de Fila:</strong> Mapear <code>rowNumber</code> del Módulo 1 (<code>{{1.rowNumber}}</code>).</li><li><strong>Valores:</strong> Mapear Título, Descripción y Fecha de <code>{{get(3.data.items; 1).snippet...}}</code>. Establecer <code>Status</code> a <code>IN PROGRESS</code>.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [5],
+        "content": "<h1>5. Google Gemini - Generar Contenido</h1><p><strong>Propósito:</strong> Utilizar la IA de Gemini para interpretar el <code>Comentario</code> y extraer datos estructurados (Tiempo, Canción, Autor, Jinglero). Configurado para devolver una respuesta en JSON para mapeo fácil.</p><p><strong>Configuración:</strong></p><ul><li><strong>Modelo:</strong> <code>gemini-2.5-flash</code>.</li><li><strong>Prompt:</strong> Se solicita la extracción y se define un esquema de respuesta JSON con las claves exactas requeridas.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [7],
+        "content": "<h1>7. Google Sheets - Añadir una Fila (Q_JINGLES)</h1><p><strong>Propósito:</strong> Crear la nueva entrada de Jingle en la pestaña <code>Q_JINGLES</code> con la información extraída por Gemini.</p><p><strong>Configuración:</strong></p><ul><li><strong>Hoja:</strong> <code>Q_JINGLES</code>.</li><li><strong>Mapeo:</strong></li><ul><li><code>LINK FABRICA</code>: Se construye el link de YouTube con el tiempo exacto (<code>https://youtu.be/{{1.Video ID}}?t={{5.TiempoSegundos}}</code>).</li><li><code>STATUS</code>: Se establece en <code>PENDING</code>.</li></ul></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [8],
+        "content": "<h1>8. Router</h1><p><strong>Propósito:</strong> Dividir el flujo para: 1) Buscar y completar la información de la canción (Ruta 1), y 2) Ejecutar las rutinas de mantenimiento de las listas <code>Q_ARTISTA</code> y <code>Q_CANCION</code> (Ruta 2).</p>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [9],
+        "content": "<h1>9. HTTP - Buscar Canción en YouTube</h1><p><strong>Propósito:</strong> Buscar el video más relevante para la combinación <code>Canción + Autor</code> (simulando búsqueda en YouTube Music) usando la API de YouTube Data v3 (endpoint <code>/search</code>).</p><p><strong>Configuración:</strong></p><ul><li><strong>URL:</strong> <code>https://www.googleapis.com/youtube/v3/search</code>.</li><li><strong>Método:</strong> GET.</li><li><strong>Query String:</strong> <code>q=... music</code>, <code>maxResults=1</code>, <code>type=video</code>, <code>videoCategoryId=10</code> (Música).</li><li><strong>⚠ Reemplazar:</strong> <code>__YOUTUBE_API_KEY__</code> con tu clave de API de Google Cloud.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#FFC107" }
+      },
+      {
+        "moduleIds": [10],
+        "content": "<h1>10. Google Sheets - Actualizar una Fila (Q_JINGLES)</h1><p><strong>Propósito:</strong> Completar la fila creada en <code>Q_JINGLES</code> (Módulo 7) con el link y metadatos de la canción, y cambiar el <code>Status</code> a <code>IN PROGRESS</code>.</p><p><strong>Configuración:</strong></p><ul><li><strong>ID de Fila:</strong> Mapear <code>rowNumber</code> del Módulo 7 (<code>{{7.rowNumber}}</code>).</li><li><strong>Mapeo:</strong> Extraer <code>title</code> y <code>channelTitle</code> de <code>{{get(9.data.items; 1).snippet...}}</code>. Construir el <code>LINK CANCION</code> usando <code>videoId</code>.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [11],
+        "content": "<h1>11. Router</h1><p><strong>Propósito:</strong> Dirigir el flujo a las dos rutinas de mantenimiento de listas: Artista (Ruta 1) y Canción (Ruta 2).</p>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [12],
+        "content": "<h1>12. Google Sheets - Buscar Artista (Q_ARTISTA)</h1><p><strong>Propósito:</strong> Verificar si el Artista (<code>{{5.Autor}}</code>) extraído por Gemini ya existe en la pestaña <code>Q_ARTISTA</code>.</p><p><strong>Configuración:</strong></p><ul><li><strong>Hoja:</strong> <code>Q_ARTISTA</code>.</li><li><strong>Criterio de Búsqueda:</strong> Columna <code>StageName</code> igual a <code>{{5.Autor}}</code>.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [13],
+        "content": "<h1>13. Google Sheets - Añadir Artista (Filtro)</h1><p><strong>Propósito:</strong> Añadir una nueva fila para el Artista en <code>Q_ARTISTA</code> solo si no se encontró en el paso anterior.</p><p><strong>Configuración:</strong></p><ul><li>**Filtro:** <code>{{empty(12.array)}}</code> (el array de resultados del Módulo 12) es igual a <code>true</code>.</li><li><strong>Mapeo:</strong> Añadir <code>StageName</code> (Artista) y <code>STATUS: NEW</code>.</li></ul>",
+        "isFilterNote": true,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [14],
+        "content": "<h1>14. Google Sheets - Buscar Canción (Q_CANCION)</h1><p><strong>Propósito:</strong> Verificar si la Canción (<code>{{5.Cancion}}</code>) y el Artista (<code>{{5.Autor}}</code>) ya existen en <code>Q_CANCION</code> (doble criterio).</p><p><strong>Configuración:</strong></p><ul><li><strong>Hoja:</strong> <code>Q_CANCION</code>.</li><li>**Doble Criterio:** <code>Nombre</code> = <code>{{5.Cancion}}</code> Y <code>Artista</code> = <code>{{5.Autor}}</code>.</li></ul>",
+        "isFilterNote": false,
+        "metadata": { "color": "#9138FE" }
+      },
+      {
+        "moduleIds": [15],
+        "content": "<h1>15. Google Sheets - Añadir Canción (Filtro)</h1><p><strong>Propósito:</strong> Añadir una nueva fila para la Canción en <code>Q_CANCION</code> solo si no se encontró en el paso anterior.</p><p><strong>Configuración:</strong></p><ul><li>**Filtro:** <code>{{empty(14.array)}}</code> (el array de resultados del Módulo 14) es igual a <code>true</code>.</li><li>**Mapeo:** Añadir <code>Nombre</code>, <code>Artista</code> y <code>STATUS: NEW</code>.</li></ul>",
+        "isFilterNote": true,
+        "metadata": { "color": "#9138FE" }
+      }
+    ]
+  }
+}
