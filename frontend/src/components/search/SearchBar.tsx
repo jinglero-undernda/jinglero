@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import api from '../../lib/api/client';
+import { publicApi } from '../../lib/api/client';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -29,8 +29,8 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...' }: SearchBarProp
     }
     debounceRef.current = window.setTimeout(async () => {
       try {
-        const resp = await api.get('/api/search', { params: { q: query } });
-        setSuggestions(resp.data);
+        const resp = await publicApi.get(`/search?q=${encodeURIComponent(query)}`);
+        setSuggestions(resp);
         setShowSuggestions(true);
       } catch (err) {
         // ignore errors for now

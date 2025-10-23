@@ -49,12 +49,12 @@ async function testMigration() {
     const jingleCount = await db.executeQuery('MATCH (j:Jingle) RETURN count(j) as count');
     
     console.log('✅ Entity counts retrieved:');
-    console.log(`   - Usuarios: ${usuarioCount[0].count}`);
-    console.log(`   - Artistas: ${artistaCount[0].count}`);
-    console.log(`   - Canciones: ${cancionCount[0].count}`);
-    console.log(`   - Fabricas: ${fabricaCount[0].count}`);
-    console.log(`   - Tematicas: ${tematicaCount[0].count}`);
-    console.log(`   - Jingles: ${jingleCount[0].count}\n`);
+    console.log(`   - Usuarios: ${(usuarioCount[0] as any).count}`);
+    console.log(`   - Artistas: ${(artistaCount[0] as any).count}`);
+    console.log(`   - Canciones: ${(cancionCount[0] as any).count}`);
+    console.log(`   - Fabricas: ${(fabricaCount[0] as any).count}`);
+    console.log(`   - Tematicas: ${(tematicaCount[0] as any).count}`);
+    console.log(`   - Jingles: ${(jingleCount[0] as any).count}\n`);
     
     // Test relationship counts
     console.log('5. Testing relationship counts...');

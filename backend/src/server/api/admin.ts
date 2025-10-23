@@ -11,6 +11,39 @@ import {
 const router = Router();
 const db = Neo4jClient.getInstance();
 
+// Helper function to convert Neo4j dates to ISO strings
+function convertNeo4jDates(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  
+  if (typeof obj === 'object') {
+    // Handle Neo4j DateTime objects
+    if (obj.year !== undefined && obj.month !== undefined && obj.day !== undefined) {
+      const year = typeof obj.year === 'object' ? obj.year.low : obj.year;
+      const month = typeof obj.month === 'object' ? obj.month.low : obj.month;
+      const day = typeof obj.day === 'object' ? obj.day.low : obj.day;
+      const hour = typeof obj.hour === 'object' ? (obj.hour?.low || 0) : (obj.hour || 0);
+      const minute = typeof obj.minute === 'object' ? (obj.minute?.low || 0) : (obj.minute || 0);
+      const second = typeof obj.second === 'object' ? (obj.second?.low || 0) : (obj.second || 0);
+      
+      return new Date(year, month - 1, day, hour, minute, second).toISOString();
+    }
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(convertNeo4jDates);
+    }
+    
+    // Handle objects
+    const converted: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      converted[key] = convertNeo4jDates(value);
+    }
+    return converted;
+  }
+  
+  return obj;
+}
+
 // Entity type mapping
 const ENTITY_LABEL_MAP: Record<string, string> = {
   usuarios: 'Usuario',
@@ -249,7 +282,7 @@ router.get('/:type', async (req, res) => {
     `;
     
     const entities = await db.executeQuery(query);
-    res.json(entities.map(entity => entity.n));
+    res.json(entities.map(entity => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to load entities' });
   }
@@ -274,7 +307,7 @@ router.get('/:type/:id', async (req, res) => {
       return res.status(404).json({ error: `Not found: ${type}/${id}` });
     }
     
-    res.json(result[0].n);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to load entity' });
   }

@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import yaml from 'js-yaml';
+import neo4j from 'neo4j-driver';
 import { Neo4jClient } from '../index';
 
 interface SeedData {
@@ -83,6 +84,21 @@ export class SeedDataMigrator {
     console.log('Existing data cleared.');
   }
 
+  private isValidDate(dateString: string): boolean {
+    if (!dateString || dateString === 'TBC' || dateString === 'null') {
+      return false;
+    }
+    const date = new Date(dateString);
+    return !isNaN(date.getTime());
+  }
+
+  private parseDate(dateString: string): string | null {
+    if (!this.isValidDate(dateString)) {
+      return null;
+    }
+    return dateString;
+  }
+
   private async migrateUsuarios(usuarios: any[]): Promise<void> {
     console.log(`Migrating ${usuarios.length} usuarios...`);
     
@@ -101,7 +117,7 @@ export class SeedDataMigrator {
           youtubeHandle: $youtubeHandle,
           contributionsCount: $contributionsCount,
           createdAt: datetime($createdAt),
-          lastLogin: $lastLogin ? datetime($lastLogin) : null,
+          lastLogin: $lastLogin,
           updatedAt: datetime($updatedAt)
         })
       `;
@@ -114,7 +130,9 @@ export class SeedDataMigrator {
         instagramHandle: usuario.instagramHandle || null,
         facebookProfile: usuario.facebookProfile || null,
         youtubeHandle: usuario.youtubeHandle || null,
-        lastLogin: usuario.lastLogin || null
+        createdAt: this.parseDate(usuario.createdAt) || new Date().toISOString(),
+        lastLogin: this.parseDate(usuario.lastLogin),
+        updatedAt: this.parseDate(usuario.updatedAt) || new Date().toISOString()
       });
     }
     
@@ -149,12 +167,15 @@ export class SeedDataMigrator {
         stageName: artista.stageName || null,
         idUsuario: artista.idUsuario || null,
         nationality: artista.nationality || null,
+        isArg: artista.isArg !== undefined ? artista.isArg : false,
         youtubeHandle: artista.youtubeHandle || null,
         instagramHandle: artista.instagramHandle || null,
         twitterHandle: artista.twitterHandle || null,
         facebookProfile: artista.facebookProfile || null,
         website: artista.website || null,
-        bio: artista.bio || null
+        bio: artista.bio || null,
+        createdAt: this.parseDate(artista.createdAt) || new Date().toISOString(),
+        updatedAt: this.parseDate(artista.updatedAt) || new Date().toISOString()
       });
     }
     
@@ -185,7 +206,9 @@ export class SeedDataMigrator {
         year: cancion.year || null,
         genre: cancion.genre || null,
         youtubeMusic: cancion.youtubeMusic || null,
-        lyrics: cancion.lyrics || null
+        lyrics: cancion.lyrics || null,
+        createdAt: this.parseDate(cancion.createdAt) || new Date().toISOString(),
+        updatedAt: this.parseDate(cancion.updatedAt) || new Date().toISOString()
       });
     }
     
@@ -219,7 +242,10 @@ export class SeedDataMigrator {
         likes: fabrica.likes || null,
         description: fabrica.description || null,
         contents: fabrica.contents || null,
-        status: fabrica.status || 'DRAFT'
+        status: fabrica.status || 'DRAFT',
+        date: this.parseDate(fabrica.date) || new Date().toISOString(),
+        createdAt: this.parseDate(fabrica.createdAt) || new Date().toISOString(),
+        updatedAt: this.parseDate(fabrica.updatedAt) || new Date().toISOString()
       });
     }
     
@@ -244,7 +270,9 @@ export class SeedDataMigrator {
       await this.db.executeWrite(query, {
         ...tematica,
         category: tematica.category || 'CULTURA',
-        description: tematica.description || null
+        description: tematica.description || null,
+        createdAt: this.parseDate(tematica.createdAt) || new Date().toISOString(),
+        updatedAt: this.parseDate(tematica.updatedAt) || new Date().toISOString()
       });
     }
     
@@ -284,7 +312,12 @@ export class SeedDataMigrator {
         lyrics: jingle.lyrics || null,
         songTitle: jingle.songTitle || null,
         artistName: jingle.artistName || null,
-        genre: jingle.genre || null
+        genre: jingle.genre || null,
+        isJinglazo: jingle.isJinglazo !== undefined ? jingle.isJinglazo : false,
+        isJinglazoDelDia: jingle.isJinglazoDelDia !== undefined ? jingle.isJinglazoDelDia : false,
+        isPrecario: jingle.isPrecario !== undefined ? jingle.isPrecario : false,
+        createdAt: this.parseDate(jingle.createdAt) || new Date().toISOString(),
+        updatedAt: this.parseDate(jingle.updatedAt) || new Date().toISOString()
       });
     }
     
@@ -435,7 +468,7 @@ export class SeedDataMigrator {
           type: $type,
           createdAt: datetime($createdAt),
           updatedAt: datetime($updatedAt),
-          removedAt: $removedAt ? datetime($removedAt) : null
+          removedAt: $removedAt
         }]->(j)
       `;
       
@@ -445,7 +478,7 @@ export class SeedDataMigrator {
         type: rel.type || 'ME_GUSTA',
         createdAt: rel.createdAt || new Date().toISOString(),
         updatedAt: rel.updatedAt || new Date().toISOString(),
-        removedAt: rel.removedAt || null
+        removedAt: this.parseDate(rel.removedAt)
       });
     }
   }
@@ -458,7 +491,7 @@ export class SeedDataMigrator {
           status: $status,
           requestedAt: datetime($requestedAt),
           isVerified: $isVerified,
-          verifiedAt: $verifiedAt ? datetime($verifiedAt) : null,
+          verifiedAt: $verifiedAt,
           verifiedBy: $verifiedBy
         }]->(a)
       `;
@@ -469,7 +502,7 @@ export class SeedDataMigrator {
         status: rel.status || 'REQUESTED',
         requestedAt: rel.requestedAt || new Date().toISOString(),
         isVerified: rel.isVerified || false,
-        verifiedAt: rel.verifiedAt || null,
+        verifiedAt: this.parseDate(rel.verifiedAt),
         verifiedBy: rel.verifiedBy || null
       });
     }
@@ -487,13 +520,13 @@ export class SeedDataMigrator {
       const tematicaCount = await this.db.executeQuery('MATCH (t:Tematica) RETURN count(t) as count');
       const jingleCount = await this.db.executeQuery('MATCH (j:Jingle) RETURN count(j) as count');
       
-      console.log('Entity counts:');
-      console.log(`- Usuarios: ${usuarioCount[0].count}`);
-      console.log(`- Artistas: ${artistaCount[0].count}`);
-      console.log(`- Canciones: ${cancionCount[0].count}`);
-      console.log(`- Fabricas: ${fabricaCount[0].count}`);
-      console.log(`- Tematicas: ${tematicaCount[0].count}`);
-      console.log(`- Jingles: ${jingleCount[0].count}`);
+    console.log('Entity counts:');
+    console.log(`- Usuarios: ${(usuarioCount[0] as any).count}`);
+    console.log(`- Artistas: ${(artistaCount[0] as any).count}`);
+    console.log(`- Canciones: ${(cancionCount[0] as any).count}`);
+    console.log(`- Fabricas: ${(fabricaCount[0] as any).count}`);
+    console.log(`- Tematicas: ${(tematicaCount[0] as any).count}`);
+    console.log(`- Jingles: ${(jingleCount[0] as any).count}`);
       
       // Check relationship counts
       const relationshipCounts = await this.db.executeQuery(`

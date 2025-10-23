@@ -5,11 +5,255 @@ import { getSchemaInfo } from '../db/schema/setup';
 const router = Router();
 const db = Neo4jClient.getInstance();
 
+// Helper function to convert Neo4j dates to ISO strings
+function convertNeo4jDates(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  
+  if (typeof obj === 'object') {
+    // Handle Neo4j DateTime objects
+    if (obj.year !== undefined && obj.month !== undefined && obj.day !== undefined) {
+      const year = typeof obj.year === 'object' ? obj.year.low : obj.year;
+      const month = typeof obj.month === 'object' ? obj.month.low : obj.month;
+      const day = typeof obj.day === 'object' ? obj.day.low : obj.day;
+      const hour = typeof obj.hour === 'object' ? (obj.hour?.low || 0) : (obj.hour || 0);
+      const minute = typeof obj.minute === 'object' ? (obj.minute?.low || 0) : (obj.minute || 0);
+      const second = typeof obj.second === 'object' ? (obj.second?.low || 0) : (obj.second || 0);
+      
+      return new Date(year, month - 1, day, hour, minute, second).toISOString();
+    }
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(convertNeo4jDates);
+    }
+    
+    // Handle objects
+    const converted: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      converted[key] = convertNeo4jDates(value);
+    }
+    return converted;
+  }
+  
+  return obj;
+}
+
 // Schema introspection endpoint
 router.get('/schema', async (req, res) => {
   try {
     const schemaInfo = await getSchemaInfo();
     res.json(schemaInfo);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+// Direct entity endpoints for convenience
+router.get('/usuarios', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const query = `
+      MATCH (n:Usuario)
+      RETURN n
+      ORDER BY n.createdAt DESC
+      SKIP ${Math.floor(Number(offset) || 0)}
+      LIMIT ${Math.floor(Number(limit) || 50)}
+    `;
+    
+    const entities = await db.executeQuery(query);
+    
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/usuarios/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `MATCH (n:Usuario {id: $id}) RETURN n`;
+    const result = await db.executeQuery(query, { id });
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Usuario not found' });
+    }
+    
+    res.json(result[0].n.properties);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/artistas', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const query = `
+      MATCH (n:Artista)
+      RETURN n
+      ORDER BY n.createdAt DESC
+      SKIP ${Math.floor(Number(offset) || 0)}
+      LIMIT ${Math.floor(Number(limit) || 50)}
+    `;
+    
+    const entities = await db.executeQuery(query);
+    
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/artistas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `MATCH (n:Artista {id: $id}) RETURN n`;
+    const result = await db.executeQuery(query, { id });
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Artista not found' });
+    }
+    
+    res.json(result[0].n.properties);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/canciones', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const query = `
+      MATCH (n:Cancion)
+      RETURN n
+      ORDER BY n.createdAt DESC
+      SKIP ${Math.floor(Number(offset) || 0)}
+      LIMIT ${Math.floor(Number(limit) || 50)}
+    `;
+    
+    const entities = await db.executeQuery(query);
+    
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/canciones/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `MATCH (n:Cancion {id: $id}) RETURN n`;
+    const result = await db.executeQuery(query, { id });
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Cancion not found' });
+    }
+    
+    res.json(result[0].n.properties);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/fabricas', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const query = `
+      MATCH (n:Fabrica)
+      RETURN n
+      ORDER BY n.createdAt DESC
+      SKIP ${Math.floor(Number(offset) || 0)}
+      LIMIT ${Math.floor(Number(limit) || 50)}
+    `;
+    
+    const entities = await db.executeQuery(query);
+    
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/fabricas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `MATCH (n:Fabrica {id: $id}) RETURN n`;
+    const result = await db.executeQuery(query, { id });
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Fabrica not found' });
+    }
+    
+    res.json(result[0].n.properties);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/tematicas', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const query = `
+      MATCH (n:Tematica)
+      RETURN n
+      ORDER BY n.createdAt DESC
+      SKIP ${Math.floor(Number(offset) || 0)}
+      LIMIT ${Math.floor(Number(limit) || 50)}
+    `;
+    
+    const entities = await db.executeQuery(query);
+    
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/tematicas/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `MATCH (n:Tematica {id: $id}) RETURN n`;
+    const result = await db.executeQuery(query, { id });
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Tematica not found' });
+    }
+    
+    res.json(result[0].n.properties);
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/jingles', async (req, res) => {
+  try {
+    const { limit = 50, offset = 0 } = req.query;
+    const query = `
+      MATCH (n:Jingle)
+      RETURN n
+      ORDER BY n.createdAt DESC
+      SKIP ${Math.floor(Number(offset) || 0)}
+      LIMIT ${Math.floor(Number(limit) || 50)}
+    `;
+    
+    const entities = await db.executeQuery(query);
+    
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+router.get('/jingles/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const query = `MATCH (n:Jingle {id: $id}) RETURN n`;
+    const result = await db.executeQuery(query, { id });
+    
+    if (result.length === 0) {
+      return res.status(404).json({ error: 'Jingle not found' });
+    }
+    
+    res.json(result[0].n.properties);
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -47,8 +291,8 @@ router.get('/entities/:type', async (req, res) => {
     `;
     
     const entities = await db.executeQuery(query, { 
-      offset: parseInt(offset as string), 
-      limit: parseInt(limit as string) 
+      offset: Math.floor(Number(offset) || 0), 
+      limit: Math.floor(Number(limit) || 50) 
     });
     
     res.json(entities.map(entity => entity.n));

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { adminApi } from '../../lib/api/client';
+import { Usuario, Artista, Cancion, Fabrica, Tematica, Jingle } from '../../types';
 
-type NodeItem = { id: string; nombre?: string; name?: string; title?: string; [k: string]: unknown };
+type NodeItem = Usuario | Artista | Cancion | Fabrica | Tematica | Jingle;
 
 type Props = {
   relType: string; // e.g. 'autor_de'
@@ -24,15 +26,75 @@ export default function RelationshipForm({ relType, startType, endType, fields =
   const [success, setSuccess] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`/api/admin/${startType}`)
-      .then((r) => r.json())
-      .then((d) => setStarts(d || []))
-      .catch(() => setStarts([]));
-    fetch(`/api/admin/${endType}`)
-      .then((r) => r.json())
-      .then((d) => setEnds(d || []))
-      .catch(() => setEnds([]));
+    const fetchData = async () => {
+      try {
+        let startData: NodeItem[], endData: NodeItem[];
+        
+        switch (startType) {
+          case 'usuarios':
+            startData = await adminApi.getUsuarios();
+            break;
+          case 'artistas':
+            startData = await adminApi.getArtistas();
+            break;
+          case 'canciones':
+            startData = await adminApi.getCanciones();
+            break;
+          case 'fabricas':
+            startData = await adminApi.getFabricas();
+            break;
+          case 'tematicas':
+            startData = await adminApi.getTematicas();
+            break;
+          case 'jingles':
+            startData = await adminApi.getJingles();
+            break;
+          default:
+            startData = [];
+        }
+
+        switch (endType) {
+          case 'usuarios':
+            endData = await adminApi.getUsuarios();
+            break;
+          case 'artistas':
+            endData = await adminApi.getArtistas();
+            break;
+          case 'canciones':
+            endData = await adminApi.getCanciones();
+            break;
+          case 'fabricas':
+            endData = await adminApi.getFabricas();
+            break;
+          case 'tematicas':
+            endData = await adminApi.getTematicas();
+            break;
+          case 'jingles':
+            endData = await adminApi.getJingles();
+            break;
+          default:
+            endData = [];
+        }
+
+        setStarts(startData);
+        setEnds(endData);
+      } catch (error) {
+        setStarts([]);
+        setEnds([]);
+      }
+    };
+
+    fetchData();
   }, [startType, endType]);
+
+  const getDisplayName = (item: NodeItem): string => {
+    if ('displayName' in item) return item.displayName;
+    if ('stageName' in item) return item.stageName || item.name || '';
+    if ('title' in item) return item.title || '';
+    if ('name' in item) return item.name;
+    if ('email' in item) return item.email;
+    return item.id;
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -40,17 +102,13 @@ export default function RelationshipForm({ relType, startType, endType, fields =
     setSuccess(null);
     setLoading(true);
     try {
-      const payload: Record<string, unknown> = { start: presetStart || startId, end: presetEnd || endId, ...extra };
-      const res = await fetch(`/api/admin/relationships/${relType}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(`${res.status} ${res.statusText} - ${txt}`);
-      }
-      await res.json();
+      const payload = { 
+        start: presetStart || startId, 
+        end: presetEnd || endId, 
+        type: relType,
+        properties: extra 
+      };
+      await adminApi.createRelationship(payload);
       setSuccess(`Relacion creada`);
       if (!presetStart) setStartId('');
       if (!presetEnd) setEndId('');
@@ -74,7 +132,7 @@ export default function RelationshipForm({ relType, startType, endType, fields =
             <select value={startId} onChange={(e) => setStartId(e.target.value)} required>
               <option value="">-- seleccionar --</option>
               {starts.map((s) => (
-                <option key={s.id} value={s.id}>{s.id} — {s.nombre || s.name || s.title}</option>
+                <option key={s.id} value={s.id}>{s.id} — {getDisplayName(s)}</option>
               ))}
             </select>
           )}
@@ -88,7 +146,7 @@ export default function RelationshipForm({ relType, startType, endType, fields =
             <select value={endId} onChange={(e) => setEndId(e.target.value)} required>
               <option value="">-- seleccionar --</option>
               {ends.map((s) => (
-                <option key={s.id} value={s.id}>{s.id} — {s.nombre || s.name || s.title}</option>
+                <option key={s.id} value={s.id}>{s.id} — {getDisplayName(s)}</option>
               ))}
             </select>
           )}

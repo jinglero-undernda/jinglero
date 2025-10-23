@@ -35,9 +35,174 @@ This guide will walk you through setting up and populating the Neo4j database fo
    npx ts-node src/server/db/schema/seed.ts
    ```
 
-## Verifying Data Import
+## Verifying Data Import and API Refactoring
 
-Log into your AuraDB console and use these Cypher queries to verify the data import. Copy and paste them into the Neo4j Browser interface.
+Log into your AuraDB console and use these Cypher queries to verify the data import and API refactoring changes. Copy and paste them into the Neo4j Browser interface.
+
+### API Refactoring Verification Queries
+
+After running the API refactoring migration, use these queries to confirm the changes have been applied successfully:
+
+#### 1. Verify Schema Introspection Capabilities
+
+```cypher
+// Get all node labels in the database
+CALL db.labels();
+
+// Get all relationship types
+CALL db.relationshipTypes();
+
+// Get all property keys used
+CALL db.propertyKeys();
+
+// Show all constraints
+SHOW CONSTRAINTS;
+
+// Show all indexes
+SHOW INDEXES;
+```
+
+#### 2. Verify Migration Success
+
+```cypher
+// Check that all expected entity types exist
+MATCH (n)
+RETURN DISTINCT labels(n) as EntityTypes, count(n) as Count
+ORDER BY Count DESC;
+
+// Expected results should show:
+// - Usuario: 3
+// - Artista: 12
+// - Cancion: 4
+// - Fabrica: 2
+// - Tematica: 8
+// - Jingle: 5
+```
+
+#### 3. Verify Relationship Migration
+
+```cypher
+// Check all relationship types and their counts
+MATCH ()-[r]->()
+RETURN type(r) as RelationshipType, count(r) as Count
+ORDER BY Count DESC;
+
+// Expected results should show:
+// - TAGGED_WITH: 16
+// - JINGLERO_DE: 14
+// - APPEARS_IN: 8
+// - AUTOR_DE: 8
+// - REACCIONA_A: 8
+// - VERSIONA: 8
+// - SOY_YO: 2
+```
+
+#### 4. Verify Data Integrity
+
+```cypher
+// Check that all entities have proper timestamps
+MATCH (n)
+WHERE n.createdAt IS NULL OR n.updatedAt IS NULL
+RETURN labels(n) as EntityType, count(n) as MissingTimestamps;
+
+// Should return 0 rows if migration was successful
+
+// Check that boolean fields are properly set
+MATCH (j:Jingle)
+RETURN j.id, j.isJinglazo, j.isJinglazoDelDia, j.isPrecario
+LIMIT 5;
+
+MATCH (a:Artista)
+RETURN a.id, a.isArg
+LIMIT 5;
+```
+
+#### 5. Test New API Endpoints (via Neo4j Browser)
+
+You can test the new API endpoints by running these queries that simulate what the APIs would return:
+
+```cypher
+// Simulate Public API - Get all artistas
+MATCH (a:Artista)
+RETURN a
+ORDER BY a.createdAt DESC
+LIMIT 50;
+
+// Simulate Public API - Get single artista by ID
+MATCH (a:Artista {id: "ART-001"})
+RETURN a;
+
+// Simulate Public API - Get artista relationships
+MATCH (a:Artista {id: "ART-001"})
+OPTIONAL MATCH (a)-[r]->(target)
+OPTIONAL MATCH (source)-[r2]->(a)
+RETURN
+  collect(DISTINCT {
+    type: type(r),
+    direction: 'outgoing',
+    target: target,
+    properties: properties(r)
+  }) as outgoing,
+  collect(DISTINCT {
+    type: type(r2),
+    direction: 'incoming',
+    source: source,
+    properties: properties(r2)
+  }) as incoming;
+
+// Simulate Admin API - Schema introspection
+CALL db.labels() YIELD label
+RETURN collect(label) as labels;
+```
+
+#### 6. Verify Backup Creation
+
+```cypher
+// Check that the migration created proper data structure
+// This query should return the same counts as before migration
+MATCH (u:Usuario)
+RETURN count(u) as UsuarioCount;
+
+MATCH (a:Artista)
+RETURN count(a) as ArtistaCount;
+
+MATCH (c:Cancion)
+RETURN count(c) as CancionCount;
+
+MATCH (f:Fabrica)
+RETURN count(f) as FabricaCount;
+
+MATCH (t:Tematica)
+RETURN count(t) as TematicaCount;
+
+MATCH (j:Jingle)
+RETURN count(j) as JingleCount;
+```
+
+#### 7. Test Relationship Queries
+
+```cypher
+// Verify that all relationship types work correctly
+MATCH (a:Artista)-[r:JINGLERO_DE]->(j:Jingle)
+RETURN a.name, j.title, r.status
+LIMIT 5;
+
+MATCH (j:Jingle)-[r:VERSIONA]->(c:Cancion)
+RETURN j.title, c.title, r.status
+LIMIT 5;
+
+MATCH (j:Jingle)-[r:TAGGED_WITH]->(t:Tematica)
+RETURN j.title, t.name, r.isPrimary
+LIMIT 5;
+
+MATCH (u:Usuario)-[r:SOY_YO]->(a:Artista)
+RETURN u.displayName, a.name, r.status, r.isVerified
+LIMIT 5;
+```
+
+### Original Data Import Verification
+
+Use these queries to verify the original data import:
 
 ### 1. Count Nodes by Type
 

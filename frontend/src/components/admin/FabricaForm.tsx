@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
+import { adminApi } from '../../lib/api/client';
 
 export default function FabricaForm() {
-  const [nombre, setNombre] = useState('');
+  const [title, setTitle] = useState('');
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [date, setDate] = useState('');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -10,33 +13,23 @@ export default function FabricaForm() {
     e.preventDefault();
     setError(null);
     setSuccess(null);
-    if (!nombre.trim()) return setError('El nombre es requerido');
+    if (!youtubeUrl.trim()) return setError('La URL de YouTube es requerida');
     setCreating(true);
 
     try {
-      // The backend seed API is currently read-only in this repo. We attempt a POST
-      // for when a write-capable endpoint exists. If it returns 404/405 we surface an error.
-      const res = await fetch('/api/seed/fabricas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre }),
+      const data = await adminApi.createFabrica({
+        title: title.trim() || null,
+        youtubeUrl: youtubeUrl.trim(),
+        date: date.trim() || new Date().toISOString().split('T')[0],
+        status: 'DRAFT'
       });
 
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(`${res.status} ${res.statusText} - ${text}`);
-      }
-
-      const data = await res.json();
-      setSuccess(`Creado: ${data.id || data.nombre || JSON.stringify(data)}`);
-      setNombre('');
+      setSuccess(`Creado: ${data.id}`);
+      setTitle('');
+      setYoutubeUrl('');
+      setDate('');
     } catch (err: any) {
-      // If backend doesn't support POST yet, show friendly note
-      if (err?.message?.includes('405') || err?.message?.includes('404')) {
-        setError('El endpoint de creación no está disponible (solo lectura).');
-      } else {
-        setError(err?.message || String(err));
-      }
+      setError(err?.message || String(err));
       console.warn('Create Fabrica failed', err);
     } finally {
       setCreating(false);
@@ -50,8 +43,20 @@ export default function FabricaForm() {
       {success && <div className="success">{success}</div>}
       <div>
         <label>
-          Nombre
-          <input value={nombre} onChange={(e) => setNombre(e.target.value)} />
+          Título
+          <input value={title} onChange={(e) => setTitle(e.target.value)} />
+        </label>
+      </div>
+      <div>
+        <label>
+          URL de YouTube *
+          <input value={youtubeUrl} onChange={(e) => setYoutubeUrl(e.target.value)} required />
+        </label>
+      </div>
+      <div>
+        <label>
+          Fecha
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </label>
       </div>
       <div>

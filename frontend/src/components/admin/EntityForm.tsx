@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { adminApi } from '../../lib/api/client';
 
 type Field = { name: string; label?: string; required?: boolean };
 
@@ -44,16 +45,29 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
         await onSave(payload);
         setSuccess(submitLabel || 'Guardado');
       } else {
-        const res = await fetch(`/api/admin/${type}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        });
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`${res.status} ${res.statusText} - ${txt}`);
+        let data: any;
+        switch (type) {
+          case 'usuarios':
+            data = await adminApi.createUsuario(payload);
+            break;
+          case 'artistas':
+            data = await adminApi.createArtista(payload);
+            break;
+          case 'canciones':
+            data = await adminApi.createCancion(payload);
+            break;
+          case 'fabricas':
+            data = await adminApi.createFabrica(payload);
+            break;
+          case 'tematicas':
+            data = await adminApi.createTematica(payload);
+            break;
+          case 'jingles':
+            data = await adminApi.createJingle(payload);
+            break;
+          default:
+            throw new Error(`Unknown entity type: ${type}`);
         }
-        const data = await res.json();
         setSuccess(`Creado: ${data.id || JSON.stringify(data)}`);
         // reset
         setForm(initialState);

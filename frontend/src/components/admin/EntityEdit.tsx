@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import RelationshipForm from './RelationshipForm';
+import { adminApi } from '../../lib/api/client';
+import { Usuario, Artista, Cancion, Fabrica, Tematica, Jingle } from '../../types';
 
 type Props = { type: string; id: string };
 
@@ -17,22 +19,50 @@ const RELATIONSHIP_SCHEMA: Record<string, { start: string; end: string; }> = {
 
 type RelEntry = { start: string; end: string } & Record<string, unknown>;
 
+type EntityType = Usuario | Artista | Cancion | Fabrica | Tematica | Jingle;
+
 export default function EntityEdit({ type, id }: Props) {
-  const [item, setItem] = useState<Record<string, unknown> | null>(null);
+  const [item, setItem] = useState<EntityType | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/admin/${type}/${id}`)
-      .then((r) => {
-        if (!r.ok) throw new Error(`Status ${r.status}`);
-        return r.json();
-      })
-      .then((d) => setItem(d))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        let data: EntityType;
+        switch (type) {
+          case 'usuarios':
+            data = await adminApi.getUsuario(id);
+            break;
+          case 'artistas':
+            data = await adminApi.getArtista(id);
+            break;
+          case 'canciones':
+            data = await adminApi.getCancion(id);
+            break;
+          case 'fabricas':
+            data = await adminApi.getFabrica(id);
+            break;
+          case 'tematicas':
+            data = await adminApi.getTematica(id);
+            break;
+          case 'jingles':
+            data = await adminApi.getJingle(id);
+            break;
+          default:
+            throw new Error(`Unknown entity type: ${type}`);
+        }
+        setItem(data);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [type, id]);
 
   // Determine which relationship types are relevant to this entity type
@@ -45,20 +75,54 @@ export default function EntityEdit({ type, id }: Props) {
   const [nodeMaps, setNodeMaps] = useState<Record<string, Record<string, string>>>({});
   useEffect(() => {
     let mounted = true;
-    // fetch relationships for each rel type
-    const relFetch = Promise.all(relTypesForThisType.map((r) => fetch(`/api/admin/relationships/${r.rel}`).then((res) => res.ok ? res.json() : []).catch(() => [])));
-    // also fetch node lists for counterpart types to build display strings
-    const nodeTypesToFetch = Array.from(new Set(relTypesForThisType.flatMap((r) => [r.startType, r.endType])));
-    const nodeFetch = Promise.all(nodeTypesToFetch.map((nt) => fetch(`/api/admin/${nt}`).then((res) => res.ok ? res.json() : []).catch(() => [])));
+    
+    const fetchRelationshipsAndNodes = async () => {
+      try {
+        // fetch relationships for each rel type
+        const relPromises = relTypesForThisType.map(async (r) => {
+          try {
+            return await adminApi.getRelationshipsByType(r.rel);
+          } catch {
+            return [];
+          }
+        });
+        
+        // also fetch node lists for counterpart types to build display strings
+        const nodeTypesToFetch = Array.from(new Set(relTypesForThisType.flatMap((r) => [r.startType, r.endType])));
+        const nodePromises = nodeTypesToFetch.map(async (nt) => {
+          try {
+            switch (nt) {
+              case 'usuarios':
+                return await adminApi.getUsuarios();
+              case 'artistas':
+                return await adminApi.getArtistas();
+              case 'canciones':
+                return await adminApi.getCanciones();
+              case 'fabricas':
+                return await adminApi.getFabricas();
+              case 'tematicas':
+                return await adminApi.getTematicas();
+              case 'jingles':
+                return await adminApi.getJingles();
+              default:
+                return [];
+            }
+          } catch {
+            return [];
+          }
+        });
 
-    Promise.all([relFetch, nodeFetch])
-      .then((arrays) => {
+        const [relArrays, nodeArrays] = await Promise.all([
+          Promise.all(relPromises),
+          Promise.all(nodePromises)
+        ]);
+
         if (!mounted) return;
-        const relArrays = arrays[0] as any[]; // array of arrays for relationships
-        const nodeArrays = arrays[1] as any[]; // array of node lists matching nodeTypesToFetch
 
         const map: Record<string, RelEntry[]> = {};
-        relTypesForThisType.forEach((r, i) => { map[r.rel] = (relArrays[i] || []) as RelEntry[]; });
+        relTypesForThisType.forEach((r, i) => { 
+          map[r.rel] = (relArrays[i] || []) as RelEntry[]; 
+        });
         setExistingRels(map);
 
         // build id -> display map for each node type
@@ -67,18 +131,30 @@ export default function EntityEdit({ type, id }: Props) {
           const arr = nodeArrays[i] || [];
           const m: Record<string, string> = {};
           arr.forEach((it: any) => {
-            m[it.id] = `${it.id} ${it.nombre || it.name || it.title || it.email || ''}`.trim();
+            const displayName = getDisplayName(it);
+            m[it.id] = `${it.id} ${displayName}`.trim();
           });
           nm[nt] = m;
         });
         setNodeMaps(nm);
-      })
-      .catch(() => {
+      } catch (error) {
         if (!mounted) return;
         setExistingRels({});
-      });
+      }
+    };
+
+    fetchRelationshipsAndNodes();
     return () => { mounted = false; };
   }, [type, id, relTypesForThisType]);
+
+  const getDisplayName = (item: any): string => {
+    if ('displayName' in item) return item.displayName;
+    if ('stageName' in item) return item.stageName || item.name || '';
+    if ('title' in item) return item.title || '';
+    if ('name' in item) return item.name;
+    if ('email' in item) return item.email;
+    return item.id;
+  };
 
   if (loading) return <div>Cargando...</div>;
   if (error) return <div className="error">{error}</div>;
@@ -100,13 +176,29 @@ export default function EntityEdit({ type, id }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const res = await fetch(`/api/admin/${type}/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(item),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      const updated = await res.json();
+      let updated: EntityType;
+      switch (type) {
+        case 'usuarios':
+          updated = await adminApi.updateUsuario(id, item as Partial<Usuario>);
+          break;
+        case 'artistas':
+          updated = await adminApi.updateArtista(id, item as Partial<Artista>);
+          break;
+        case 'canciones':
+          updated = await adminApi.updateCancion(id, item as Partial<Cancion>);
+          break;
+        case 'fabricas':
+          updated = await adminApi.updateFabrica(id, item as Partial<Fabrica>);
+          break;
+        case 'tematicas':
+          updated = await adminApi.updateTematica(id, item as Partial<Tematica>);
+          break;
+        case 'jingles':
+          updated = await adminApi.updateJingle(id, item as Partial<Jingle>);
+          break;
+        default:
+          throw new Error(`Unknown entity type: ${type}`);
+      }
       setItem(updated);
     } catch (err: unknown) {
       setError((err as Error)?.message || String(err));
@@ -118,8 +210,28 @@ export default function EntityEdit({ type, id }: Props) {
   async function handleDelete() {
     if (!confirm('Confirm delete?')) return;
     try {
-      const res = await fetch(`/api/admin/${type}/${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error(await res.text());
+      switch (type) {
+        case 'usuarios':
+          await adminApi.deleteUsuario(id);
+          break;
+        case 'artistas':
+          await adminApi.deleteArtista(id);
+          break;
+        case 'canciones':
+          await adminApi.deleteCancion(id);
+          break;
+        case 'fabricas':
+          await adminApi.deleteFabrica(id);
+          break;
+        case 'tematicas':
+          await adminApi.deleteTematica(id);
+          break;
+        case 'jingles':
+          await adminApi.deleteJingle(id);
+          break;
+        default:
+          throw new Error(`Unknown entity type: ${type}`);
+      }
       // navigate back to list
       window.location.href = `/admin/dashboard/${type}`;
     } catch (err: unknown) {
@@ -130,12 +242,7 @@ export default function EntityEdit({ type, id }: Props) {
   async function handleDeleteRelationship(relType: string, rel: RelEntry) {
     if (!confirm(`Eliminar relación ${relType} entre ${rel.start} → ${rel.end}?`)) return;
     try {
-      const res = await fetch(`/api/admin/relationships/${relType}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ start: rel.start, end: rel.end }),
-      });
-      if (!res.ok) throw new Error(await res.text());
+      await adminApi.deleteRelationship(relType, rel.start, rel.end);
       // remove from local state
       setExistingRels((prev) => {
         const copy = { ...prev };
@@ -161,11 +268,29 @@ export default function EntityEdit({ type, id }: Props) {
           onSave={async (payload) => {
             // merge id into payload and call backend PUT
             const body = { ...payload, id };
-            const res = await fetch(`/api/admin/${type}/${id}`, {
-              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
-            });
-            if (!res.ok) throw new Error(await res.text());
-            const updated = await res.json();
+            let updated: EntityType;
+            switch (type) {
+              case 'usuarios':
+                updated = await adminApi.updateUsuario(id, body as Partial<Usuario>);
+                break;
+              case 'artistas':
+                updated = await adminApi.updateArtista(id, body as Partial<Artista>);
+                break;
+              case 'canciones':
+                updated = await adminApi.updateCancion(id, body as Partial<Cancion>);
+                break;
+              case 'fabricas':
+                updated = await adminApi.updateFabrica(id, body as Partial<Fabrica>);
+                break;
+              case 'tematicas':
+                updated = await adminApi.updateTematica(id, body as Partial<Tematica>);
+                break;
+              case 'jingles':
+                updated = await adminApi.updateJingle(id, body as Partial<Jingle>);
+                break;
+              default:
+                throw new Error(`Unknown entity type: ${type}`);
+            }
             setItem(updated);
           }}
           submitLabel="Guardar"

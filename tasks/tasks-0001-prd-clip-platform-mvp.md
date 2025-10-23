@@ -86,7 +86,7 @@
 
 - [ ] 5.0 Implement Core API Layer
 
-  - [ ] 5.1 Design RESTful API endpoints for all entities
+  - [x] 5.1 Design RESTful API endpoints for all entities
   - [ ] 5.2 Implement base controller class with error handling
   - [ ] 5.3 Create CRUD operations for each entity
   - [ ] 5.4 Implement search functionality with Neo4j

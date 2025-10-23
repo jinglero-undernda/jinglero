@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from 'react';
-
-type Fabrica = {
-  id: string;
-  nombre?: string;
-  [k: string]: any;
-};
+import { adminApi } from '../../lib/api/client';
+import { Fabrica } from '../../types';
 
 export default function FabricaList() {
   const [items, setItems] = useState<Fabrica[]>([]);
@@ -12,15 +8,19 @@ export default function FabricaList() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setLoading(true);
-    fetch('/api/admin/fabricas')
-      .then((r) => {
-        if (!r.ok) throw new Error(`Status ${r.status}`);
-        return r.json();
-      })
-      .then((d) => setItems(d || []))
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const data = await adminApi.getFabricas();
+        setItems(data || []);
+      } catch (e: any) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   return (
@@ -31,7 +31,7 @@ export default function FabricaList() {
       <ul>
         {items.map((f) => (
           <li key={f.id}>
-            <a href={`/admin/dashboard/fabricas/edit/${f.id}`}><strong>{f.title || f.nombre || f.id}</strong> — <code>{f.id}</code></a>
+            <a href={`/admin/dashboard/fabricas/edit/${f.id}`}><strong>{f.title || f.id}</strong> — <code>{f.id}</code></a>
           </li>
         ))}
       </ul>
