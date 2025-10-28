@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../lib/api/client';
-import { Usuario, Artista, Cancion, Fabrica, Tematica, Jingle } from '../../types';
+import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle } from '../../types';
 
 type Props = {
   type: string;

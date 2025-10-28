@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { adminApi } from '../../lib/api/client';
-import { Fabrica } from '../../types';
+import { type Fabrica } from '../../types';
 
 export default function FabricaList() {
   const [items, setItems] = useState<Fabrica[]>([]);
@@ -29,8 +29,8 @@ export default function FabricaList() {
       {loading && <div>Cargando...</div>}
       {error && <div className="error">Error: {error}</div>}
       <ul>
-        {items.map((f) => (
-          <li key={f.id}>
+        {items.map((f, index) => (
+          <li key={f.id ? f.id : `fabrica-${index}`}>
             <a href={`/admin/dashboard/fabricas/edit/${f.id}`}><strong>{f.title || f.id}</strong> — <code>{f.id}</code></a>
           </li>
         ))}

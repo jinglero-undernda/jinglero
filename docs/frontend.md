@@ -32,6 +32,12 @@ This document provides instructions for setting up and running the frontend appl
 
 ### Available Scripts
 
+- **Stop existing Dev Server**:
+
+  ```bash
+  kill $(lsof -t -i:5173)
+  ```
+
 - **Start Development Server**:
 
   ```bash

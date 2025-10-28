@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { Neo4jClient } from '../db';
 import { getSchemaInfo } from '../db/schema/setup';
+import neo4j from 'neo4j-driver';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -263,7 +264,10 @@ router.get('/jingles/:id', async (req, res) => {
 router.get('/entities/:type', async (req, res) => {
   try {
     const { type } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
+    const limitParam = req.query.limit as string;
+    const offsetParam = req.query.offset as string;
+    const limit = neo4j.int(parseInt(limitParam, 10) || 50);
+    const offset = neo4j.int(parseInt(offsetParam, 10) || 0);
     
     // Validate entity type
     const validTypes = ['usuarios', 'artistas', 'canciones', 'fabricas', 'tematicas', 'jingles'];
@@ -290,12 +294,9 @@ router.get('/entities/:type', async (req, res) => {
       LIMIT $limit
     `;
     
-    const entities = await db.executeQuery(query, { 
-      offset: Math.floor(Number(offset) || 0), 
-      limit: Math.floor(Number(limit) || 50) 
-    });
+    const entities = await db.executeQuery(query, { offset, limit });
     
-    res.json(entities.map(entity => entity.n));
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -332,7 +333,7 @@ router.get('/entities/:type/:id', async (req, res) => {
       return res.status(404).json({ error: `${type} not found` });
     }
     
-    res.json(result[0].n);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -342,7 +343,8 @@ router.get('/entities/:type/:id', async (req, res) => {
 router.get('/relationships/:type', async (req, res) => {
   try {
     const { type } = req.params;
-    const { limit = 50, offset = 0 } = req.query;
+    const limit = neo4j.int(parseInt(req.query.limit as string, 10) || 50);
+    const offset = neo4j.int(parseInt(req.query.offset as string, 10) || 0);
     
     // Map relationship types
     const relTypeMap: Record<string, string> = {
@@ -368,12 +370,9 @@ router.get('/relationships/:type', async (req, res) => {
       LIMIT $limit
     `;
     
-    const relationships = await db.executeQuery(query, { 
-      offset: parseInt(offset as string), 
-      limit: parseInt(limit as string) 
-    });
+    const relationships = await db.executeQuery(query, { offset, limit });
     
-    res.json(relationships.map(rel => rel.r));
+    res.json(relationships.map((rel: any) => convertNeo4jDates(rel.r.properties)));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }

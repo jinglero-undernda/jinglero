@@ -10,11 +10,14 @@ export default function JinglePage() {
     if (jingleId) {
       setJingle({
         id: jingleId,
-        titulo: `Jingle ${jingleId}`,
-        jinglero: { id: 'a1', nombre: 'Jinglero', tipo: 'JINGLERO' },
-        cancionOriginal: { id: 'c1', titulo: 'Cancion', autor: { id: 'ar1', nombre: 'Autor', tipo: 'AUTOR' } },
-        tematicas: [],
-        timestamp: 0,
+        title: `Jingle ${jingleId}`,
+        timestamp: '00:00:00',
+        youtubeUrl: 'dQw4w9WgXcQ',
+        isJinglazo: false,
+        isJinglazoDelDia: false,
+        isPrecario: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
     }
   }, [jingleId]);
@@ -24,7 +27,7 @@ export default function JinglePage() {
       <nav>
         <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
       </nav>
-      <h1>Jingle: {jingle?.titulo ?? jingleId}</h1>
+      <h1>Jingle: {jingle?.title ?? jingleId}</h1>
       <p>Información del Jingle aquí.</p>
     </main>
   );

@@ -8,7 +8,12 @@ export default function CancionPage() {
 
   useEffect(() => {
     if (cancionId) {
-      setCancion({ id: cancionId, titulo: `Cancion ${cancionId}`, autor: { id: 'ar1', nombre: 'Autor', tipo: 'AUTOR' } });
+      setCancion({ 
+        id: cancionId, 
+        title: `Cancion ${cancionId}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
     }
   }, [cancionId]);
 
@@ -17,7 +22,7 @@ export default function CancionPage() {
       <nav>
         <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
       </nav>
-      <h1>Cancion: {cancion?.titulo ?? cancionId}</h1>
+      <h1>Cancion: {cancion?.title ?? cancionId}</h1>
       <p>Información de la cancion aquí.</p>
     </main>
   );

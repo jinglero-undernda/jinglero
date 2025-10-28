@@ -282,7 +282,7 @@ router.get('/:type', async (req, res) => {
     `;
     
     const entities = await db.executeQuery(query);
-    res.json(entities.map(entity => convertNeo4jDates(entity.n.properties)));
+    res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to load entities' });
   }
@@ -356,7 +356,7 @@ router.post('/:type', async (req, res) => {
       properties
     }, undefined, true);
     
-    res.status(201).json(result[0].n);
+    res.status(201).json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to create entity' });
   }
@@ -388,7 +388,7 @@ router.put('/:type/:id', async (req, res) => {
       return res.status(404).json({ error: `Not found: ${type}/${id}` });
     }
     
-    res.json(result[0].n);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to update entity' });
   }
@@ -428,7 +428,7 @@ router.patch('/:type/:id', async (req, res) => {
       properties: mergedProps 
     }, undefined, true);
     
-    res.json(result[0].n);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Failed to patch entity' });
   }

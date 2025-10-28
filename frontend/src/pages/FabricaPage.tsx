@@ -14,9 +14,12 @@ export default function FabricaPage() {
     if (fabricaId) {
       setFabrica({
         id: fabricaId,
-        titulo: `Fabrica ${fabricaId}`,
-        youtubeId: 'dQw4w9WgXcQ',
-        jingles: [],
+        title: `Fabrica ${fabricaId}`,
+        youtubeUrl: 'dQw4w9WgXcQ',
+        date: new Date().toISOString(),
+        status: 'COMPLETED',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       });
     }
   }, [fabricaId]);
@@ -26,7 +29,7 @@ export default function FabricaPage() {
       <nav>
         <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
       </nav>
-      <h1>Fabrica: {fabrica?.titulo ?? fabricaId}</h1>
+      <h1>Fabrica: {fabrica?.title ?? fabricaId}</h1>
       {jingleIndex ? (
         <p>Saltando al jingle #{jingleIndex}</p>
       ) : (
