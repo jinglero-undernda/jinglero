@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import RelationshipForm from './RelationshipForm';
+import EntityForm from './EntityForm';
 import { adminApi } from '../../lib/api/client';
 import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle } from '../../types';
 
