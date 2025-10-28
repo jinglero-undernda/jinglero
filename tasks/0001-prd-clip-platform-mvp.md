@@ -6,7 +6,32 @@ This platform provides a curated interface for accessing and analyzing specific 
 The system provides an in-app reproduction of the videoclip from YouTube, while dynamically showing the information associated to the current song, that automatically changes when the user is reproducing another segment of the video. The user can interact with this content, opening panels to search for other instances matching some property (like other Jingles featuring the same song, or submitted by the same Jinglero, and provides a link to them).
 
 This PRD is focusing on the MVP version of the platform.
-The platform will utilize React for the frontend, Flask for the backend, and Neo4j for the knowledge database, initially running locally with potential later deployment on Render and Vercel.
+The platform will utilize React for the frontend, Neo4j for the knowledge database, with initial local development and potential later deployment.
+
+## MVP Scope and Data Scale
+
+### Dataset Size
+
+- **50-60 Fabricas** (complete video episodes)
+- **1,300 Jingles** (individual performances with timestamps)
+- **800 Canciones** (original songs)
+- **1,000 Artistas** (performers and original artists)
+- **500 Tematicas** (themes and topics)
+
+**Note:** Sample dataset can start at ~5% of the full catalog for initial development and testing.
+
+### MVP Deployment Target
+
+- **Local development environment** for MVP
+- Limited beta testing with target audience
+- Future deployment to production hosting (Render/Vercel) post-MVP
+
+### Technology Stack
+
+- **Frontend**: React with TypeScript
+- **Backend**: Node.js/Express with TypeScript
+- **Database**: Neo4j (AuraDB cloud or local instance)
+- **Video**: YouTube embed API
 
 ## Goals
 
@@ -37,9 +62,10 @@ The absolute minimum features required to launch the MVP:
 
 ### 3. Entity Detail Pages (CORE)
 
-- Cancion page: Show Jingles using that song with Fabrica links
-- Artista page: Show their Jingles and/or Canciones
-- Tematica page: Show Jingles tagged with that theme
+- **Jingle page**: Show single Jingle details with links to Fabrica (timestamp), Cancion, Jinglero, Autor, and Tematicas
+- **Cancion page**: Show Autor and Jingles using that song with Fabrica links
+- **Artista page**: Show their Jingles and/or Canciones
+- **Tematica page**: Show Jingles tagged with that theme
 - Navigation between related entities
 
 ### 4. Admin Content Management (CORE)
@@ -52,7 +78,7 @@ The absolute minimum features required to launch the MVP:
 
 - User can search for content and find it
 - User can watch a Fabrica video and see current Jingle info automatically
-- User can navigate between related content (Jingle → Jinglero → their other Jingles)
+- User can navigate between related content (for example Jingle → Jinglero → their other Jingles)
 - Admin can add/edit/import content successfully
 
 ## User Stories
@@ -67,9 +93,7 @@ The absolute minimum features required to launch the MVP:
 ### Content Curation and Discovery
 
 - As the platform administrator, I want to manage the Knowledge Database to maintain platform quality.
-- As a user, I want to search for Jingles by Title, Jinglero, Cancion, Artista, Tematica.
-- As the administrator, I want to curate featured content to highlight important or popular clips
-- As a user, I want to be able to flag errors or gaps in the database for attention of the Admin team.
+- As a user, I want to search for Jingles by Title, Jinglero, Cancion, Artista or Tematica.
 
 ## Functional Requirements
 
@@ -105,27 +129,45 @@ The absolute minimum features required to launch the MVP:
 
 ### Entity Detail Pages - MVP Critical
 
-**Cancion Detail Page:** 15. Enable direct YouTube video playback on the platform (embed) 16. Load thumbnail first, buffer video only on user play 17. Display list of Jingles that use this Cancion, with links to Fabrica + timestamp 18. Display list of other Canciones by the same Autor (if available) 19. **Post-MVP**: Cancion sharing functionality
+**Jingle Detail Page:**
+15a. Display Jingle metadata (title, timestamp, Jinglero, Cancion, Autor, Tematicas)
+15b. Link to parent Fabrica with deep-link to timestamp
+15c. Link to Cancion with list of other Jingles using it
+15d. Link to Jinglero's other Jingles
+15e. Link to related Tematicas
 
-**Fabrica Detail Page - MVP CORE FEATURE:** 20. **MVP Critical**: Enable full YouTube video playback on the platform 21. **MVP Critical**: Load thumbnail first, buffer video only on user play 22. **MVP Critical**: Display list of Jingles with metadata that updates based on current playback time 23. **MVP Critical**: Allow users to skip directly to Jingle timestamps 24. **MVP Critical**: Display active Jingle metadata: - Titulo del Jingle - Jinglero name and link - Cancion title and link
+**Cancion Detail Page:**
 
-- Autor name (if different from Jinglero) - Tematicas 25. **Post-MVP**: Expandable metadata panels showing related content 26. **Post-MVP**: Direct Jingle sharing with timestamp deep-links
+19. Enable direct YouTube video playback on the platform (embed)
+20. Load thumbnail first, buffer video only on user play
+21. Display list of Jingles that use this Cancion, with links to Fabrica + timestamp
+22. Display list of other Canciones by the same Autor (if available)
+23. **Post-MVP**: Cancion sharing functionality
 
-**Artista Detail Page:** 27. Display Jinglero's Jingles with links to Fabricas 28. If also Autor, display their Canciones with links to Jingles 29. **Post-MVP**: User verification and claiming functionality
+**Fabrica Detail Page - MVP CORE FEATURE:** 24. **MVP Critical**: Enable full YouTube video playback on the platform 25. **MVP Critical**: Load thumbnail first, buffer video only on user play 26. **MVP Critical**: Display list of Jingles with metadata that updates based on current playback time 27. **MVP Critical**: Allow users to skip directly to Jingle timestamps 28. **MVP Critical**: Display active Jingle metadata: - Titulo del Jingle - Jinglero name and link - Cancion title and link - Autor name and link - Tematicas 29. **Post-MVP**: Expandable metadata panels showing related content 30. **Post-MVP**: Direct Jingle sharing with timestamp deep-links
 
-**Tematica Page:** 30. Display Jingles tagged with this Tematica 31. Show Tematica category and description
+**Artista Detail Page:**
+
+31. Display Jinglero's Jingles with links to Fabricas
+32. Display Autor's Canciones with links to related Jingles
+33. **Post-MVP**: User verification and claiming functionality
+
+**Tematica Page:**
+
+34. Display Jingles tagged with this Tematica
+35. Show Tematica category and description
 
 ### Navigation and Relationships - MVP Critical
 
-32. **MVP Critical**: Implement "related entities" queries for content discovery
-33. Enable navigation between related entities (Jingle → Cancion, Jingle → Jinglero, etc.)
-34. **Post-MVP**: Advanced relationship visualization
+36. **MVP Critical**: Implement "related entities" queries for content discovery
+37. Enable navigation between related entities (Jingle → Cancion, Jingle → Jinglero, etc.)
+38. **Post-MVP**: Advanced relationship visualization
 
 ### Analytics Dashboard - Post-MVP
 
-35. **Post-MVP**: Search term analytics
-36. **Post-MVP**: Click/link analytics
-37. **Post-MVP**: Video view analytics
+39. **Post-MVP**: Search term analytics
+40. **Post-MVP**: Click/link analytics
+41. **Post-MVP**: Video view analytics
 
 ## Non-Goals (Out of Scope for MVP)
 
@@ -163,7 +205,7 @@ These features are planned but explicitly outside MVP scope:
 **Goal**: Establish working Knowledge Database with seeded content
 
 - [ ] Database schema setup with all required constraints and indexes
-- [ ] Implement Neo4j-based backend API (migrate from YAML)
+- [ ] Implement Neo4j-based backend API
 - [ ] Create seed data migration from CSV files
 - [ ] Verify data integrity and relationships
 - [ ] Basic CRUD API endpoints for all entity types
@@ -184,7 +226,7 @@ These features are planned but explicitly outside MVP scope:
 
 - [ ] Integrate YouTube embed player
 - [ ] Implement timestamp extraction and display of Jingles
-- [ ] Create real-time metadata updates based on playback position
+- [ ] Create real-time UI updates based on playback position
 - [ ] Build clickable Jingle list with skip-to-timestamp functionality
 - [ ] Display active Jingle metadata panel (Jinglero, Cancion, Autor, Tematicas)
 - [ ] Implement related entity links (navigate to related Jingleros, Canciones)
@@ -193,6 +235,7 @@ These features are planned but explicitly outside MVP scope:
 
 **Goal**: Enable deep exploration of related content
 
+- [ ] Build Jingle detail page with metadata and navigation links
 - [ ] Build Cancion detail page with Jingles list
 - [ ] Build Artista detail page with Jingles/Canciones
 - [ ] Build Tematica detail page with Jingles list
@@ -277,21 +320,67 @@ Features to implement after MVP launch:
 
 ## Success Metrics
 
-1. User Engagement:
-   - Number of registered members
-   - Search/browse session duration
-   - Clip view counts
-2. Content Growth:
-   - Number of curated clips
-   - Number of verified contributors
-   - Growth of community terminology database
-3. Feature Usage:
-   - Search functionality utilization
-   - Analytics page views
-   - Sharing activity
+### MVP Launch Criteria (Limited Beta)
+
+1. **Technical Readiness:**
+
+   - Database fully populated with 50+ Fabricas, 1,300+ Jingles
+   - Search returns results in <500ms
+   - Video playback works reliably
+   - Admin can add/edit content without errors
+
+2. **Beta User Feedback Targets:**
+
+   - Users can successfully search and find content
+   - Users can watch Fabricas and see Jingle metadata updates
+   - Users can navigate between related entities without confusion
+   - No critical bugs or data errors reported
+
+3. **Content Quality:**
+   - All Fabricas have complete Jingle data
+   - All Jingles have proper timestamps and metadata
+   - All relationships are correctly established
+
+### Post-MVP Success Metrics
+
+1. **User Engagement:**
+   - Session duration (target: 10+ minutes)
+   - Fabrica completion rate (users watching full videos)
+   - Click-through rate to related entities
+2. **Content Growth:**
+   - Number of new Fabricas added monthly
+   - Coverage of full catalog (target: 100+ episodes)
+3. **Feature Usage:**
+   - Search query frequency and patterns
+   - Most popular Jingles/Jingleros
+   - User navigation paths through the knowledge graph
 
 ## Open Questions
 
-1. Future user authorisation and handling strategies?
-2. Monetisation strategies?
-3. Automation of data discovery and ingestion
+1. **Future user authentication:** Multi-user system with roles (Admin, Member, Guest)
+2. **Data curation workflow:** How frequently will new Fabricas/Jingles be added after MVP launch?
+3. **Beta testing feedback:** What feedback mechanisms should be in place for limited beta users?
+4. **Performance optimization:** With 1,300+ Jingles, what pagination/loading strategies are needed for search results?
+5. **YouTube API considerations:** Rate limits, embedded player customization, alternate playback methods if YouTube embeds fail? Link out to YouTube.
+
+## Data Requirements and Constraints
+
+### Initial Seed Data
+
+- Sample dataset: ~5-10% of full catalog for development
+- Full dataset migration before MVP launch
+- CSV import format defined in `/backend/src/server/db/import/`
+
+### Database Constraints
+
+- All entities require unique IDs
+- Timestamps required on all entities and relationships
+- Boolean flags for special designations (isJinglazo, isPrecario, isArg, etc.)
+- Foreign key relationships enforced via Neo4j constraints
+
+### Performance Considerations
+
+- Search queries must handle 1,000+ entities efficiently
+- Video thumbnail loading prioritized over full video buffering
+- Pagination required for lists over 50 items
+- Autocomplete debouncing and result limiting (10-20 items)

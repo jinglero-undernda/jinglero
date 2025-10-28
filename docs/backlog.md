@@ -26,15 +26,20 @@ Style the dropdown and make it position/size-aware.
 
 ## Frontend UX/UI
 
+- As the administrator, I want to curate featured content to highlight important or popular clips
+- As a user, I want to be able to flag errors or gaps in the database for attention of the Admin team.
+
 [ ] Engine loading gif? (referencia: sponsor bujias "no arranca")
 [ ] Fábrica resumen
+
+## Metaphor / Parallel
 
 - Lista de Jingleros: Tarjeta de personal
 - Lista de tematicas: Menú de la cantina
 - Lista de Jingles: Remito salida
 - Lista de Canciones: Listado de materiales
   [ ] Interaccion:
-- Libro de quejas
+- Marcar errores: Libro de quejas
 - Pedidos de mejoras: Presencia sindical
 - Me gusta?
 -
