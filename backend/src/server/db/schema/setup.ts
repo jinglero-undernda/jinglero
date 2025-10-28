@@ -33,6 +33,8 @@ const indexes = [
   // Original full-text search indexes
   'CREATE FULLTEXT INDEX jingle_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.artistName, j.comment]',
   'CREATE FULLTEXT INDEX tematica_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description]',
+  'CREATE FULLTEXT INDEX artista_search IF NOT EXISTS FOR (a:Artista) ON EACH [a.stageName, a.name]',
+  'CREATE FULLTEXT INDEX cancion_search IF NOT EXISTS FOR (c:Cancion) ON EACH [c.title]',
 
   // Index names expected by tests (aliases for clip/term terminology)
   'CREATE FULLTEXT INDEX clip_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.artistName, j.comment]',

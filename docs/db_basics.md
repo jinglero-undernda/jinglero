@@ -355,3 +355,200 @@ RETURN j, r, n;
 4. Use the Neo4j Browser's `:schema` command to see all node labels, relationship types, and constraints
 
 Remember to always use the Neo4j Browser's visualization capabilities to understand the structure of your queries and their results. The visual representation can be very helpful in understanding the graph structure.
+
+## Search Specification
+
+This section defines the search capabilities for the MVP based on the current schema and the described use cases. It covers global keyword search, autocomplete, and related-entity discovery. Users (`Usuario`) are explicitly excluded from user-facing search.
+
+### Entities and Searchable Properties
+
+- Jingle: `title`, `songTitle`, `artistName`
+- Artista: `stageName`, `name`
+- Cancion: `title`
+- Tematica: `name`
+
+Non-searchable: `Usuario` (users are not searchable).
+
+### Global Search (single box)
+
+- Endpoint: `GET /api/search`
+- Query params:
+  - `q` (string, required): user input
+  - `types` (string, optional): comma-separated among `jingles,canciones,artistas,tematicas`; default is all
+  - `limit` (int, optional): per-entity limit, 1–100, default 10
+  - `offset` (int, optional): per-entity offset, default 0
+- Behavior:
+  - Case-insensitive contains match over the fields above
+  - Returns separate arrays per entity type and `meta` describing the request
+- Response shape:
+  - `{ jingles: JingleLite[], canciones: CancionLite[], artistas: ArtistaLite[], tematicas: TematicaLite[], meta: { limit, offset, types } }`
+  - Lite objects include minimal fields for listing, e.g., `id` and display field(s)
+
+Example Cypher building blocks (per-entity):
+
+```cypher
+// Jingles
+MATCH (j:Jingle)
+WHERE toLower(coalesce(j.title, '')) CONTAINS $text
+   OR toLower(coalesce(j.songTitle, '')) CONTAINS $text
+RETURN j { .id, .title, .timestamp, .songTitle } AS j
+ORDER BY j.title
+SKIP $offset
+LIMIT $limit;
+
+// Artistas
+MATCH (a:Artista)
+WHERE toLower(coalesce(a.stageName, '')) CONTAINS $text
+   OR toLower(coalesce(a.name, '')) CONTAINS $text
+RETURN a { .id, .stageName } AS a
+ORDER BY a.stageName
+SKIP $offset
+LIMIT $limit;
+```
+
+### Autocomplete (entity-specific)
+
+- Trigger: only after 3+ characters
+- Debounce: client-side (~250–300ms)
+- Per-entity endpoints (recommended) or reuse `GET /api/search` with `types` narrowed
+- Matching strategy: prefix or contains on display fields
+- Limits: default 10, configurable
+
+Example per-entity autocomplete:
+
+```cypher
+// Tematica autocomplete (prefix or contains)
+MATCH (t:Tematica)
+WHERE toLower(coalesce(t.name, '')) STARTS WITH $prefix
+RETURN t { .id, .name } AS t
+ORDER BY t.name
+LIMIT $limit;
+```
+
+### Related Entities (adjacency discovery)
+
+These queries power "more like this" and contextual exploration from a selected entity.
+
+From Jingle (given `jId`):
+
+```cypher
+// Other Jingles by the same Jinglero
+MATCH (j:Jingle {id: $jId})<-[:JINGLERO_DE]-(a:Artista)-[:JINGLERO_DE]->(other:Jingle)
+WHERE other.id <> j.id
+RETURN other { .id, .title, .songTitle } AS jingle
+ORDER BY other.updatedAt DESC
+LIMIT $limit;
+
+// Other Jingles for the same Cancion
+MATCH (j:Jingle {id: $jId})-[:VERSIONA]->(c:Cancion)<-[:VERSIONA]-(other:Jingle)
+WHERE other.id <> j.id
+RETURN other { .id, .title, .songTitle } AS jingle
+ORDER BY other.updatedAt DESC
+LIMIT $limit;
+
+// Other Jingles with the same Tematica(s)
+MATCH (j:Jingle {id: $jId})-[:TAGGED_WITH]->(t:Tematica)<-[:TAGGED_WITH]-(other:Jingle)
+WHERE other.id <> j.id
+RETURN other { .id, .title, .songTitle } AS jingle, collect(DISTINCT t.name) AS sharedTematicas
+ORDER BY size(sharedTematicas) DESC, other.updatedAt DESC
+LIMIT $limit;
+```
+
+From Cancion (given `cId`):
+
+```cypher
+// All Jingles that use the Cancion
+MATCH (c:Cancion {id: $cId})<-[:VERSIONA]-(j:Jingle)
+RETURN j { .id, .title, .songTitle } AS jingle
+ORDER BY j.updatedAt DESC
+LIMIT $limit;
+
+// Other Canciones by the same Autor
+MATCH (c:Cancion {id: $cId})<-[:AUTOR_DE]-(au:Artista)-[:AUTOR_DE]->(other:Cancion)
+WHERE other.id <> c.id
+RETURN other { .id, .title } AS cancion
+ORDER BY other.updatedAt DESC
+LIMIT $limit;
+
+// If Autor is also Jinglero, Jingles by that Artista
+MATCH (c:Cancion {id: $cId})<-[:AUTOR_DE]-(a:Artista)-[:JINGLERO_DE]->(j:Jingle)
+RETURN j { .id, .title, .songTitle } AS jingle
+ORDER BY j.updatedAt DESC
+LIMIT $limit;
+```
+
+From Artista (given `aId`):
+
+```cypher
+// Jingleros who used songs of this Autor (two-hop)
+MATCH (a:Artista {id: $aId})-[:AUTOR_DE]->(c:Cancion)<-[:VERSIONA]-(j:Jingle)<-[:JINGLERO_DE]-(jinglero:Artista)
+RETURN DISTINCT jinglero { .id, .name, .stageName } AS artista
+ORDER BY coalesce(jinglero.stageName, jinglero.name)
+LIMIT $limit;
+```
+
+### Ranking Guidelines
+
+- Start simple: order by recency (`updatedAt DESC`) or alphabetical for autocomplete
+- Optional composite score for global search:
+  - `score = textScore * 1.0 + popularityWeight * 0.5 + recencyWeight * 0.25`
+  - Popularity proxies: `likes`, `visualizations` (from `Fabrica`), reaction counts
+  - Recency proxy: `createdAt/updatedAt` as a normalized value
+- When using Neo4j full-text indexes, leverage the returned `score` and combine with additional weights
+
+### Indexing Strategy (performance)
+
+Create full-text indexes to accelerate keyword search and enable scoring:
+
+```cypher
+// Jingle
+CREATE FULLTEXT INDEX jingle_text IF NOT EXISTS
+FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.artistName];
+
+// Artista
+CREATE FULLTEXT INDEX artista_text IF NOT EXISTS
+FOR (a:Artista) ON EACH [a.stageName, a.name];
+
+// Cancion
+CREATE FULLTEXT INDEX cancion_text IF NOT EXISTS
+FOR (c:Cancion) ON EACH [c.title];
+
+// Tematica
+CREATE FULLTEXT INDEX tematica_text IF NOT EXISTS
+FOR (t:Tematica) ON EACH [t.name];
+```
+
+Example full-text query usage:
+
+```cypher
+// Query Artista with full-text index and get scores
+CALL db.index.fulltext.queryNodes('artista_text', $q) YIELD node, score
+RETURN node { .id, .stageName, .name, score: score } AS a
+ORDER BY score DESC
+LIMIT $limit;
+``;
+
+Note: full-text requires AuraDB/Neo4j support and index creation privileges. If unavailable, fallback to `toLower(...) CONTAINS` queries with property indexes on display fields.
+
+### API Surfaces
+
+- Global search: `GET /api/search` (already implemented)
+- Autocomplete (recommended):
+  - `GET /api/public/entities/tematicas?query=...&limit=...`
+  - `GET /api/public/entities/canciones?query=...&limit=...`
+  - `GET /api/public/entities/artistas?query=...&limit=...`
+  - `GET /api/public/entities/jingles?query=...&limit=...`
+- Related entities (proposed):
+  - `GET /api/public/entities/jingles/:id/related`
+  - `GET /api/public/entities/canciones/:id/related`
+  - `GET /api/public/entities/artistas/:id/related`
+
+Each related endpoint should accept `limit` and optional `types` filters (e.g., for `jingles/:id/related`, types among `sameJinglero,sameCancion,sameTematica`).
+
+### Client UX Notes
+
+- Autocomplete: 3+ chars, debounce, show top 10; keyboard navigation; show entity badges
+- Global search: show grouped results by entity with counts; allow narrowing by facets (tematica/artista) in future
+- Related entities: render as sections/cards under the selected entity detail
+
+```

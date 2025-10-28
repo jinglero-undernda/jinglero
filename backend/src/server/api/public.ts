@@ -436,6 +436,141 @@ router.get('/entities/:type/:id/relationships', async (req, res) => {
   }
 });
 
+// Related entities for Jingle
+router.get('/entities/jingles/:id/related', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100);
+    const typesParam = (req.query.types as string) || '';
+    const allowed = ['sameJinglero', 'sameCancion', 'sameTematica'] as const;
+    const selected = typesParam.split(',').map(s => s.trim()).filter(Boolean);
+    const active = (selected.length > 0 ? selected : allowed) as unknown as string[];
+
+    const queries: Array<Promise<any[]>> = [];
+
+    // sameJinglero
+    if (active.includes('sameJinglero')) {
+      const q1 = `
+        MATCH (j:Jingle {id: $jId})<-[:JINGLERO_DE]-(a:Artista)-[:JINGLERO_DE]->(other:Jingle)
+        WHERE other.id <> j.id
+        RETURN other { .id, .title, .songTitle, .updatedAt } AS jingle
+        ORDER BY jingle.updatedAt DESC
+        LIMIT $limit
+      `;
+      queries.push(db.executeQuery<any>(q1, { jId: id, limit }));
+    } else {
+      queries.push(Promise.resolve([]));
+    }
+
+    // sameCancion
+    if (active.includes('sameCancion')) {
+      const q2 = `
+        MATCH (j:Jingle {id: $jId})-[:VERSIONA]->(c:Cancion)<-[:VERSIONA]-(other:Jingle)
+        WHERE other.id <> j.id
+        RETURN other { .id, .title, .songTitle, .updatedAt } AS jingle
+        ORDER BY jingle.updatedAt DESC
+        LIMIT $limit
+      `;
+      queries.push(db.executeQuery<any>(q2, { jId: id, limit }));
+    } else {
+      queries.push(Promise.resolve([]));
+    }
+
+    // sameTematica
+    if (active.includes('sameTematica')) {
+      const q3 = `
+        MATCH (j:Jingle {id: $jId})-[:TAGGED_WITH]->(t:Tematica)<-[:TAGGED_WITH]-(other:Jingle)
+        WHERE other.id <> j.id
+        WITH other, collect(DISTINCT t.name) AS sharedTematicas
+        RETURN { jingle: other { .id, .title, .songTitle, .updatedAt }, sharedTematicas: sharedTematicas } AS rec
+        ORDER BY size(sharedTematicas) DESC, rec.jingle.updatedAt DESC
+        LIMIT $limit
+      `;
+      queries.push(db.executeQuery<any>(q3, { jId: id, limit }));
+    } else {
+      queries.push(Promise.resolve([]));
+    }
+
+    const [byJinglero, byCancion, byTematica] = await Promise.all(queries);
+    res.json({
+      sameJinglero: byJinglero.map(r => convertNeo4jDates(r.jingle)),
+      sameCancion: byCancion.map(r => convertNeo4jDates(r.jingle)),
+      sameTematica: byTematica.map(r => ({
+        jingle: convertNeo4jDates(r.rec?.jingle || r.jingle || r.other || r),
+        sharedTematicas: r.rec?.sharedTematicas || r.sharedTematicas || []
+      })),
+      meta: { limit, types: active }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+// Related entities for Cancion
+router.get('/entities/canciones/:id/related', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100);
+
+    const jinglesUsingCancionQuery = `
+      MATCH (c:Cancion {id: $cId})<-[:VERSIONA]-(j:Jingle)
+      RETURN j { .id, .title, .songTitle, .updatedAt } AS jingle
+      ORDER BY jingle.updatedAt DESC
+      LIMIT $limit
+    `;
+    const otherCancionesByAutorQuery = `
+      MATCH (c:Cancion {id: $cId})<-[:AUTOR_DE]-(au:Artista)-[:AUTOR_DE]->(other:Cancion)
+      WHERE other.id <> c.id
+      RETURN other { .id, .title, .updatedAt } AS cancion
+      ORDER BY cancion.updatedAt DESC
+      LIMIT $limit
+    `;
+    const jinglesByAutorIfJingleroQuery = `
+      MATCH (c:Cancion {id: $cId})<-[:AUTOR_DE]-(a:Artista)-[:JINGLERO_DE]->(j:Jingle)
+      RETURN j { .id, .title, .songTitle, .updatedAt } AS jingle
+      ORDER BY j.updatedAt DESC
+      LIMIT $limit
+    `;
+
+    const [jinglesUsingCancion, otherCancionesByAutor, jinglesByAutorIfJinglero] = await Promise.all([
+      db.executeQuery<any>(jinglesUsingCancionQuery, { cId: id, limit }),
+      db.executeQuery<any>(otherCancionesByAutorQuery, { cId: id, limit }),
+      db.executeQuery<any>(jinglesByAutorIfJingleroQuery, { cId: id, limit })
+    ]);
+
+    res.json({
+      jinglesUsingCancion: jinglesUsingCancion.map(r => convertNeo4jDates(r.jingle)),
+      otherCancionesByAutor: otherCancionesByAutor.map(r => convertNeo4jDates(r.cancion)),
+      jinglesByAutorIfJinglero: jinglesByAutorIfJinglero.map(r => convertNeo4jDates(r.jingle)),
+      meta: { limit }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+// Related entities for Artista
+router.get('/entities/artistas/:id/related', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100);
+
+    const jinglerosWhoUsedSongsQuery = `
+      MATCH (a:Artista {id: $aId})-[:AUTOR_DE]->(c:Cancion)<-[:VERSIONA]-(j:Jingle)<-[:JINGLERO_DE]-(jinglero:Artista)
+      RETURN DISTINCT jinglero { .id, .name, .stageName } AS artista
+      ORDER BY coalesce(artista.stageName, artista.name)
+      LIMIT $limit
+    `;
+    const result = await db.executeQuery<any>(jinglerosWhoUsedSongsQuery, { aId: id, limit });
+    res.json({
+      jinglerosWhoUsedSongs: result.map(r => convertNeo4jDates(r.artista)),
+      meta: { limit }
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
 // Search endpoint (reuse existing search logic)
 router.get('/search', async (req, res) => {
   try {

@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler';
 
 // Load environment variables
 dotenv.config();
@@ -26,6 +27,12 @@ import adminRouter from './api/admin';
 app.use('/api/search', searchRouter);
 app.use('/api/public', publicRouter);
 app.use('/api/admin', adminRouter);
+
+// 404 for unmatched routes
+app.use(notFoundHandler);
+
+// Centralized error handler (must be last)
+app.use(errorHandler);
 
 // Start server only if this file is the entrypoint
 if (require.main === module) {
