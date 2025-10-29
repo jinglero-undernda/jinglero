@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import RelationshipForm from './RelationshipForm';
 import EntityForm from './EntityForm';
 import { adminApi } from '../../lib/api/client';
-import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle } from '../../types';
+import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle, type Relationship } from '../../types';
 
 type Props = { type: string; id: string };
 
@@ -122,7 +122,12 @@ export default function EntityEdit({ type, id }: Props) {
 
         const map: Record<string, RelEntry[]> = {};
         relTypesForThisType.forEach((r, i) => { 
-          map[r.rel] = (relArrays[i] || []) as RelEntry[]; 
+          const relationships = (relArrays[i] || []) as Relationship[];
+          map[r.rel] = relationships.map((rel) => ({
+            start: rel.start,
+            end: rel.end,
+            ...(rel.properties || {}),
+          })) as RelEntry[];
         });
         setExistingRels(map);
 
@@ -265,7 +270,7 @@ export default function EntityEdit({ type, id }: Props) {
           fields={fieldsForThis}
           idFirst={type === 'fabricas'}
           mode="edit"
-          initialData={item}
+          initialData={item as unknown as Record<string, unknown>}
           onSave={async (payload) => {
             // merge id into payload and call backend PUT
             const body = { ...payload, id };

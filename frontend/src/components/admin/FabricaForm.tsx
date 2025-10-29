@@ -18,7 +18,7 @@ export default function FabricaForm() {
 
     try {
       const data = await adminApi.createFabrica({
-        title: title.trim() || null,
+        title: title.trim() || undefined,
         youtubeUrl: youtubeUrl.trim(),
         date: date.trim() || new Date().toISOString().split('T')[0],
         status: 'DRAFT'

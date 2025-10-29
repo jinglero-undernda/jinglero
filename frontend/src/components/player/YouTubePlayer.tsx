@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { extractVideoId, buildEmbedUrl } from '../../lib/utils/youtube';
+import type { YTPlayer, YTPlayerState } from '../../types/youtube';
 
 /**
  * Player control methods exposed via ref
@@ -10,7 +11,7 @@ export interface YouTubePlayerRef {
   seekTo: (seconds: number) => void;
   getCurrentTime: () => number | null;
   getDuration: () => number | null;
-  getPlayerState: () => YT.PlayerState | null;
+  getPlayerState: () => YTPlayerState | null;
   isReady: () => boolean;
 }
 
@@ -34,7 +35,7 @@ export interface YouTubePlayerProps {
   /** Called when the player is ready */
   onReady?: () => void;
   /** Called when player state changes */
-  onStateChange?: (state: YT.PlayerState) => void;
+  onStateChange?: (state: YTPlayerState) => void;
   /** Called when an error occurs */
   onError?: (error: number) => void;
   /** Additional CSS class name */

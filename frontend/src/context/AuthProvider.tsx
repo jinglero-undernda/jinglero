@@ -16,9 +16,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     // For now, simulate a successful login
     const dummyUser: Usuario = {
       id: '1',
-      username: username,
       email: `${username}@example.com`,
-      // Add other required Usuario properties as per your type definition
+      displayName: username,
+      role: 'ADMIN',
+      contributionsCount: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };

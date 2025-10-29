@@ -117,7 +117,7 @@ router.delete('/schema/constraints/:name', asyncHandler(async (req, res) => {
 
 // Relationship endpoints
 router.get('/relationships', asyncHandler(async (req, res) => {
-  const relationships = await db.executeQuery(`
+  const relationships = await db.executeQuery<{ relType: string }>(`
     MATCH ()-[r]-()
     RETURN DISTINCT type(r) as relType
     ORDER BY relType
@@ -137,7 +137,7 @@ router.get('/relationships/:relType', asyncHandler(async (req, res) => {
     RETURN r
     ORDER BY r.createdAt DESC
   `;
-  const relationships = await db.executeQuery(query);
+  const relationships = await db.executeQuery<{ r: any }>(query);
   res.json(relationships.map(r => r.r));
 }));
 
@@ -169,7 +169,7 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
   const properties = { ...payload };
   delete (properties as any).start;
   delete (properties as any).end;
-  const result = await db.executeQuery(createQuery, { 
+  const result = await db.executeQuery<{ r: any }>(createQuery, { 
     start: payload.start, 
     end: payload.end, 
     properties 
@@ -193,7 +193,7 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
     DELETE r
     RETURN count(r) as deletedCount
   `;
-  const result = await db.executeQuery(deleteQuery, { 
+  const result = await db.executeQuery<{ deletedCount: number }>(deleteQuery, { 
     start: payload.start, 
     end: payload.end 
   }, undefined, true);
@@ -216,8 +216,8 @@ router.get('/:type', asyncHandler(async (req, res) => {
     RETURN n
     ORDER BY n.createdAt DESC
   `;
-  const entities = await db.executeQuery(query);
-  res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
+  const entities = await db.executeQuery<{ n: { properties: any } }>(query);
+  res.json(entities.map((entity) => convertNeo4jDates(entity.n.properties)));
 }));
 
 router.get('/:type/:id', asyncHandler(async (req, res) => {
@@ -230,7 +230,7 @@ router.get('/:type/:id', asyncHandler(async (req, res) => {
     MATCH (n:${label} { id: $id })
     RETURN n
   `;
-  const result = await db.executeQuery(query, { id });
+  const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
   if (result.length === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }
@@ -263,7 +263,7 @@ router.post('/:type', asyncHandler(async (req, res) => {
   const properties = { ...payload, id } as any;
   delete properties.createdAt;
   delete properties.updatedAt;
-  const result = await db.executeQuery(createQuery, {
+  const result = await db.executeQuery<{ n: { properties: any } }>(createQuery, {
     id,
     createdAt: payload.createdAt || now,
     updatedAt: payload.updatedAt || now,
@@ -285,7 +285,7 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
         n.updatedAt = datetime()
     RETURN n
   `;
-  const result = await db.executeQuery(updateQuery, { 
+  const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, { 
     id, 
     properties: payload 
   }, undefined, true);
@@ -303,7 +303,7 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
   const getQuery = `MATCH (n:${label} { id: $id }) RETURN n`;
-  const existing = await db.executeQuery(getQuery, { id });
+  const existing = await db.executeQuery<{ n: any }>(getQuery, { id });
   if (existing.length === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }
@@ -315,7 +315,7 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
         n.updatedAt = datetime()
     RETURN n
   `;
-  const result = await db.executeQuery(updateQuery, { 
+  const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, { 
     id, 
     properties: mergedProps 
   }, undefined, true);
@@ -333,7 +333,7 @@ router.delete('/:type/:id', asyncHandler(async (req, res) => {
     DETACH DELETE n
     RETURN count(n) as deletedCount
   `;
-  const result = await db.executeQuery(deleteQuery, { id }, undefined, true);
+  const result = await db.executeQuery<{ deletedCount: number }>(deleteQuery, { id }, undefined, true);
   if (result[0].deletedCount === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }

@@ -3,38 +3,10 @@
  * Based on the official YouTube IFrame Player API
  */
 
-declare global {
-  interface Window {
-    YT: typeof YT;
-    onYouTubeIframeAPIReady: (() => void) | undefined;
-  }
-}
+export type YTPlayerState = -1 | 0 | 1 | 2 | 3 | 5;
 
-export interface YTPlayer {
-  playVideo: () => void;
-  pauseVideo: () => void;
-  stopVideo: () => void;
-  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
-  getCurrentTime: () => number;
-  getDuration: () => number;
-  getVideoUrl: () => string;
-  getVideoEmbedCode: () => string;
-  getVideoData: () => {
-    video_id: string;
-    author: string;
-    title: string;
-  };
-  getPlayerState: () => YT.PlayerState;
-  loadVideoById: (videoId: string, startSeconds?: number) => void;
-  cueVideoById: (videoId: string, startSeconds?: number) => void;
-  destroy: () => void;
-  addEventListener: (event: string, listener: (event: any) => void) => void;
-  removeEventListener: (event: string, listener: (event: any) => void) => void;
-}
-
-export namespace YT {
+declare namespace YT {
   type PlayerState = -1 | 0 | 1 | 2 | 3 | 5;
-  // -1 (unstarted)
   // 0 (ended)
   // 1 (playing)
   // 2 (paused)
@@ -81,9 +53,56 @@ export namespace YT {
   }
 
   class Player {
-    constructor(elementId: string, options: PlayerOptions);
+    constructor(elementId: string | HTMLElement, options: PlayerOptions);
+    playVideo: () => void;
+    pauseVideo: () => void;
+    stopVideo: () => void;
+    seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
+    getCurrentTime: () => number;
+    getDuration: () => number;
+    getVideoUrl: () => string;
+    getVideoEmbedCode: () => string;
+    getVideoData: () => {
+      video_id: string;
+      author: string;
+      title: string;
+    };
+    getPlayerState: () => PlayerState;
+    loadVideoById: (videoId: string, startSeconds?: number) => void;
+    cueVideoById: (videoId: string, startSeconds?: number) => void;
+    destroy: () => void;
+    addEventListener: (event: string, listener: (event: any) => void) => void;
+    removeEventListener: (event: string, listener: (event: any) => void) => void;
   }
 }
 
-export {};
+declare global {
+  interface Window {
+    YT: typeof YT;
+    onYouTubeIframeAPIReady: (() => void) | undefined;
+  }
+}
 
+export interface YTPlayer {
+  playVideo: () => void;
+  pauseVideo: () => void;
+  stopVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  getVideoUrl: () => string;
+  getVideoEmbedCode: () => string;
+  getVideoData: () => {
+    video_id: string;
+    author: string;
+    title: string;
+  };
+  getPlayerState: () => YT.PlayerState;
+  loadVideoById: (videoId: string, startSeconds?: number) => void;
+  cueVideoById: (videoId: string, startSeconds?: number) => void;
+  destroy: () => void;
+  addEventListener: (event: string, listener: (event: any) => void) => void;
+  removeEventListener: (event: string, listener: (event: any) => void) => void;
+}
+
+export {};

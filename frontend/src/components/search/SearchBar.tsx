@@ -43,7 +43,7 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...' }: SearchBarProp
     };
   }, [query]);
 
-  const handleSuggestionClick = (type: string, item: any) => {
+  const handleSuggestionClick = (_type: string, item: any) => {
     // Build a simple query to submit to parent
     const text = item.title || item.stageName || item.name || item.songTitle || item.name;
     setQuery(String(text || ''));

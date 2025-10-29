@@ -45,7 +45,7 @@ This task list outlines the implementation steps for the MVP version of the Jing
 - `frontend/src/components/common/RelatedEntities.tsx` - Related entities display (to be created)
 - `frontend/src/lib/api/client.ts` - API client (enhance with new endpoints)
 - `frontend/src/lib/hooks/useYouTubePlayer.ts` - YouTube player hook (manages player state, provides controls, polling, event callbacks)
-- `frontend/src/lib/hooks/useJingleSync.ts` - Hook for syncing Jingle metadata to playback time (to be created)
+- `frontend/src/lib/hooks/useJingleSync.ts` - Hook for syncing Jingle metadata to playback time (determines active jingle based on current time, debounced updates, callback support)
 - `frontend/src/lib/utils/youtube.ts` - YouTube URL utilities (extract video ID, build embed URL, build watch URL, validate URLs)
 - `frontend/src/lib/utils/timestamp.ts` - Timestamp parsing utilities (parse HH:MM:SS to seconds, format seconds to HH:MM:SS, normalize timestamps, readable format)
 
@@ -100,7 +100,7 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [x] 2.4 Create `frontend/src/lib/hooks/useYouTubePlayer.ts` hook to manage player state (play, pause, seek, getCurrentTime)
   - [x] 2.5 Create `frontend/src/components/player/JingleTimeline.tsx` component displaying clickable list of Jingles with timestamps
   - [x] 2.6 Create `frontend/src/components/player/JingleMetadata.tsx` component displaying active Jingle details (title, Jinglero, Cancion, Autor, Tematicas)
-  - [ ] 2.7 Create `frontend/src/lib/hooks/useJingleSync.ts` hook to sync active Jingle based on current playback time
+  - [x] 2.7 Create `frontend/src/lib/hooks/useJingleSync.ts` hook to sync active Jingle based on current playback time
   - [ ] 2.8 Rebuild `frontend/src/pages/FabricaPage.tsx` integrating all player components
   - [ ] 2.9 Implement timestamp navigation (click Jingle in timeline to seek to that time)
   - [ ] 2.10 Add loading states for video buffering and metadata fetching

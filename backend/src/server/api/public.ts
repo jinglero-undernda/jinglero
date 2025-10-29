@@ -104,7 +104,7 @@ router.get('/usuarios/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const query = `MATCH (n:Usuario {id: $id}) RETURN n`;
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
     
     if (result.length === 0) {
       return res.status(404).json({ error: 'Usuario not found' });
@@ -139,7 +139,7 @@ router.get('/artistas/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const query = `MATCH (n:Artista {id: $id}) RETURN n`;
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
     
     if (result.length === 0) {
       return res.status(404).json({ error: 'Artista not found' });
@@ -174,7 +174,7 @@ router.get('/canciones/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const query = `MATCH (n:Cancion {id: $id}) RETURN n`;
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
     
     if (result.length === 0) {
       return res.status(404).json({ error: 'Cancion not found' });
@@ -239,7 +239,7 @@ router.get('/fabricas/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const query = `MATCH (n:Fabrica {id: $id}) RETURN n`;
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
     
     if (result.length === 0) {
       return res.status(404).json({ error: 'Fabrica not found' });
@@ -498,7 +498,7 @@ router.get('/tematicas/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const query = `MATCH (n:Tematica {id: $id}) RETURN n`;
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
     
     if (result.length === 0) {
       return res.status(404).json({ error: 'Tematica not found' });
@@ -665,7 +665,7 @@ router.get('/entities/:type/:id', async (req, res) => {
       RETURN n
     `;
     
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ n: { properties: any } }>(query, { id });
     if (result.length === 0) {
       return res.status(404).json({ error: `${type} not found` });
     }
@@ -758,7 +758,7 @@ router.get('/entities/:type/:id/relationships', async (req, res) => {
         }) as incoming
     `;
     
-    const result = await db.executeQuery(query, { id });
+    const result = await db.executeQuery<{ outgoing: any[]; incoming: any[] }>(query, { id });
     if (result.length === 0) {
       return res.status(404).json({ error: `${type} not found` });
     }

@@ -89,10 +89,10 @@ export default function RelationshipForm({ relType, startType, endType, fields =
 
   const getDisplayName = (item: NodeItem): string => {
     if ('displayName' in item) return item.displayName;
-    if ('stageName' in item) return item.stageName || item.name || '';
-    if ('title' in item) return item.title || '';
-    if ('name' in item) return item.name;
-    if ('email' in item) return item.email;
+    if ('stageName' in item) return item.stageName || (item as { name?: string }).name || '';
+    if ('title' in item) return (item as { title?: string }).title || '';
+    if ('name' in item) return (item as { name: string }).name || '';
+    if ('email' in item) return (item as { email: string }).email;
     return item.id;
   };
 

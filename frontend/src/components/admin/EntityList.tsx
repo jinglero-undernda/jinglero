@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { adminApi } from '../../lib/api/client';
 import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle } from '../../types';
@@ -55,10 +55,10 @@ export default function EntityList({ type, title }: Props) {
 
   const getDisplayName = (item: EntityType): string => {
     if ('displayName' in item) return item.displayName;
-    if ('stageName' in item) return item.stageName || item.name || '';
-    if ('title' in item) return item.title || '';
-    if ('name' in item) return item.name;
-    if ('email' in item) return item.email;
+    if ('stageName' in item) return item.stageName || (item as Artista).name || '';
+    if ('title' in item) return (item as Fabrica | Cancion).title || '';
+    if ('name' in item) return (item as { name: string }).name || '';
+    if ('email' in item) return (item as unknown as Usuario).email;
     return item.id;
   };
 
