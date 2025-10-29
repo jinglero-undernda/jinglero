@@ -10,7 +10,7 @@ This task list outlines the implementation steps for the MVP version of the Jing
 
 ### Backend Files (Mostly Complete - Minor Enhancements Needed)
 
-- `backend/src/server/api/public.ts` - Public read-only API endpoints (enhance with Fabrica-Jingles relationship query)
+- `backend/src/server/api/public.ts` - Public read-only API endpoints (enhanced with Fabrica-Jingles endpoints and latest Fabrica endpoint)
 - `backend/src/server/api/admin.ts` - Admin CRUD endpoints (add password protection, CSV import, validation endpoints)
 - `backend/src/server/api/search.ts` - Search API with autocomplete (complete)
 - `backend/src/server/db/index.ts` - Neo4j client (complete)
@@ -82,14 +82,14 @@ This task list outlines the implementation steps for the MVP version of the Jing
 
 ## Tasks
 
-- [ ] 1.0 Enhance Backend API for MVP Video Player Experience
+- [x] 1.0 Enhance Backend API for MVP Video Player Experience
 
-  - [ ] 1.1 Add endpoint `/api/public/fabricas/:id/jingles` to fetch all Jingles for a Fabrica with timestamps and order
-  - [ ] 1.2 Enhance `/api/public/jingles/:id` to include full relationship data (Fabrica, Cancion, Artista, Tematicas)
-  - [ ] 1.3 Add endpoint `/api/public/fabricas/:id/jingle-at-time?timestamp=X` to get active Jingle at specific timestamp
-  - [ ] 1.4 Update `convertNeo4jDates` helper to handle timestamp format conversion (seconds to HH:MM:SS)
-  - [ ] 1.5 Add error handling for missing Fabricas or invalid timestamps
-  - [ ] 1.6 Test all new endpoints with sample data
+  - [x] 1.1 Add endpoint `/api/public/fabricas/:id/jingles` to fetch all Jingles for a Fabrica with timestamps and order
+  - [x] 1.2 Enhance `/api/public/jingles/:id` to include full relationship data (Fabrica, Cancion, Artista, Tematicas)
+  - [x] 1.3 Add endpoint `/api/public/fabricas/:id/jingle-at-time?timestamp=X` to get active Jingle at specific timestamp
+  - [x] 1.4 Update `convertNeo4jDates` helper to handle timestamp format conversion (seconds to HH:MM:SS)
+  - [x] 1.5 Add error handling for missing Fabricas or invalid timestamps
+  - [x] 1.6 Test all new endpoints with sample data
 
 - [ ] 2.0 Build Core Fabrica Video Player with Dynamic Jingle Metadata (MVP CRITICAL)
 

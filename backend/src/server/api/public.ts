@@ -39,6 +39,37 @@ function convertNeo4jDates(obj: any): any {
   return obj;
 }
 
+// Helper function to convert seconds to HH:MM:SS format
+function formatSecondsToTimestamp(seconds: number): string {
+  if (seconds < 0) return '00:00:00';
+  
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+  
+  const pad = (num: number): string => num.toString().padStart(2, '0');
+  
+  return `${pad(hours)}:${pad(minutes)}:${pad(secs)}`;
+}
+
+// Helper function to parse HH:MM:SS timestamp to seconds
+function parseTimestampToSeconds(timestamp: string): number {
+  const parts = timestamp.split(':');
+  if (parts.length !== 3) {
+    throw new Error('Invalid timestamp format. Expected HH:MM:SS');
+  }
+  
+  const hours = parseInt(parts[0], 10);
+  const minutes = parseInt(parts[1], 10);
+  const seconds = parseInt(parts[2], 10);
+  
+  if (isNaN(hours) || isNaN(minutes) || isNaN(seconds)) {
+    throw new Error('Invalid timestamp format. Expected numeric values');
+  }
+  
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
 // Schema introspection endpoint
 router.get('/schema', async (req, res) => {
   try {
@@ -174,6 +205,36 @@ router.get('/fabricas', async (req, res) => {
   }
 });
 
+// Get the latest Fabrica (by date property)
+router.get('/fabricas/latest', async (req, res) => {
+  try {
+    const query = `
+      MATCH (f:Fabrica)
+      RETURN f
+      ORDER BY f.date DESC
+      LIMIT 1
+    `;
+    
+    const result = await db.executeQuery(query);
+    
+    if (result.length === 0) {
+      return res.status(404).json({ 
+        error: 'No Fabricas found',
+        message: 'The database does not contain any Fabricas yet'
+      });
+    }
+    
+    const fabrica = convertNeo4jDates((result[0] as any).f.properties);
+    res.json(fabrica);
+  } catch (error: any) {
+    console.error('Error fetching latest Fabrica:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error?.message || 'Failed to fetch latest Fabrica'
+    });
+  }
+});
+
 router.get('/fabricas/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -187,6 +248,230 @@ router.get('/fabricas/:id', async (req, res) => {
     res.json(result[0].n.properties);
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
+// Get all Jingles for a specific Fabrica with timestamps and order
+router.get('/fabricas/:id/jingles', async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Validate Fabrica ID
+    if (!id || id.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Invalid Fabrica ID',
+        message: 'Fabrica ID is required and cannot be empty'
+      });
+    }
+    
+    // First check if the Fabrica exists
+    const fabricaCheckQuery = `MATCH (f:Fabrica {id: $id}) RETURN f`;
+    const fabricaCheck = await db.executeQuery(fabricaCheckQuery, { id: id.trim() });
+    
+    if (fabricaCheck.length === 0) {
+      return res.status(404).json({ 
+        error: 'Fabrica not found',
+        message: `No Fabrica found with ID: ${id}`,
+        fabricaId: id
+      });
+    }
+    
+    // Fetch all Jingles that appear in this Fabrica with their timestamps and order
+    const query = `
+      MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $id})
+      RETURN j {
+        .*,
+        timestamp: r.timestamp,
+        order: r.order
+      } AS jingle
+      ORDER BY r.order ASC, r.timestamp ASC
+    `;
+    
+    const result = await db.executeQuery(query, { id: id.trim() });
+    
+    // Check if Fabrica has no Jingles
+    if (result.length === 0) {
+      return res.json({ 
+        jingles: [],
+        message: 'This Fabrica has no Jingles yet',
+        fabricaId: id
+      });
+    }
+    
+    // Convert Neo4j dates and add formatted timestamps
+    const jingles = result.map((record: any) => {
+      const jingle = convertNeo4jDates(record.jingle);
+      // Handle timestamp - could be seconds (number) or HH:MM:SS (string)
+      const jingleTimestamp = jingle.timestamp;
+      let timestampSeconds: number;
+      let timestampFormatted: string;
+      
+      if (typeof jingleTimestamp === 'string') {
+        // Already in HH:MM:SS format
+        timestampFormatted = jingleTimestamp;
+        try {
+          timestampSeconds = parseTimestampToSeconds(jingleTimestamp);
+        } catch {
+          timestampSeconds = 0;
+        }
+      } else {
+        // Assume it's in seconds
+        timestampSeconds = jingleTimestamp ?? 0;
+        timestampFormatted = formatSecondsToTimestamp(timestampSeconds);
+      }
+      
+      return {
+        ...jingle,
+        timestamp: timestampSeconds,
+        timestampFormatted
+      };
+    });
+    
+    res.json(jingles);
+  } catch (error: any) {
+    console.error('Error fetching Jingles for Fabrica:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error?.message || 'Failed to fetch Jingles for Fabrica'
+    });
+  }
+});
+
+// Get the active Jingle at a specific timestamp for a Fabrica
+router.get('/fabricas/:id/jingle-at-time', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const timestampParam = req.query.timestamp as string;
+    
+    // Validate Fabrica ID
+    if (!id || id.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Invalid Fabrica ID',
+        message: 'Fabrica ID is required and cannot be empty'
+      });
+    }
+    
+    // Validate timestamp parameter
+    if (!timestampParam) {
+      return res.status(400).json({ 
+        error: 'Missing timestamp parameter',
+        message: 'Query parameter "timestamp" is required (e.g., ?timestamp=120.5)',
+        example: `/api/public/fabricas/${id}/jingle-at-time?timestamp=120`
+      });
+    }
+    
+    const timestamp = parseFloat(timestampParam);
+    if (isNaN(timestamp)) {
+      return res.status(400).json({ 
+        error: 'Invalid timestamp format',
+        message: 'Timestamp must be a valid number',
+        provided: timestampParam,
+        example: '120.5'
+      });
+    }
+    
+    if (timestamp < 0) {
+      return res.status(400).json({ 
+        error: 'Invalid timestamp value',
+        message: 'Timestamp must be a non-negative number (0 or greater)',
+        provided: timestamp
+      });
+    }
+    
+    // First check if the Fabrica exists
+    const fabricaCheckQuery = `MATCH (f:Fabrica {id: $id}) RETURN f`;
+    const fabricaCheck = await db.executeQuery(fabricaCheckQuery, { id: id.trim() });
+    
+    if (fabricaCheck.length === 0) {
+      return res.status(404).json({ 
+        error: 'Fabrica not found',
+        message: `No Fabrica found with ID: ${id}`,
+        fabricaId: id
+      });
+    }
+    
+    // Find the active Jingle at the given timestamp
+    // Get all jingles and filter in JavaScript since timestamps might be stored as strings
+    const query = `
+      MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $id})
+      RETURN j {
+        .*,
+        timestamp: r.timestamp,
+        order: r.order
+      } AS jingle
+      ORDER BY r.order ASC, r.timestamp ASC
+    `;
+    
+    const allJingles = await db.executeQuery(query, { id: id.trim() });
+    
+    if (allJingles.length === 0) {
+      return res.status(404).json({ 
+        error: 'No Jingles in Fabrica',
+        message: 'This Fabrica has no Jingles',
+        fabricaId: id
+      });
+    }
+    
+    // Convert all jingles with timestamps to seconds for comparison
+    const jinglesWithSeconds = allJingles.map((record: any) => {
+      const jingleData = convertNeo4jDates(record.jingle);
+      const ts = jingleData.timestamp;
+      const timestampInSeconds = typeof ts === 'string' ? parseTimestampToSeconds(ts) : (ts ?? 0);
+      return {
+        ...jingleData,
+        timestampInSeconds
+      };
+    });
+    
+    // Find jingles that start at or before the requested timestamp
+    const activeJingles = jinglesWithSeconds.filter((j: any) => j.timestampInSeconds <= timestamp);
+    
+    if (activeJingles.length === 0) {
+      // Timestamp is before the first jingle
+      const firstJingle = jinglesWithSeconds[0];
+      const firstTimestamp = firstJingle.timestamp;
+      const firstTimestampSeconds = firstJingle.timestampInSeconds;
+      const firstTimestampFormatted = typeof firstTimestamp === 'string' 
+        ? firstTimestamp 
+        : formatSecondsToTimestamp(firstTimestampSeconds);
+      
+      return res.status(404).json({ 
+        error: 'No Jingle found at this timestamp',
+        message: `The provided timestamp (${timestamp}s) is before the first Jingle in this Fabrica`,
+        requestedTimestamp: timestamp,
+        requestedTimestampFormatted: formatSecondsToTimestamp(timestamp),
+        firstJingleTimestamp: firstTimestampSeconds,
+        firstJingleTimestampFormatted: firstTimestampFormatted,
+        fabricaId: id
+      });
+    }
+    
+    // Get the last jingle that started before or at the requested timestamp
+    const activeJingle = activeJingles[activeJingles.length - 1];
+    
+    // Format response
+    const jingleTimestamp = activeJingle.timestamp;
+    const jingleTimestampSeconds = activeJingle.timestampInSeconds;
+    const jingleTimestampFormatted = typeof jingleTimestamp === 'string'
+      ? jingleTimestamp
+      : formatSecondsToTimestamp(jingleTimestampSeconds);
+    
+    const response = {
+      ...activeJingle,
+      timestamp: jingleTimestampSeconds,
+      timestampFormatted: jingleTimestampFormatted
+    };
+    
+    // Remove the helper field
+    delete response.timestampInSeconds;
+    
+    res.json(response);
+  } catch (error: any) {
+    console.error('Error fetching Jingle at timestamp:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: error?.message || 'Failed to fetch Jingle at timestamp'
+    });
   }
 });
 
@@ -247,14 +532,66 @@ router.get('/jingles', async (req, res) => {
 router.get('/jingles/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const query = `MATCH (n:Jingle {id: $id}) RETURN n`;
+    
+    // Comprehensive query to fetch Jingle with all relationships
+    const query = `
+      MATCH (j:Jingle {id: $id})
+      
+      // Get Fabrica with relationship properties
+      OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+      
+      // Get Cancion
+      OPTIONAL MATCH (j)-[:VERSIONA]->(c:Cancion)
+      
+      // Get Jinglero (Artista who performed the jingle)
+      OPTIONAL MATCH (jinglero:Artista)-[:JINGLERO_DE]->(j)
+      
+      // Get Autor (Artista who wrote the Cancion)
+      OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+      
+      // Get all Tematicas
+      OPTIONAL MATCH (j)-[tagRel:TAGGED_WITH]->(t:Tematica)
+      
+      RETURN j {
+        .*
+      } AS jingle,
+      f {
+        .*,
+        timestamp: appearsIn.timestamp,
+        order: appearsIn.order
+      } AS fabrica,
+      c {.*} AS cancion,
+      jinglero {.*} AS jinglero,
+      autor {.*} AS autor,
+      collect(DISTINCT t {
+        .*,
+        isPrimary: tagRel.isPrimary
+      }) AS tematicas
+    `;
+    
     const result = await db.executeQuery(query, { id });
     
     if (result.length === 0) {
       return res.status(404).json({ error: 'Jingle not found' });
     }
     
-    res.json(result[0].n.properties);
+    const record: any = result[0];
+    
+    // Build the response object with all relationships
+    const response = {
+      ...convertNeo4jDates(record.jingle),
+      fabrica: record.fabrica ? convertNeo4jDates(record.fabrica) : null,
+      cancion: record.cancion ? convertNeo4jDates(record.cancion) : null,
+      jinglero: record.jinglero ? convertNeo4jDates(record.jinglero) : null,
+      autor: record.autor ? convertNeo4jDates(record.autor) : null,
+      tematicas: record.tematicas
+        ? record.tematicas
+            .filter((t: any) => t && t.id) // Filter out null entries
+            .map((t: any) => convertNeo4jDates(t))
+        : []
+    };
+    
+    res.json(response);
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
