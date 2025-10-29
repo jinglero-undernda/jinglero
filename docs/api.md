@@ -54,6 +54,7 @@ This document describes the public and admin API endpoints for Jinglero. All res
 ### Fabricas (Video Player Support)
 
 - **GET `/api/public/fabricas/latest`**
+
   - Returns the most recent Fabrica by `date` property
   - 200: Returns complete Fabrica object
   - 404: `{ error, message }` if no Fabricas exist
@@ -71,6 +72,7 @@ This document describes the public and admin API endpoints for Jinglero. All res
     ```
 
 - **GET `/api/public/fabricas/:id/jingles`**
+
   - Returns all Jingles that appear in the specified Fabrica, ordered by appearance
   - Each Jingle includes `timestamp` (in seconds) and `timestampFormatted` (HH:MM:SS)
   - 200: Returns array of Jingles
