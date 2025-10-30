@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import type { Fabrica } from '../types';
 import { publicApi } from '../lib/api/client';
@@ -24,53 +24,52 @@ export default function FabricaPage() {
   const [error, setError] = useState<string | null>(null);
   const [initialTimestamp, setInitialTimestamp] = useState<number | null>(null);
 
-  // YouTube player hook
-  const { state: playerState, seekTo } = useYouTubePlayer(playerRef, {
-    onTimeUpdate: () => {
-      // Time updates are handled by useJingleSync
-    },
-  });
+  // Memoize the callback for active jingle changes
+  const handleActiveJingleChange = useCallback(async (jingle: JingleTimelineItem | null) => {
+    if (jingle) {
+      // Fetch full jingle data with relationships for metadata display
+      try {
+        const fullJingle = await publicApi.getJingle(jingle.id);
+        // Transform the API response to JingleMetadataData format
+        const metadata: JingleMetadataData = {
+          id: fullJingle.id,
+          timestamp: jingle.timestamp,
+          title: fullJingle.title,
+          jingleros: (fullJingle as any).jinglero ? [(fullJingle as any).jinglero] : null,
+          cancion: (fullJingle as any).cancion || null,
+          autores: (fullJingle as any).autor ? [(fullJingle as any).autor] : null,
+          tematicas: (fullJingle as any).tematicas || null,
+          comment: fullJingle.comment,
+          lyrics: fullJingle.lyrics,
+        };
+        setActiveJingleMetadata(metadata);
+      } catch (err) {
+        console.warn('Failed to fetch full jingle metadata:', err);
+        // Fallback to basic data from timeline
+        const basicMetadata: JingleMetadataData = {
+          id: jingle.id,
+          timestamp: jingle.timestamp,
+          title: jingle.title,
+          jingleros: jingle.jingleros,
+          cancion: jingle.cancion,
+          autores: jingle.autores,
+        };
+        setActiveJingleMetadata(basicMetadata);
+      }
+    } else {
+      setActiveJingleMetadata(null);
+    }
+  }, []);
+
+  // YouTube player hook - no callbacks needed, time updates are handled by useJingleSync
+  const { state: playerState, seekTo } = useYouTubePlayer(playerRef, {});
 
   // Jingle sync hook - determines active jingle based on playback time
   const { activeJingleId } = useJingleSync(
     playerState.currentTime,
     jingles,
     {
-      onActiveJingleChange: async (jingle) => {
-        if (jingle) {
-          // Fetch full jingle data with relationships for metadata display
-          try {
-            const fullJingle = await publicApi.getJingle(jingle.id);
-            // Transform the API response to JingleMetadataData format
-            const metadata: JingleMetadataData = {
-              id: fullJingle.id,
-              timestamp: jingle.timestamp,
-              title: fullJingle.title,
-              jingleros: (fullJingle as any).jinglero ? [(fullJingle as any).jinglero] : null,
-              cancion: (fullJingle as any).cancion || null,
-              autores: (fullJingle as any).autor ? [(fullJingle as any).autor] : null,
-              tematicas: (fullJingle as any).tematicas || null,
-              comment: fullJingle.comment,
-              lyrics: fullJingle.lyrics,
-            };
-            setActiveJingleMetadata(metadata);
-          } catch (err) {
-            console.warn('Failed to fetch full jingle metadata:', err);
-            // Fallback to basic data from timeline
-            const basicMetadata: JingleMetadataData = {
-              id: jingle.id,
-              timestamp: jingle.timestamp,
-              title: jingle.title,
-              jingleros: jingle.jingleros,
-              cancion: jingle.cancion,
-              autores: jingle.autores,
-            };
-            setActiveJingleMetadata(basicMetadata);
-          }
-        } else {
-          setActiveJingleMetadata(null);
-        }
-      },
+      onActiveJingleChange: handleActiveJingleChange,
     }
   );
 
@@ -138,14 +137,19 @@ export default function FabricaPage() {
 
   // Update jingles with active state
   useEffect(() => {
-    if (activeJingleId) {
-      setJingles((prev) =>
-        prev.map((j) => ({
-          ...j,
-          isActive: j.id === activeJingleId,
-        }))
+    setJingles((prev) => {
+      // Only update if active jingle actually changed
+      const needsUpdate = prev.some(
+        (j) => (j.id === activeJingleId) !== j.isActive
       );
-    }
+      if (!needsUpdate) {
+        return prev; // Return same reference to avoid unnecessary updates
+      }
+      return prev.map((j) => ({
+        ...j,
+        isActive: j.id === activeJingleId,
+      }));
+    });
   }, [activeJingleId]);
 
   // Handle skip to jingle timestamp
