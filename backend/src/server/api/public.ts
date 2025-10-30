@@ -10,6 +10,36 @@ const db = Neo4jClient.getInstance();
 function convertNeo4jDates(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   
+  // Handle strings (including ISO date strings)
+  if (typeof obj === 'string') {
+    // Handle empty strings
+    if (obj.trim() === '') {
+      return null;
+    }
+    
+    // Check if string is a valid ISO 8601 date string (e.g., "2025-06-05T00:00:00Z")
+    const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+    if (isoDatePattern.test(obj)) {
+      // Validate that it's actually a valid date
+      const date = new Date(obj);
+      if (!isNaN(date.getTime())) {
+        // Normalize to ISO string format
+        return date.toISOString();
+      }
+    }
+    
+    // If not a valid ISO date string, return as-is
+    return obj;
+  }
+  
+  // Handle Date objects
+  if (obj instanceof Date) {
+    if (!isNaN(obj.getTime())) {
+      return obj.toISOString();
+    }
+    return null;
+  }
+  
   if (typeof obj === 'object') {
     // Handle Neo4j DateTime objects
     if (obj.year !== undefined && obj.month !== undefined && obj.day !== undefined) {
@@ -20,7 +50,11 @@ function convertNeo4jDates(obj: any): any {
       const minute = typeof obj.minute === 'object' ? (obj.minute?.low || 0) : (obj.minute || 0);
       const second = typeof obj.second === 'object' ? (obj.second?.low || 0) : (obj.second || 0);
       
-      return new Date(year, month - 1, day, hour, minute, second).toISOString();
+      try {
+        return new Date(year, month - 1, day, hour, minute, second).toISOString();
+      } catch {
+        return null;
+      }
     }
     
     // Handle arrays
@@ -110,7 +144,7 @@ router.get('/usuarios/:id', async (req, res) => {
       return res.status(404).json({ error: 'Usuario not found' });
     }
     
-    res.json(result[0].n.properties);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -145,7 +179,7 @@ router.get('/artistas/:id', async (req, res) => {
       return res.status(404).json({ error: 'Artista not found' });
     }
     
-    res.json(result[0].n.properties);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -180,7 +214,7 @@ router.get('/canciones/:id', async (req, res) => {
       return res.status(404).json({ error: 'Cancion not found' });
     }
     
-    res.json(result[0].n.properties);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -245,7 +279,7 @@ router.get('/fabricas/:id', async (req, res) => {
       return res.status(404).json({ error: 'Fabrica not found' });
     }
     
-    res.json(result[0].n.properties);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -504,7 +538,7 @@ router.get('/tematicas/:id', async (req, res) => {
       return res.status(404).json({ error: 'Tematica not found' });
     }
     
-    res.json(result[0].n.properties);
+    res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
@@ -561,8 +595,8 @@ router.get('/jingles/:id', async (req, res) => {
         order: appearsIn.order
       } AS fabrica,
       c {.*} AS cancion,
-      jinglero {.*} AS jinglero,
-      autor {.*} AS autor,
+      collect(DISTINCT jinglero {.*}) AS jingleros,
+      collect(DISTINCT autor {.*}) AS autores,
       collect(DISTINCT t {
         .*,
         isPrimary: tagRel.isPrimary
@@ -582,8 +616,16 @@ router.get('/jingles/:id', async (req, res) => {
       ...convertNeo4jDates(record.jingle),
       fabrica: record.fabrica ? convertNeo4jDates(record.fabrica) : null,
       cancion: record.cancion ? convertNeo4jDates(record.cancion) : null,
-      jinglero: record.jinglero ? convertNeo4jDates(record.jinglero) : null,
-      autor: record.autor ? convertNeo4jDates(record.autor) : null,
+      jingleros: record.jingleros
+        ? record.jingleros
+            .filter((j: any) => j && j.id)
+            .map((j: any) => convertNeo4jDates(j))
+        : [],
+      autores: record.autores
+        ? record.autores
+            .filter((a: any) => a && a.id)
+            .map((a: any) => convertNeo4jDates(a))
+        : [],
       tematicas: record.tematicas
         ? record.tematicas
             .filter((t: any) => t && t.id) // Filter out null entries
@@ -960,10 +1002,10 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 });
-
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
 export default router;
+

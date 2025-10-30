@@ -35,9 +35,17 @@ export default function FabricaPage() {
           id: fullJingle.id,
           timestamp: jingle.timestamp,
           title: fullJingle.title,
-          jingleros: (fullJingle as any).jinglero ? [(fullJingle as any).jinglero] : null,
+          jingleros: Array.isArray((fullJingle as any).jingleros) 
+            ? (fullJingle as any).jingleros.length > 0 
+              ? (fullJingle as any).jingleros 
+              : null
+            : null,
           cancion: (fullJingle as any).cancion || null,
-          autores: (fullJingle as any).autor ? [(fullJingle as any).autor] : null,
+          autores: Array.isArray((fullJingle as any).autores)
+            ? (fullJingle as any).autores.length > 0
+              ? (fullJingle as any).autores
+              : null
+            : null,
           tematicas: (fullJingle as any).tematicas || null,
           comment: fullJingle.comment,
           lyrics: fullJingle.lyrics,
@@ -210,7 +218,17 @@ export default function FabricaPage() {
         </h1>
         {fabrica.date && (
           <p style={{ color: '#666', fontSize: '14px' }}>
-            Fecha: {new Date(fabrica.date).toLocaleDateString('es-AR')}
+            Fecha de publicacion:{" "}
+            {(() => {
+              try {
+                const date = new Date(fabrica.date);
+                return isNaN(date.getTime())
+                  ? "Fecha no disponible"
+                  : date.toLocaleDateString('es-AR');
+              } catch {
+                return "Fecha no disponible";
+              }
+            })()}
           </p>
         )}
       </div>
