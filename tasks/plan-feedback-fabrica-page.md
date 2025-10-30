@@ -281,11 +281,11 @@ This document outlines the technical specification for implementing all feedback
 
 ### Module 4: JingleMetadata Component Updates
 
-- [ ] **Module 4 Pending**
+- [x] **Module 4 Complete**
 
 #### 4.1 Convert to Table Format
 
-- [ ] **Task 4.1 Pending**
+- [x] **Task 4.1 Complete**
 
 **File:** `frontend/src/components/player/JingleMetadata.tsx`
 
@@ -294,48 +294,356 @@ This document outlines the technical specification for implementing all feedback
 - Replace grid layout (lines 172-268) with HTML table
 - 3 columns: Label (narrow), Data (wide), Navigation Links (narrow, placeholder for future)
 - Remove pill badges for Tematicas (lines 222-265); use table rows instead
+- Add header section with rounded top corners containing title and replay button
+- Rest of metadata in a contained box below header
 
 **Specific Changes:**
 
-1. Update structure:
+1. **Update Props Interface** (lines 30-35):
+
+   - Add `onReplay?: () => void` prop to `JingleMetadataProps`
+
+2. **Create Header Section** (replace lines 149-169):
 
    ```tsx
-   <div className="metadata-container">
-     <div className="metadata-header">
-       <h2>{displayTitle}</h2>
-       <button className="replay-button">Replay icon</button>
-     </div>
-     <table className="metadata-table">
+   <div
+     className="metadata-header"
+     style={{
+       backgroundColor: "#fff",
+       borderTopLeftRadius: "8px",
+       borderTopRightRadius: "8px",
+       borderBottom: "2px solid #eee",
+       padding: "16px 20px",
+       display: "flex",
+       justifyContent: "space-between",
+       alignItems: "center",
+     }}
+   >
+     <h2
+       style={{
+         margin: 0,
+         fontSize: "24px",
+         fontWeight: "bold",
+         color: "#333",
+       }}
+     >
+       {displayTitle}
+     </h2>
+     {onReplay && timestampSeconds !== null && (
+       <button
+         onClick={onReplay}
+         className="replay-button"
+         style={{
+           background: "none",
+           border: "none",
+           cursor: "pointer",
+           fontSize: "24px",
+           padding: "4px 8px",
+           color: "#1976d2",
+           borderRadius: "4px",
+           transition: "background-color 0.2s",
+         }}
+         title="Repetir jingle"
+         aria-label="Repetir jingle"
+       >
+         ↻
+       </button>
+     )}
+   </div>
+   ```
+
+3. **Create Table Structure** (replace lines 172-268):
+
+   ```tsx
+   <div
+     style={{
+       backgroundColor: "#fff",
+       borderBottomLeftRadius: "8px",
+       borderBottomRightRadius: "8px",
+       padding: "20px",
+     }}
+   >
+     <table
+       className="metadata-table"
+       style={{
+         width: "100%",
+         borderCollapse: "collapse",
+         fontSize: "15px",
+       }}
+     >
        <tbody>
+         {/* Titulo row - spans all columns */}
          <tr>
-           <td className="label-col">Titulo del Jingle:</td>
-           <td className="data-col" colSpan={2}>
+           <td
+             className="label-col"
+             style={{
+               width: "120px",
+               padding: "8px 12px 8px 0",
+               color: "#666",
+               fontWeight: "600",
+               verticalAlign: "top",
+             }}
+           >
+             Titulo del Jingle:
+           </td>
+           <td
+             className="data-col"
+             colSpan={2}
+             style={{
+               padding: "8px 0",
+               color: "#333",
+               wordWrap: "break-word",
+               wordBreak: "break-word",
+             }}
+           >
              {displayTitle}
            </td>
          </tr>
+
          {/* Cancion row */}
-         {/* Autor rows (merge heading if multiple) */}
-         {/* Jinglero rows (merge heading if multiple) */}
-         {/* Tematica rows (one per tematica) */}
+         <tr>
+           <td
+             className="label-col"
+             style={
+               {
+                 /* same as above */
+               }
+             }
+           >
+             Cancion:
+           </td>
+           <td
+             className="data-col"
+             style={{
+               padding: "8px 0",
+               color: "#333",
+               wordWrap: "break-word",
+             }}
+           >
+             {cancionText !== "A CONFIRMAR" ? (
+               cancionText
+             ) : (
+               <span style={{ fontStyle: "italic", color: "#999" }}>
+                 A CONFIRMAR
+               </span>
+             )}
+           </td>
+           <td
+             className="nav-col"
+             style={{
+               width: "40px",
+               padding: "8px 0",
+               // Placeholder for future navigation links
+             }}
+           ></td>
+         </tr>
+
+         {/* Autor rows - handle multiple */}
+         {autores.length > 0 ? (
+           <>
+             <tr>
+               <td
+                 className="label-col"
+                 rowSpan={autores.length > 1 ? autores.length : undefined}
+                 style={
+                   {
+                     /* same */
+                   }
+                 }
+               >
+                 Autor{autores.length > 1 ? ":" : ":"}
+               </td>
+               <td
+                 className="data-col"
+                 style={
+                   {
+                     /* same */
+                   }
+                 }
+               >
+                 {autores[0].stageName || autores[0].name || "A CONFIRMAR"}
+               </td>
+               <td
+                 className="nav-col"
+                 style={
+                   {
+                     /* same */
+                   }
+                 }
+               ></td>
+             </tr>
+             {autores.slice(1).map((autor, idx) => (
+               <tr key={autor.id || idx + 1}>
+                 <td
+                   className="data-col"
+                   style={
+                     {
+                       /* same */
+                     }
+                   }
+                 >
+                   {autor.stageName || autor.name || "A CONFIRMAR"}
+                 </td>
+                 <td
+                   className="nav-col"
+                   style={
+                     {
+                       /* same */
+                     }
+                   }
+                 ></td>
+               </tr>
+             ))}
+           </>
+         ) : (
+           <tr>
+             <td
+               className="label-col"
+               style={
+                 {
+                   /* same */
+                 }
+               }
+             >
+               Autor:
+             </td>
+             <td
+               className="data-col"
+               style={
+                 {
+                   /* same */
+                 }
+               }
+             >
+               <span style={{ fontStyle: "italic", color: "#999" }}>
+                 A CONFIRMAR
+               </span>
+             </td>
+             <td
+               className="nav-col"
+               style={
+                 {
+                   /* same */
+                 }
+               }
+             ></td>
+           </tr>
+         )}
+
+         {/* Jinglero rows - handle multiple (same pattern as Autor) */}
+         {/* Tematica rows - one per tematica */}
+         {tematicas.length > 0 && (
+           <>
+             <tr>
+               <td
+                 className="label-col"
+                 rowSpan={tematicas.length}
+                 style={
+                   {
+                     /* same */
+                   }
+                 }
+               >
+                 Tematica:
+               </td>
+               <td
+                 className="data-col"
+                 style={
+                   {
+                     /* same */
+                   }
+                 }
+               >
+                 {tematicas[0].name}
+               </td>
+               <td
+                 className="nav-col"
+                 style={
+                   {
+                     /* same */
+                   }
+                 }
+               ></td>
+             </tr>
+             {tematicas.slice(1).map((tematica) => (
+               <tr key={tematica.id}>
+                 <td
+                   className="data-col"
+                   style={
+                     {
+                       /* same */
+                     }
+                   }
+                 >
+                   {tematica.name}
+                 </td>
+                 <td
+                   className="nav-col"
+                   style={
+                     {
+                       /* same */
+                     }
+                   }
+                 ></td>
+               </tr>
+             ))}
+           </>
+         )}
+
          {/* Comentario row */}
+         {jingle.comment && (
+           <tr>
+             <td
+               className="label-col"
+               style={
+                 {
+                   /* same */
+                 }
+               }
+             >
+               Comentario:
+             </td>
+             <td
+               className="data-col"
+               colSpan={2}
+               style={{
+                 padding: "8px 0",
+                 color: "#555",
+                 fontSize: "14px",
+                 lineHeight: "1.6",
+                 fontStyle: "italic",
+                 wordWrap: "break-word",
+               }}
+             >
+               {jingle.comment}
+             </td>
+           </tr>
+         )}
        </tbody>
      </table>
    </div>
    ```
 
-2. Handle multiple Autores: Show "Autor:" in first row, merge cell if multiple, then one row per Autor
+4. **Update Container Styles** (lines 142-148):
 
-3. Handle multiple Jingleros: Show "Jinglero:" in first row, merge cell if multiple, then one row per Jinglero
+   - Remove border-radius from main container (now handled by header and content sections)
+   - Keep padding and background but adjust structure
 
-4. Handle Tematicas: One row per Tematica (remove pill badges)
+5. **Remove Timestamp Display** from header (was in old header, now removed per feedback)
 
-5. Add Replay button in header (top-right) that calls `onReplay` callback
+6. **Text Wrapping**: Ensure all data cells have `wordWrap: 'break-word'` and `wordBreak: 'break-word'` styles
 
-6. Add text wrapping for cell overflow
+**Implementation Notes:**
+
+- Use `rowSpan` attribute to merge Autor/Jinglero label cells when multiple exist
+- Keep existing logic for normalizing arrays (already present in lines 123-135)
+- Remove pill badge styling completely (lines 222-265)
+- Ensure table cells align properly with consistent padding
+- Navigation column is placeholder for future feature (feedback item 12)
 
 #### 4.2 Update Props Interface
 
-- [ ] **Task 4.2 Pending**
+- [x] **Task 4.2 Complete**
 
 **File:** `frontend/src/components/player/JingleMetadata.tsx`
 
@@ -343,9 +651,29 @@ This document outlines the technical specification for implementing all feedback
 
 - Add `onReplay?: () => void` prop to interface (line 30-35)
 
+**Specific Changes:**
+
+1. Update `JingleMetadataProps` interface:
+
+   ```tsx
+   export interface JingleMetadataProps {
+     /** Active jingle data to display */
+     jingle: JingleMetadataData | null;
+     /** Additional CSS class name */
+     className?: string;
+     /** Callback to replay current jingle from start timestamp */
+     onReplay?: () => void;
+   }
+   ```
+
+2. Update component signature:
+   ```tsx
+   export default function JingleMetadata({ jingle, className, onReplay }: JingleMetadataProps) {
+   ```
+
 #### 4.3 Handle Empty State (No Jingles)
 
-- [ ] **Task 4.3 Pending**
+- [x] **Task 4.3 Complete**
 
 **File:** `frontend/src/components/player/JingleMetadata.tsx`
 
@@ -353,6 +681,121 @@ This document outlines the technical specification for implementing all feedback
 
 - Update empty state (lines 98-111) to show "Disfruta del programa" message
 - This is used when Fabrica has no Jingles
+- Keep consistent styling with header + content box structure
+
+**Specific Changes:**
+
+1. Update empty state (lines 98-111):
+   ```tsx
+   if (!jingle) {
+     return (
+       <div
+         className={className}
+         style={{
+           backgroundColor: "#fff",
+           borderRadius: "8px",
+           border: "1px solid #ddd",
+           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+         }}
+       >
+         <div
+           style={{
+             backgroundColor: "#fff",
+             borderTopLeftRadius: "8px",
+             borderTopRightRadius: "8px",
+             borderBottom: "2px solid #eee",
+             padding: "16px 20px",
+           }}
+         >
+           <h2
+             style={{
+               margin: 0,
+               fontSize: "24px",
+               fontWeight: "bold",
+               color: "#333",
+             }}
+           >
+             Disfruta del programa
+           </h2>
+         </div>
+         <div
+           style={{
+             backgroundColor: "#fff",
+             borderBottomLeftRadius: "8px",
+             borderBottomRightRadius: "8px",
+             padding: "20px",
+             textAlign: "center",
+             color: "#666",
+             fontSize: "15px",
+           }}
+         >
+           <p style={{ margin: 0 }}>No hay información de jingle disponible</p>
+         </div>
+       </div>
+     );
+   }
+   ```
+
+**Note:** This empty state is used in FabricaPage when `jingle={null}` is passed and the Fabrica has no Jingles (feedback item 19).
+
+#### 4.4 Update FabricaPage to Pass onReplay Prop
+
+- [x] **Task 4.4 Complete**
+
+**File:** `frontend/src/pages/FabricaPage.tsx`
+
+**Change Details:**
+
+- Remove the comment on line 515 and pass `onReplay` prop to JingleMetadata component
+- Use existing `handleReplayCurrentJingle` function (already defined at line 253)
+
+**Specific Changes:**
+
+1. Update JingleMetadata usage (around line 514-516):
+   ```tsx
+   <JingleMetadata
+     jingle={activeJingleMetadata}
+     onReplay={handleReplayCurrentJingle}
+   />
+   ```
+
+**Note:** The `handleReplayCurrentJingle` function already exists and seeks to the current jingle's timestamp (feedback item 10).
+
+---
+
+### Module 4 Implementation Summary
+
+**Key Changes:**
+
+1. **Props Interface**: Add `onReplay?: () => void` prop
+2. **Header Section**: Create rounded-top header with title and replay button (↻ icon)
+3. **Table Structure**: Replace grid layout with HTML `<table>` element
+4. **Table Columns**:
+   - Label column (120px, right-aligned, bold)
+   - Data column (flexible width, left-aligned, text-wrap enabled)
+   - Navigation column (40px placeholder for future links)
+5. **Multiple Values**: Use `rowSpan` to merge label cells for Autor/Jinglero/Tematica when multiple exist
+6. **Tematicas**: Remove pill badges, show as table rows (one per tematica)
+7. **Empty State**: Update to show "Disfruta del programa" with consistent header/content structure
+8. **Integration**: Update FabricaPage to pass `onReplay` callback
+
+**Implementation Order:**
+
+1. Start with Task 4.2 (Props Interface) - simplest change
+2. Then Task 4.1 (Table Format) - main refactor
+3. Then Task 4.3 (Empty State) - update empty state
+4. Finally Task 4.4 (FabricaPage Integration) - connect replay functionality
+
+**Testing Checklist:**
+
+- Verify table renders correctly with all fields
+- Test multiple Autores/Jingleros display correctly (rowSpan works)
+- Test single Autor/Jinglero display (no rowSpan)
+- Verify Tematicas show as table rows (no pills)
+- Test replay button appears and functions correctly
+- Verify empty state shows "Disfruta del programa"
+- Test text wrapping on long content
+- Verify consistent styling with header/content sections
 
 ---
 
@@ -429,6 +872,10 @@ This document outlines the technical specification for implementing all feedback
 
 - [ ] **Module 6 Pending**
 
+**Detailed Implementation Plan:** See `module-6-youtube-player-detailed-plan.md`
+
+**Related Feedback:** Feedback item 7 from `feedback-fabrica-page-2.8.md`
+
 #### 6.1 Preserve Aspect Ratio
 
 - [ ] **Task 6.1 Pending**
@@ -438,13 +885,27 @@ This document outlines the technical specification for implementing all feedback
 **Change Details:**
 
 - Update container styling (lines 302-330) to maintain 16:9 aspect ratio
-- Use CSS aspect-ratio or padding-bottom technique
+- Use CSS aspect-ratio property with padding-bottom fallback technique
 - Make responsive in narrow settings
+- Update error and empty states to maintain aspect ratio
+- Update FabricaPage usage to remove deprecated width/height props
 
 **Specific Changes:**
 
-- Wrap player in aspect-ratio container
-- Ensure height is calculated from width to maintain 16:9
+1. Wrap player in aspect-ratio container using modern CSS `aspect-ratio: 16 / 9`
+2. Add padding-bottom: 56.25% fallback for older browsers
+3. Make player div absolute positioned to fill aspect ratio container
+4. Update error state (lines 276-292) to use aspect ratio container
+5. Update empty state (lines 294-300) to use aspect ratio container
+6. Simplify player initialization to use width/height: '100%'
+7. Update FabricaPage.tsx usage to remove width/height props
+
+**Implementation Notes:**
+
+- See detailed plan document for complete step-by-step implementation
+- Includes testing checklist for all viewport sizes
+- Browser compatibility matrix provided
+- Estimated implementation time: 3 hours
 
 ---
 
@@ -632,74 +1093,80 @@ useEffect(() => {
 
 ## IMPLEMENTATION CHECKLIST:
 
-1. Update `backend/src/server/api/public.ts` - Modify `/jingles/:id` endpoint to collect multiple Jingleros using `collect(DISTINCT jinglero {.*}) AS jingleros`
-2. Update `backend/src/server/api/public.ts` - Modify `/jingles/:id` endpoint to collect multiple Autores using `collect(DISTINCT autor {.*}) AS autores`
-3. Update `backend/src/server/api/public.ts` - Modify response building to return `jingleros` and `autores` as arrays instead of single objects
-4. Update `backend/src/server/api/public.ts` - Fix `convertNeo4jDates` function to: (a) detect and validate ISO string dates (e.g., "2025-06-05T00:00:00Z"), (b) normalize ISO string format, (c) handle Date objects, (d) return null for invalid/empty/null dates instead of throwing
-5. Update `frontend/src/pages/FabricaPage.tsx` - Fix date parsing (line 213): Add try-catch around `new Date(fabrica.date)`, validate date before formatting, format as DD/MM/YYYY using `toLocaleDateString('es-AR')`, display "Fecha no disponible" for invalid dates
-6. Update `frontend/src/pages/FabricaPage.tsx` - Add label "Fecha de publicacion: " before the date display
-7. Update `frontend/src/pages/FabricaPage.tsx` - Add state for expanded jingle IDs: `const [expandedJingleIds, setExpandedJingleIds] = useState<Set<string>>(new Set())`
-8. Update `frontend/src/pages/FabricaPage.tsx` - Add state for previous expand states: `const [previousExpandedStates, setPreviousExpandedStates] = useState<Map<string, boolean>>(new Map())`
-9. Update `frontend/src/pages/FabricaPage.tsx` - Add useMemo to calculate past jingles (before current timestamp)
-10. Update `frontend/src/pages/FabricaPage.tsx` - Add useMemo to calculate current jingle (at or before current timestamp, closest to current time)
-11. Update `frontend/src/pages/FabricaPage.tsx` - Add useMemo to calculate future jingles (after current timestamp)
-12. Update `frontend/src/pages/FabricaPage.tsx` - Remove existing grid layout (lines 219-244)
-13. Update `frontend/src/pages/FabricaPage.tsx` - Create scrollable container structure with maxHeight and overflowY
-14. Update `frontend/src/pages/FabricaPage.tsx` - Render past jingles section (collapsed rows, before player)
-15. Update `frontend/src/pages/FabricaPage.tsx` - Render current jingle row with YouTube player (left) and metadata panel (right, 400px wide)
-16. Update `frontend/src/pages/FabricaPage.tsx` - Render future jingles section (collapsed rows, after player)
-17. Update `frontend/src/pages/FabricaPage.tsx` - Add ref to current jingle row element for scrolling
-18. Update `frontend/src/pages/FabricaPage.tsx` - Add useEffect to auto-scroll to current jingle row when activeJingleId changes
-19. Update `frontend/src/pages/FabricaPage.tsx` - Update `handleActiveJingleChange` to normalize jingleros and autores as arrays
-20. Update `frontend/src/pages/FabricaPage.tsx` - Add useEffect to manage expand/collapse state when jingle becomes active (expand) or inactive (restore previous state)
-21. Update `frontend/src/pages/FabricaPage.tsx` - Update `handleSkipToJingle` to scroll timeline, expand jingle if collapsed, and scroll page so player is at top
-22. Update `frontend/src/pages/FabricaPage.tsx` - Add "Skip to First Jingle" button in empty metadata panel when no active jingle and jingles exist
-23. Update `frontend/src/pages/FabricaPage.tsx` - Update error handling to show modal and fetch latest Fabrica on error
-24. Update `frontend/src/pages/FabricaPage.tsx` - Handle empty state when Fabrica has no Jingles (show "Disfruta del programa" in metadata panel)
-25. Update `frontend/src/components/player/JingleMetadata.tsx` - Create metadata-header div with title and replay button
-26. Update `frontend/src/components/player/JingleMetadata.tsx` - Replace grid layout with HTML table element
-27. Update `frontend/src/components/player/JingleMetadata.tsx` - Create table structure with 3 columns: label-col, data-col, nav-col (narrow placeholder)
-28. Update `frontend/src/components/player/JingleMetadata.tsx` - Add Titulo row spanning 2 columns
-29. Update `frontend/src/components/player/JingleMetadata.tsx` - Add Cancion row with label and data cells
-30. Update `frontend/src/components/player/JingleMetadata.tsx` - Handle multiple Autores: First row with merged "Autor:" heading, then one row per Autor
-31. Update `frontend/src/components/player/JingleMetadata.tsx` - Handle multiple Jingleros: First row with merged "Jinglero:" heading, then one row per Jinglero
-32. Update `frontend/src/components/player/JingleMetadata.tsx` - Replace Tematica pill badges with table rows (one row per Tematica)
-33. Update `frontend/src/components/player/JingleMetadata.tsx` - Add Comentario row if comment exists
-34. Update `frontend/src/components/player/JingleMetadata.tsx` - Add text wrapping CSS for cell overflow
-35. Update `frontend/src/components/player/JingleMetadata.tsx` - Add `onReplay` prop to interface
-36. Update `frontend/src/components/player/JingleMetadata.tsx` - Implement replay button click handler that calls onReplay callback
-37. Update `frontend/src/components/player/JingleMetadata.tsx` - Update empty state to show "Disfruta del programa" message
-38. Update `frontend/src/pages/FabricaPage.tsx` - Pass `onReplay` callback to JingleMetadata component that seeks to current jingle timestamp
-39. Update `frontend/src/components/player/JingleTimeline.tsx` - Remove header row (lines 290-308)
-40. Update `frontend/src/components/player/JingleTimeline.tsx` - Remove single-expanded view logic (lines 171-281)
-41. Update `frontend/src/components/player/JingleTimeline.tsx` - Remove expandedJingleId state (line 136)
-42. Update `frontend/src/components/player/JingleTimeline.tsx` - Add `expandedJingleIds` and `onToggleExpand` props to interface
-43. Update `frontend/src/components/player/JingleTimeline.tsx` - Create JingleTimelineRow sub-component for individual jingle rows
-44. Update `frontend/src/components/player/JingleTimeline.tsx` - Implement collapsed row view showing comentario field as text
-45. Update `frontend/src/components/player/JingleTimeline.tsx` - Implement expanded row view showing full table with all fields
-46. Update `frontend/src/components/player/JingleTimeline.tsx` - Add expand/collapse icon (arrow down/up) to each row
-47. Update `frontend/src/components/player/JingleTimeline.tsx` - Add skip-to icon (double triangle) to each row
-48. Update `frontend/src/components/player/JingleTimeline.tsx` - Add active jingle highlighting styling
-49. Update `frontend/src/components/player/JingleTimeline.tsx` - Match Metadata Panel styling (rounded corners, box styling)
-50. Update `frontend/src/components/player/JingleTimeline.tsx` - Render all jingles always visible (remove conditional hiding)
-51. Update `frontend/src/pages/FabricaPage.tsx` - Pass `expandedJingleIds` and `onToggleExpand` to JingleTimeline component
-52. Update `frontend/src/components/player/YouTubePlayer.tsx` - Wrap player in aspect-ratio container to preserve 16:9 ratio
-53. Update `frontend/src/components/player/YouTubePlayer.tsx` - Make player responsive in narrow settings while maintaining aspect ratio
-54. Create `frontend/src/styles/pages/fabrica.css` - Add styles for scrollable timeline container
-55. Create `frontend/src/styles/pages/fabrica.css` - Add styles for current jingle row layout
-56. Create `frontend/src/styles/components/metadata.css` - Add metadata table styles
-57. Create `frontend/src/styles/components/metadata.css` - Add metadata header and replay button styles
-58. Create `frontend/src/styles/components/timeline.css` - Add timeline row styles (collapsed/expanded)
-59. Create `frontend/src/styles/components/timeline.css` - Add expand/collapse and skip-to icon styles
-60. Create `frontend/src/styles/components/timeline.css` - Add active jingle highlighting styles
-61. Update `frontend/src/pages/FabricaPage.tsx` - Import CSS files
-62. Test date parsing fix with various date formats
-63. Test multiple Jingleros display in metadata panel
-64. Test multiple Autores display in metadata panel
-65. Test timeline scroll behavior when jingle becomes active
-66. Test expand/collapse state persistence and restoration
-67. Test skip-to-timestamp navigation and page scroll
-68. Test deep linking with timestamp parameter
-69. Test empty state when Fabrica has no Jingles
-70. Test error handling with missing Fabrica (should load latest)
-71. Test responsive design with narrow viewport
+[ ] 1. Update `backend/src/server/api/public.ts` - Modify `/jingles/:id` endpoint to collect multiple Jingleros using `collect(DISTINCT jinglero {.*}) AS jingleros`
+[ ] 2. Update `backend/src/server/api/public.ts` - Modify `/jingles/:id` endpoint to collect multiple Autores using `collect(DISTINCT autor {.*}) AS autores`
+[ ] 3. Update `backend/src/server/api/public.ts` - Modify response building to return `jingleros` and `autores` as arrays instead of single objects
+[ ] 4. Update `backend/src/server/api/public.ts` - Fix `convertNeo4jDates` function to: (a) detect and validate ISO string dates (e.g., "2025-06-05T00:00:00Z"), (b) normalize ISO string format, (c) handle Date objects, (d) return null for invalid/empty/null dates instead of throwing
+[ ] 5. Update `frontend/src/pages/FabricaPage.tsx` - Fix date parsing (line 213): Add try-catch around `new Date(fabrica.date)`, validate date before formatting, format as DD/MM/YYYY using `toLocaleDateString('es-AR')`, display "Fecha no disponible" for invalid dates
+[ ] 6. Update `frontend/src/pages/FabricaPage.tsx` - Add label "Fecha de publicacion: " before the date display
+[ ] 7. Update `frontend/src/pages/FabricaPage.tsx` - Add state for expanded jingle IDs: `const [expandedJingleIds, setExpandedJingleIds] = useState<Set<string>>(new Set())`
+[ ] 8. Update `frontend/src/pages/FabricaPage.tsx` - Add state for previous expand states: `const [previousExpandedStates, setPreviousExpandedStates] = useState<Map<string, boolean>>(new Map())`
+[ ] 9. Update `frontend/src/pages/FabricaPage.tsx` - Add useMemo to calculate past jingles (before current timestamp)
+[ ] 10. Update `frontend/src/pages/FabricaPage.tsx` - Add useMemo to calculate current jingle (at or before current timestamp, closest to current time)
+[ ] 11. Update `frontend/src/pages/FabricaPage.tsx` - Add useMemo to calculate future jingles (after current timestamp)
+[ ] 12. Update `frontend/src/pages/FabricaPage.tsx` - Remove existing grid layout (lines 219-244)
+[ ] 13. Update `frontend/src/pages/FabricaPage.tsx` - Create scrollable container structure with maxHeight and overflowY
+[ ] 14. Update `frontend/src/pages/FabricaPage.tsx` - Render past jingles section (collapsed rows, before player)
+[ ] 15. Update `frontend/src/pages/FabricaPage.tsx` - Render current jingle row with YouTube player (left) and metadata panel (right, 400px wide)
+[ ] 16. Update `frontend/src/pages/FabricaPage.tsx` - Render future jingles section (collapsed rows, after player)
+[ ] 17. Update `frontend/src/pages/FabricaPage.tsx` - Add ref to current jingle row element for scrolling
+[ ] 18. Update `frontend/src/pages/FabricaPage.tsx` - Add useEffect to auto-scroll to current jingle row when activeJingleId changes
+[ ] 19. Update `frontend/src/pages/FabricaPage.tsx` - Update `handleActiveJingleChange` to normalize jingleros and autores as arrays
+[ ] 20. Update `frontend/src/pages/FabricaPage.tsx` - Add useEffect to manage expand/collapse state when jingle becomes active (expand) or inactive (restore previous state)
+[ ] 21. Update `frontend/src/pages/FabricaPage.tsx` - Update `handleSkipToJingle` to scroll timeline, expand jingle if collapsed, and scroll page so player is at top
+[ ] 22. Update `frontend/src/pages/FabricaPage.tsx` - Add "Skip to First Jingle" button in empty metadata panel when no active jingle and jingles exist
+[ ] 23. Update `frontend/src/pages/FabricaPage.tsx` - Update error handling to show modal and fetch latest Fabrica on error
+[ ] 24. Update `frontend/src/pages/FabricaPage.tsx` - Handle empty state when Fabrica has no Jingles (show "Disfruta del programa" in metadata panel)
+[ ] 25. Update `frontend/src/components/player/JingleMetadata.tsx` - Add `onReplay?: () => void` prop to `JingleMetadataProps` interface
+[ ] 26. Update `frontend/src/components/player/JingleMetadata.tsx` - Update component signature to accept `onReplay` prop
+[ ] 27. Update `frontend/src/components/player/JingleMetadata.tsx` - Create metadata-header div with rounded top corners containing title and replay button
+[ ] 28. Update `frontend/src/components/player/JingleMetadata.tsx` - Implement replay button with ↻ icon that calls `onReplay` callback (only show when onReplay and timestamp exist)
+[ ] 29. Update `frontend/src/components/player/JingleMetadata.tsx` - Replace grid layout (lines 172-268) with HTML table element
+[ ] 30. Update `frontend/src/components/player/JingleMetadata.tsx` - Create table structure with 3 columns: label-col (120px), data-col (flexible), nav-col (40px placeholder)
+[ ] 31. Update `frontend/src/components/player/JingleMetadata.tsx` - Add Titulo row with label cell and data cell spanning 2 columns
+[ ] 32. Update `frontend/src/components/player/JingleMetadata.tsx` - Add Cancion row with label, data, and empty nav cells
+[ ] 33. Update `frontend/src/components/player/JingleMetadata.tsx` - Handle multiple Autores: First row with "Autor:" label using rowSpan, then one row per Autor
+[ ] 34. Update `frontend/src/components/player/JingleMetadata.tsx` - Handle single Autor: Show "Autor:" label in single row with "A CONFIRMAR" fallback
+[ ] 35. Update `frontend/src/components/player/JingleMetadata.tsx` - Handle multiple Jingleros: First row with "Jinglero:" label using rowSpan, then one row per Jinglero
+[ ] 36. Update `frontend/src/components/player/JingleMetadata.tsx` - Handle single/no Jinglero: Show "Jinglero:" label with "Anonimo" fallback
+[ ] 37. Update `frontend/src/components/player/JingleMetadata.tsx` - Replace Tematica pill badges (lines 222-265) with table rows: one row per Tematica with rowSpan label
+[ ] 38. Update `frontend/src/components/player/JingleMetadata.tsx` - Remove primary/secondary Tematica distinction in display (show all equally)
+[ ] 39. Update `frontend/src/components/player/JingleMetadata.tsx` - Add Comentario row if comment exists, with label and data cell spanning 2 columns
+[ ] 40. Update `frontend/src/components/player/JingleMetadata.tsx` - Add text wrapping styles (`wordWrap: 'break-word'`, `wordBreak: 'break-word'`) to all data cells
+[ ] 41. Update `frontend/src/components/player/JingleMetadata.tsx` - Update container styles: remove border-radius from main container (handled by header/content sections)
+[ ] 42. Update `frontend/src/components/player/JingleMetadata.tsx` - Remove timestamp display from header (was in old header section)
+[ ] 43. Update `frontend/src/components/player/JingleMetadata.tsx` - Update empty state to show "Disfruta del programa" message with consistent header/content structure
+[ ] 44. Update `frontend/src/pages/FabricaPage.tsx` - Pass `onReplay={handleReplayCurrentJingle}` prop to JingleMetadata component (replace comment on line 515)
+[ ] 45. Update `frontend/src/components/player/JingleTimeline.tsx` - Remove header row (lines 290-308)
+[ ] 46. Update `frontend/src/components/player/JingleTimeline.tsx` - Remove single-expanded view logic (lines 171-281)
+[ ] 47. Update `frontend/src/components/player/JingleTimeline.tsx` - Remove expandedJingleId state (line 136)
+[ ] 48. Update `frontend/src/components/player/JingleTimeline.tsx` - Add `expandedJingleIds` and `onToggleExpand` props to interface
+[ ] 49. Update `frontend/src/components/player/JingleTimeline.tsx` - Create JingleTimelineRow sub-component for individual jingle rows
+[ ] 50. Update `frontend/src/components/player/JingleTimeline.tsx` - Implement collapsed row view showing comentario field as text
+[ ] 51. Update `frontend/src/components/player/JingleTimeline.tsx` - Implement expanded row view showing full table with all fields
+[ ] 52. Update `frontend/src/components/player/JingleTimeline.tsx` - Add expand/collapse icon (arrow down/up) to each row
+[ ] 53. Update `frontend/src/components/player/JingleTimeline.tsx` - Add skip-to icon (double triangle) to each row
+[ ] 54. Update `frontend/src/components/player/JingleTimeline.tsx` - Add active jingle highlighting styling
+[ ] 55. Update `frontend/src/components/player/JingleTimeline.tsx` - Match Metadata Panel styling (rounded corners, box styling)
+[ ] 56. Update `frontend/src/components/player/JingleTimeline.tsx` - Render all jingles always visible (remove conditional hiding)
+[ ] 57. Update `frontend/src/pages/FabricaPage.tsx` - Pass `expandedJingleIds` and `onToggleExpand` to JingleTimeline component
+[ ] 58. Update `frontend/src/components/player/YouTubePlayer.tsx` - Wrap player in aspect-ratio container to preserve 16:9 ratio
+[ ] 59. Update `frontend/src/components/player/YouTubePlayer.tsx` - Make player responsive in narrow settings while maintaining aspect ratio
+[ ] 60. Create `frontend/src/styles/pages/fabrica.css` - Add styles for scrollable timeline container
+[ ] 61. Create `frontend/src/styles/pages/fabrica.css` - Add styles for current jingle row layout
+[ ] 62. Create `frontend/src/styles/components/metadata.css` - Add metadata table styles
+[ ] 63. Create `frontend/src/styles/components/metadata.css` - Add metadata header and replay button styles
+[ ] 64. Create `frontend/src/styles/components/timeline.css` - Add timeline row styles (collapsed/expanded)
+[ ] 65. Create `frontend/src/styles/components/timeline.css` - Add expand/collapse and skip-to icon styles
+[ ] 66. Create `frontend/src/styles/components/timeline.css` - Add active jingle highlighting styles
+[ ] 67. Update `frontend/src/pages/FabricaPage.tsx` - Import CSS files
+[ ] 68. Test date parsing fix with various date formats
+[ ] 69. Test multiple Jingleros display in metadata panel
+[ ] 70. Test multiple Autores display in metadata panel
+[ ] 71. Test timeline scroll behavior when jingle becomes active
+[ ] 72. Test expand/collapse state persistence and restoration
+[ ] 73. Test skip-to-timestamp navigation and page scroll
+[ ] 74. Test deep linking with timestamp parameter
+[ ] 75. Test empty state when Fabrica has no Jingles
+[ ] 76. Test error handling with missing Fabrica (should load latest)
+[ ] 77. Test responsive design with narrow viewport

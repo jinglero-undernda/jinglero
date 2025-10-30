@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React from 'react';
 import { formatSecondsToTimestamp, normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 
 /**
@@ -19,6 +19,17 @@ export interface JingleCancion {
 }
 
 /**
+ * Tematica data
+ */
+export interface JingleTematica {
+  id: string;
+  name: string;
+  category?: 'ACTUALIDAD' | 'CULTURA' | 'GELATINA' | 'GENTE' | 'POLITICA';
+  description?: string;
+  isPrimary?: boolean;
+}
+
+/**
  * Jingle timeline item with all relationship data
  */
 export interface JingleTimelineItem {
@@ -28,6 +39,8 @@ export interface JingleTimelineItem {
   jingleros?: JingleArtista[] | JingleArtista | null;
   cancion?: JingleCancion | null;
   autores?: JingleArtista[] | JingleArtista | null;
+  tematicas?: JingleTematica[] | null;
+  comment?: string;
   /** Whether this is the currently active/playing jingle */
   isActive?: boolean;
 }
@@ -43,25 +56,6 @@ export interface JingleTimelineProps {
   className?: string;
 }
 
-/**
- * Formats jinglero name(s) for display
- */
-function formatJingleros(jingleros: JingleArtista[] | JingleArtista | null | undefined): string {
-  if (!jingleros) {
-    return 'Anonimo';
-  }
-
-  const jingleroArray = Array.isArray(jingleros) ? jingleros : [jingleros];
-  
-  if (jingleroArray.length === 0) {
-    return 'Anonimo';
-  }
-
-  return jingleroArray
-    .map((j) => j.stageName || j.name || 'Anonimo')
-    .filter(Boolean)
-    .join(', ');
-}
 
 /**
  * Formats autor name(s) for display
@@ -113,283 +107,434 @@ function getJingleDisplayTitle(item: JingleTimelineItem): string {
 }
 
 /**
- * Jingle Timeline Component
- * 
- * Displays a horizontal list of jingles with their metadata.
- * Can be expanded to show full details for the active jingle.
- * 
- * @example
- * ```tsx
- * <JingleTimeline
- *   jingles={jingles}
- *   activeJingleId={currentJingleId}
- *   onSkipTo={(jingle) => seekTo(jingle.timestamp)}
- * />
- * ```
+ * Normalizes tematicas array from jingle data
  */
-export default function JingleTimeline({
-  jingles,
-  activeJingleId,
-  onSkipTo,
-  className,
-}: JingleTimelineProps) {
-  const [expandedJingleId, setExpandedJingleId] = useState<string | null>(null);
+function normalizeTematicas(
+  tematicas: JingleTematica[] | JingleTematica | null | undefined
+): JingleTematica[] {
+  if (!tematicas) return [];
+  if (Array.isArray(tematicas)) {
+    return tematicas
+      .filter((t) => t && t.name)
+      .map((t) => ({ id: t.id || '', name: t.name, category: t.category, isPrimary: t.isPrimary }));
+  }
+  // Single tematica object
+  if (tematicas.name) {
+    return [{ id: tematicas.id || '', name: tematicas.name, category: tematicas.category, isPrimary: tematicas.isPrimary }];
+  }
+  return [];
+}
 
-  // Auto-expand when a jingle becomes active
-  useEffect(() => {
-    if (activeJingleId) {
-      setExpandedJingleId(activeJingleId);
-    }
-  }, [activeJingleId]);
+/**
+ * Props for JingleTimelineRow component
+ */
+export interface JingleTimelineRowProps {
+  /** Jingle data to display (uses JingleTimelineItem interface) */
+  jingle: JingleTimelineItem;
+  /** Whether this jingle is currently active/playing */
+  isActive?: boolean;
+  /** Whether this jingle row is expanded */
+  isExpanded: boolean;
+  /** Callback when user toggles expand/collapse */
+  onToggleExpand: () => void;
+  /** Callback when user clicks skip-to button */
+  onSkipTo: () => void;
+}
 
-  const expandedJingle = expandedJingleId
-    ? jingles.find((j) => j.id === expandedJingleId)
-    : null;
+/**
+ * JingleTimelineRow Component
+ * 
+ * Displays a single jingle as an expandable/collapsible row.
+ * Collapsed: Shows timestamp and comentario
+ * Expanded: Shows full metadata table (matching JingleMetadata styling)
+ */
+export function JingleTimelineRow({ 
+  jingle, 
+  isActive = false,
+  isExpanded, 
+  onToggleExpand, 
+  onSkipTo 
+}: JingleTimelineRowProps) {
+  const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
+  const timestampFormatted = timestampSeconds !== null
+    ? formatSecondsToTimestamp(timestampSeconds)
+    : String(jingle.timestamp);
 
-  const isExpanded = expandedJingle !== null;
-  const isActiveExpanded = expandedJingle?.isActive || expandedJingle?.id === activeJingleId;
-  const buttonsDisabled = isActiveExpanded;
+  const displayTitle = getJingleDisplayTitle(jingle);
+  const cancionText = formatCancion(jingle.cancion);
 
-  const handleSkipTo = (jingle: JingleTimelineItem) => {
-    if (!buttonsDisabled && onSkipTo) {
-      onSkipTo(jingle);
-    }
+  // Normalize arrays
+  const jingleros = Array.isArray(jingle.jingleros)
+    ? jingle.jingleros
+    : jingle.jingleros
+    ? [jingle.jingleros]
+    : [];
+
+  const autores = Array.isArray(jingle.autores)
+    ? jingle.autores
+    : jingle.autores
+    ? [jingle.autores]
+    : [];
+
+  const tematicas = normalizeTematicas(jingle.tematicas);
+
+  // Common cell styles (matching JingleMetadata)
+  const labelCellStyle: React.CSSProperties = {
+    width: '120px',
+    padding: '8px 12px 8px 0',
+    color: '#666',
+    fontWeight: '600',
+    verticalAlign: 'top',
   };
 
-  const handleExpand = (jingleId: string) => {
-    if (!buttonsDisabled) {
-      setExpandedJingleId(jingleId === expandedJingleId ? null : jingleId);
-    }
+  const dataCellStyle: React.CSSProperties = {
+    padding: '8px 0',
+    color: '#333',
+    wordWrap: 'break-word',
+    wordBreak: 'break-word',
   };
 
-  const handleCollapse = () => {
-    if (!buttonsDisabled) {
-      setExpandedJingleId(null);
-    }
+  const navCellStyle: React.CSSProperties = {
+    width: '40px',
+    padding: '8px 0',
   };
 
-  // Render expanded view (heading format)
-  if (isExpanded && expandedJingle) {
-    const timestampSeconds = normalizeTimestampToSeconds(expandedJingle.timestamp);
-    const timestampFormatted = timestampSeconds !== null
-      ? formatSecondsToTimestamp(timestampSeconds)
-      : String(expandedJingle.timestamp);
-    const displayTitle = getJingleDisplayTitle(expandedJingle);
+  const iconButtonStyle: React.CSSProperties = {
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '20px',
+    padding: '4px 8px',
+    color: '#1976d2',
+    borderRadius: '4px',
+    transition: 'background-color 0.2s',
+  };
 
-    const jingleros = Array.isArray(expandedJingle.jingleros)
-      ? expandedJingle.jingleros
-      : expandedJingle.jingleros
-      ? [expandedJingle.jingleros]
-      : [];
-    
-    const autores = Array.isArray(expandedJingle.autores)
-      ? expandedJingle.autores
-      : expandedJingle.autores
-      ? [expandedJingle.autores]
-      : [];
-
+  // Collapsed view
+  if (!isExpanded) {
     return (
-      <div className={className} style={{ 
-        border: '1px solid #ddd',
-        borderRadius: '4px',
-        padding: '12px',
-        backgroundColor: isActiveExpanded ? '#f0f7ff' : '#fff',
-        marginBottom: '8px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-            <div style={{ 
+      <div
+        style={{
+          backgroundColor: isActive ? '#f0f7ff' : '#fff',
+          border: '1px solid #ddd',
+          borderRadius: '8px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          marginBottom: '8px',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {/* Left: Timestamp + Comentario */}
+        <div style={{ flex: 1 }}>
+          <div
+            style={{
               fontFamily: 'monospace',
               fontWeight: 'bold',
               fontSize: '14px',
               color: '#666',
-              minWidth: '80px',
-            }}>
-              {timestampFormatted}
-            </div>
-            <div style={{ fontWeight: 'bold', fontSize: '16px', flex: 1 }}>
-              {displayTitle}
-            </div>
+              marginBottom: '4px',
+            }}
+          >
+            {timestampFormatted}
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={() => handleSkipTo(expandedJingle)}
-              disabled={buttonsDisabled}
-              style={{
-                padding: '6px 12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                backgroundColor: buttonsDisabled ? '#f0f0f0' : '#fff',
-                cursor: buttonsDisabled ? 'not-allowed' : 'pointer',
-                opacity: buttonsDisabled ? 0.6 : 1,
-              }}
-            >
-              Saltar a
-            </button>
-            <button
-              onClick={handleCollapse}
-              disabled={buttonsDisabled}
-              style={{
-                padding: '6px 12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                backgroundColor: buttonsDisabled ? '#f0f0f0' : '#fff',
-                cursor: buttonsDisabled ? 'not-allowed' : 'pointer',
-                opacity: buttonsDisabled ? 0.6 : 1,
-              }}
-            >
-              Colapsar
-            </button>
+          <div style={{ fontSize: '14px', color: '#555' }}>
+            {jingle.comment || 'Sin comentario'}
           </div>
         </div>
 
-        {/* Expanded metadata */}
-        <div style={{ borderTop: '1px solid #eee', paddingTop: '12px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '8px 16px', fontSize: '14px' }}>
-            <div style={{ color: '#666', fontWeight: '500' }}>Jinglero:</div>
-            <div>
-              {jingleros.length > 0 ? (
-                jingleros.map((jinglero, idx) => (
-                  <div key={jinglero.id || idx}>
-                    {jinglero.stageName || jinglero.name || 'Anonimo'}
-                  </div>
-                ))
-              ) : (
-                <div>Anonimo</div>
-              )}
-            </div>
-
-            <div style={{ color: '#666', fontWeight: '500' }}>Cancion:</div>
-            <div>{formatCancion(expandedJingle.cancion)}</div>
-
-            <div style={{ color: '#666', fontWeight: '500' }}>Autor:</div>
-            <div>
-              {autores.length > 0 ? (
-                autores.map((autor, idx) => (
-                  <div key={autor.id || idx}>
-                    {autor.stageName || autor.name || 'A CONFIRMAR'}
-                  </div>
-                ))
-              ) : (
-                <div>A CONFIRMAR</div>
-              )}
-            </div>
-          </div>
+        {/* Right: Icons */}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <button
+            onClick={onSkipTo}
+            style={iconButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f0f0f0';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title="Saltar a este jingle"
+          >
+            ⏩
+          </button>
+          <button
+            onClick={onToggleExpand}
+            style={iconButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f0f0f0';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title="Expandir"
+          >
+            ▼
+          </button>
         </div>
       </div>
     );
   }
 
-  // Render collapsed view (horizontal container)
+  // Expanded view
   return (
-    <div className={className} style={{ 
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '4px',
-    }}>
-      {/* Header row */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '100px 2fr 1.5fr 1.5fr 1.5fr auto',
-        gap: '8px',
-        padding: '8px 12px',
-        backgroundColor: '#f8f8f8',
-        borderBottom: '2px solid #ddd',
-        fontSize: '12px',
-        fontWeight: 'bold',
-        color: '#666',
-      }}>
-        <div>Tiempo</div>
-        <div>Jingle</div>
-        <div>Jinglero</div>
-        <div>Cancion</div>
-        <div>Autor</div>
-        <div style={{ width: '120px' }}></div>
-      </div>
-
-      {/* Jingle rows */}
-      {jingles.map((jingle) => {
-        const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
-        const timestampFormatted = timestampSeconds !== null
-          ? formatSecondsToTimestamp(timestampSeconds)
-          : String(jingle.timestamp);
-        
-        const isActive = jingle.isActive || jingle.id === activeJingleId;
-        const displayTitle = getJingleDisplayTitle(jingle);
-        const jingleroText = formatJingleros(jingle.jingleros);
-        const cancionText = formatCancion(jingle.cancion);
-        const autorText = formatAutores(jingle.autores);
-
-        return (
+    <div
+      style={{
+        backgroundColor: isActive ? '#f0f7ff' : '#fff',
+        border: '1px solid #ddd',
+        borderRadius: '8px',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        marginBottom: '8px',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Header with timestamp, title, and icons */}
+      <div
+        style={{
+          borderBottom: '2px solid #eee',
+          padding: '12px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        <div style={{ flex: 1 }}>
           <div
-            key={jingle.id}
             style={{
-              display: 'grid',
-              gridTemplateColumns: '100px 2fr 1.5fr 1.5fr 1.5fr auto',
-              gap: '8px',
-              padding: '10px 12px',
-              borderBottom: '1px solid #eee',
-              backgroundColor: isActive ? '#f0f7ff' : '#fff',
-              alignItems: 'center',
+              fontFamily: 'monospace',
+              fontWeight: 'bold',
               fontSize: '14px',
+              color: '#666',
             }}
           >
-            <div style={{ fontFamily: 'monospace', fontWeight: '500', color: '#666' }}>
-              {timestampFormatted}
-            </div>
-            <div style={{ fontWeight: isActive ? '600' : '400' }}>
-              {displayTitle}
-            </div>
-            <div style={{ color: '#555' }}>
-              {jingleroText.split(', ').map((name, idx, arr) => (
-                <div key={idx}>
-                  {name}{idx < arr.length - 1 ? ',' : ''}
-                </div>
-              ))}
-            </div>
-            <div style={{ color: '#555' }}>{cancionText}</div>
-            <div style={{ color: '#555' }}>
-              {autorText.split(', ').map((name, idx, arr) => (
-                <div key={idx}>
-                  {name}{idx < arr.length - 1 ? ',' : ''}
-                </div>
-              ))}
-            </div>
-            <div style={{ display: 'flex', gap: '4px', width: '120px' }}>
-              <button
-                onClick={() => handleSkipTo(jingle)}
-                disabled={isActive}
-                style={{
-                  padding: '4px 8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '3px',
-                  backgroundColor: isActive ? '#f0f0f0' : '#fff',
-                  cursor: isActive ? 'not-allowed' : 'pointer',
-                  fontSize: '12px',
-                  opacity: isActive ? 0.6 : 1,
-                }}
-              >
-                Saltar a
-              </button>
-              <button
-                onClick={() => handleExpand(jingle.id)}
-                disabled={isActive}
-                style={{
-                  padding: '4px 8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '3px',
-                  backgroundColor: isActive ? '#f0f0f0' : '#fff',
-                  cursor: isActive ? 'not-allowed' : 'pointer',
-                  fontSize: '12px',
-                  opacity: isActive ? 0.6 : 1,
-                }}
-              >
-                Expandir
-              </button>
-            </div>
+            {timestampFormatted}
           </div>
-        );
-      })}
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginTop: '4px' }}>
+            {displayTitle}
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={onSkipTo}
+            style={iconButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f0f0f0';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title="Saltar a este jingle"
+          >
+            ⏩
+          </button>
+          <button
+            onClick={onToggleExpand}
+            style={iconButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f0f0f0';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
+            title="Colapsar"
+          >
+            ▲
+          </button>
+        </div>
+      </div>
+
+      {/* Table with metadata */}
+      <div style={{ padding: '20px' }}>
+        <table
+          style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: '15px',
+          }}
+        >
+          <tbody>
+            {/* Titulo row */}
+            <tr>
+              <td className="label-col" style={labelCellStyle}>
+                Titulo del Jingle:
+              </td>
+              <td className="data-col" colSpan={2} style={dataCellStyle}>
+                {displayTitle}
+              </td>
+            </tr>
+
+            {/* Cancion row */}
+            <tr>
+              <td className="label-col" style={labelCellStyle}>
+                Cancion:
+              </td>
+              <td className="data-col" style={dataCellStyle}>
+                {cancionText !== 'A CONFIRMAR' ? (
+                  cancionText
+                ) : (
+                  <span style={{ fontStyle: 'italic', color: '#999' }}>A CONFIRMAR</span>
+                )}
+              </td>
+              <td className="nav-col" style={navCellStyle}></td>
+            </tr>
+
+            {/* Autor rows - handle multiple */}
+            {autores.length > 0 ? (
+              <>
+                <tr>
+                  <td
+                    className="label-col"
+                    rowSpan={autores.length > 1 ? autores.length : undefined}
+                    style={labelCellStyle}
+                  >
+                    Autor:
+                  </td>
+                  <td className="data-col" style={dataCellStyle}>
+                    {autores[0].stageName || autores[0].name || 'A CONFIRMAR'}
+                  </td>
+                  <td className="nav-col" style={navCellStyle}></td>
+                </tr>
+                {autores.slice(1).map((autor, idx) => (
+                  <tr key={autor.id || `autor-${idx + 1}`}>
+                    <td className="data-col" style={dataCellStyle}>
+                      {autor.stageName || autor.name || 'A CONFIRMAR'}
+                    </td>
+                    <td className="nav-col" style={navCellStyle}></td>
+                  </tr>
+                ))}
+              </>
+            ) : (
+              <tr>
+                <td className="label-col" style={labelCellStyle}>
+                  Autor:
+                </td>
+                <td className="data-col" style={dataCellStyle}>
+                  <span style={{ fontStyle: 'italic', color: '#999' }}>A CONFIRMAR</span>
+                </td>
+                <td className="nav-col" style={navCellStyle}></td>
+              </tr>
+            )}
+
+            {/* Jinglero rows - handle multiple */}
+            {jingleros.length > 0 ? (
+              <>
+                <tr>
+                  <td
+                    className="label-col"
+                    rowSpan={jingleros.length > 1 ? jingleros.length : undefined}
+                    style={labelCellStyle}
+                  >
+                    Jinglero:
+                  </td>
+                  <td className="data-col" style={dataCellStyle}>
+                    {jingleros[0].stageName || jingleros[0].name || 'Anonimo'}
+                  </td>
+                  <td className="nav-col" style={navCellStyle}></td>
+                </tr>
+                {jingleros.slice(1).map((jinglero, idx) => (
+                  <tr key={jinglero.id || `jinglero-${idx + 1}`}>
+                    <td className="data-col" style={dataCellStyle}>
+                      {jinglero.stageName || jinglero.name || 'Anonimo'}
+                    </td>
+                    <td className="nav-col" style={navCellStyle}></td>
+                  </tr>
+                ))}
+              </>
+            ) : (
+              <tr>
+                <td className="label-col" style={labelCellStyle}>
+                  Jinglero:
+                </td>
+                <td className="data-col" style={dataCellStyle}>
+                  <span style={{ fontStyle: 'italic', color: '#999' }}>Anonimo</span>
+                </td>
+                <td className="nav-col" style={navCellStyle}></td>
+              </tr>
+            )}
+
+            {/* Tematica rows - one per tematica */}
+            {tematicas.length > 0 && (
+              <>
+                <tr>
+                  <td
+                    className="label-col"
+                    rowSpan={tematicas.length}
+                    style={labelCellStyle}
+                  >
+                    Tematica:
+                  </td>
+                  <td className="data-col" style={dataCellStyle}>
+                    {tematicas[0].name}
+                  </td>
+                  <td className="nav-col" style={navCellStyle}></td>
+                </tr>
+                {tematicas.slice(1).map((tematica) => (
+                  <tr key={tematica.id}>
+                    <td className="data-col" style={dataCellStyle}>
+                      {tematica.name}
+                    </td>
+                    <td className="nav-col" style={navCellStyle}></td>
+                  </tr>
+                ))}
+              </>
+            )}
+
+            {/* Comentario row */}
+            {jingle.comment && (
+              <tr>
+                <td className="label-col" style={labelCellStyle}>
+                  Comentario:
+                </td>
+                <td className="data-col" colSpan={2} style={{
+                  ...dataCellStyle,
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  fontStyle: 'italic',
+                  color: '#555',
+                }}>
+                  {jingle.comment}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * @deprecated Use JingleTimelineRow component directly instead
+ * This wrapper component is no longer needed - FabricaPage handles the mapping
+ */
+export interface JingleTimelineProps {
+  /** List of jingles to display */
+  jingles: JingleTimelineItem[];
+  /** Currently active jingle ID (playing in video) */
+  activeJingleId?: string | null;
+  /** Callback when user clicks "Skip to" button */
+  onSkipTo?: (jingle: JingleTimelineItem) => void;
+  /** Additional CSS class name */
+  className?: string;
+}
+
+/**
+ * @deprecated Use JingleTimelineRow component directly instead
+ */
+export default function JingleTimeline({
+  jingles,
+  className,
+}: JingleTimelineProps) {
+  return (
+    <div className={className}>
+      {jingles.map((jingle) => (
+        <div key={jingle.id} style={{ marginBottom: '8px' }}>
+          <p style={{ fontSize: '14px', color: '#666' }}>
+            Deprecated: Use JingleTimelineRow component directly
+          </p>
+        </div>
+      ))}
     </div>
   );
 }

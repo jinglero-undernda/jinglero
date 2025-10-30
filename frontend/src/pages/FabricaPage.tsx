@@ -3,11 +3,11 @@ import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom'
 import type { Fabrica } from '../types';
 import { publicApi } from '../lib/api/client';
 import YouTubePlayer, { type YouTubePlayerRef } from '../components/player/YouTubePlayer';
-import JingleTimeline, { type JingleTimelineItem } from '../components/player/JingleTimeline';
+import { JingleTimelineRow, type JingleTimelineItem } from '../components/player/JingleTimeline';
 import JingleMetadata, { type JingleMetadataData } from '../components/player/JingleMetadata';
 import { useYouTubePlayer } from '../lib/hooks/useYouTubePlayer';
 import { useJingleSync } from '../lib/hooks/useJingleSync';
-import { normalizeTimestampToSeconds, formatSecondsToTimestamp } from '../lib/utils/timestamp';
+import { normalizeTimestampToSeconds } from '../lib/utils/timestamp';
 import { extractVideoId } from '../lib/utils/youtube';
 
 export default function FabricaPage() {
@@ -25,7 +25,6 @@ export default function FabricaPage() {
   const [error, setError] = useState<string | null>(null);
   const [initialTimestamp, setInitialTimestamp] = useState<number | null>(null);
   const [expandedJingleIds, setExpandedJingleIds] = useState<Set<string>>(new Set());
-  const [previousExpandedStates, setPreviousExpandedStates] = useState<Map<string, boolean>>(new Map());
 
   // Memoize the callback for active jingle changes
   const handleActiveJingleChange = useCallback(async (jingle: JingleTimelineItem | null) => {
@@ -145,11 +144,13 @@ export default function FabricaPage() {
           id: jingle.id,
           timestamp: jingle.timestamp || 0,
           title: jingle.title,
+          comment: jingle.comment || null,
           // Note: Basic endpoint doesn't include relationships, so these will be null
           // Full data will be fetched when jingle becomes active
           jingleros: null,
           cancion: null,
           autores: null,
+          tematicas: null,
           isActive: false,
         }));
 
@@ -167,11 +168,10 @@ export default function FabricaPage() {
 
   // Handle seek to timestamp when initialTimestamp is set
   useEffect(() => {
+    // Only perform seek when both initialTimestamp is not null AND player is ready
     if (initialTimestamp !== null && playerState.isReady && playerRef.current) {
-      seekTo(initialTimestamp);
-      setInitialTimestamp(null); // Clear so we don't seek again
-      
-      // Scroll to current jingle after seeking (with delay for DOM update)
+      skipToTimestamp(initialTimestamp, false); // No URL change needed, already in URL
+      setInitialTimestamp(null); // Only clear after actual seek
       setTimeout(() => {
         if (currentJingleRowRef.current) {
           currentJingleRowRef.current.scrollIntoView({
@@ -181,6 +181,7 @@ export default function FabricaPage() {
         }
       }, 500);
     }
+    // If player not ready, do not clear initialTimestamp -- effect will retry on next render!
   }, [initialTimestamp, playerState.isReady, seekTo]);
 
   // Auto-scroll to keep current jingle (player) in view when active jingle changes
@@ -216,17 +217,17 @@ export default function FabricaPage() {
   // Handle skip to jingle timestamp
   const handleSkipToJingle = (jingle: JingleTimelineItem) => {
     const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
-    if (timestampSeconds !== null && playerRef.current?.isReady()) {
-      seekTo(timestampSeconds);
-      // Update URL with timestamp for deep linking
-      const newSearchParams = new URLSearchParams(searchParams);
-      newSearchParams.set('t', timestampSeconds.toString());
-      navigate(`/f/${fabricaId}?${newSearchParams.toString()}`, { replace: true });
+    if (timestampSeconds !== null) {
+      skipToTimestamp(timestampSeconds, true);
     }
   };
 
   // Handle toggle expand/collapse for jingle rows
-  const handleToggleExpand = (jingleId: string) => {
+  const handleToggleExpand = useCallback((jingleId: string) => {
+    // Check if currently expanded
+    const isCurrentlyExpanded = expandedJingleIds.has(jingleId);
+    
+    // Toggle the expand state
     setExpandedJingleIds((prev) => {
       const next = new Set(prev);
       if (next.has(jingleId)) {
@@ -236,15 +237,57 @@ export default function FabricaPage() {
       }
       return next;
     });
-  };
+
+    // If we're expanding (not collapsing), fetch full jingle data if needed
+    if (!isCurrentlyExpanded) {
+      const jingle = jingles.find((j) => j.id === jingleId);
+      
+      // Check if we already have relationship data
+      const hasRelationshipData = jingle?.cancion !== null || 
+                                  jingle?.autores !== null || 
+                                  jingle?.jingleros !== null;
+      
+      // If we don't have data, trigger fetch
+      if (jingle && !hasRelationshipData) {
+        (async () => {
+          try {
+            console.log(`Fetching full jingle data for: ${jingleId}`);
+            const fullJingle = await publicApi.getJingle(jingleId);
+            
+            // Update the jingles array with the full data
+            setJingles((prevJingles) => 
+              prevJingles.map((j) => 
+                j.id === jingleId 
+                  ? {
+                      ...j,
+                      jingleros: Array.isArray((fullJingle as any).jingleros) && (fullJingle as any).jingleros.length > 0
+                        ? (fullJingle as any).jingleros
+                        : null,
+                      cancion: (fullJingle as any).cancion || null,
+                      autores: Array.isArray((fullJingle as any).autores) && (fullJingle as any).autores.length > 0
+                        ? (fullJingle as any).autores
+                        : null,
+                      tematicas: (fullJingle as any).tematicas || null,
+                    }
+                  : j
+              )
+            );
+            console.log(`Successfully loaded data for: ${jingleId}`);
+          } catch (err) {
+            console.warn('Failed to fetch full jingle data for expansion:', err);
+          }
+        })();
+      }
+    }
+  }, [expandedJingleIds, jingles]);
 
   // Handle skip to first jingle
   const handleSkipToFirstJingle = () => {
-    if (jingles.length > 0 && playerRef.current?.isReady()) {
+    if (jingles.length > 0) {
       const firstJingle = jingles[0];
       const timestampSeconds = normalizeTimestampToSeconds(firstJingle.timestamp);
       if (timestampSeconds !== null) {
-        seekTo(timestampSeconds);
+        skipToTimestamp(timestampSeconds, true);
       }
     }
   };
@@ -293,102 +336,6 @@ export default function FabricaPage() {
     );
   }
 
-  // Helper component: Collapsed Jingle Row
-  const CollapsedJingleRow = ({ 
-    jingle, 
-    isExpanded, 
-    onToggleExpand, 
-    onSkipTo 
-  }: {
-    jingle: JingleTimelineItem;
-    isExpanded: boolean;
-    onToggleExpand: () => void;
-    onSkipTo: () => void;
-  }) => {
-    const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
-    const timestampFormatted = timestampSeconds !== null
-      ? formatSecondsToTimestamp(timestampSeconds)
-      : String(jingle.timestamp);
-
-    const displayTitle = jingle.title || 'A CONFIRMAR';
-
-    return (
-      <div
-        style={{
-          backgroundColor: '#fff',
-          borderRadius: '8px',
-          border: '1px solid #ddd',
-          padding: '16px',
-          marginBottom: '8px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-        }}
-      >
-        {/* Collapsed header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{
-            fontFamily: 'monospace',
-            fontWeight: 'bold',
-            fontSize: '14px',
-            color: '#666',
-            minWidth: '80px',
-          }}>
-            {timestampFormatted}
-          </div>
-          
-          <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
-              {displayTitle}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button
-              onClick={onSkipTo}
-              style={{
-                padding: '6px 12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
-              ⏩ Saltar
-            </button>
-            <button
-              onClick={onToggleExpand}
-              style={{
-                padding: '6px 12px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
-              {isExpanded ? '▲' : '▼'}
-            </button>
-          </div>
-        </div>
-
-        {/* Expanded content - placeholder for Module 5 */}
-        {isExpanded && (
-          <div style={{ 
-            marginTop: '16px', 
-            paddingTop: '16px', 
-            borderTop: '1px solid #eee',
-            fontSize: '14px',
-            color: '#666',
-          }}>
-            <p style={{ fontStyle: 'italic' }}>
-              Vista expandida - implementación completa en Módulo 5
-            </p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
   // Helper component: Empty Metadata with Skip Button
   const EmptyMetadataWithButton = ({ onSkipToFirst }: { onSkipToFirst: () => void }) => {
     return (
@@ -426,6 +373,21 @@ export default function FabricaPage() {
         </button>
       </div>
     );
+  };
+
+  const skipToTimestamp = (seconds: number, replaceUrl: boolean = false) => {
+    if (playerRef.current?.isReady() && typeof seconds === 'number') {
+      seekTo(seconds);
+      if (replaceUrl) {
+        // Update the URL without remounting the page
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set('t', seconds.toString());
+        // Use history API directly to avoid navigate remounting
+        window.history.replaceState(
+          {}, '', `/f/${fabricaId}?${newSearchParams.toString()}`
+        );
+      }
+    }
   };
 
   return (
@@ -469,9 +431,10 @@ export default function FabricaPage() {
         {/* CONTAINER 1: Past Jingles */}
         <div id="past-jingles-container">
           {pastJingles.map((jingle) => (
-            <CollapsedJingleRow
+            <JingleTimelineRow
               key={jingle.id}
               jingle={jingle}
+              isActive={jingle.isActive || jingle.id === activeJingleId}
               isExpanded={expandedJingleIds.has(jingle.id)}
               onToggleExpand={() => handleToggleExpand(jingle.id)}
               onSkipTo={() => handleSkipToJingle(jingle)}
@@ -499,8 +462,6 @@ export default function FabricaPage() {
             <YouTubePlayer
               ref={playerRef}
               videoIdOrUrl={videoId}
-              width="100%"
-              height={480}
               autoplay={false}
               startSeconds={initialTimestamp || undefined}
               className="fabrica-player"
@@ -512,7 +473,7 @@ export default function FabricaPage() {
             {currentJingle ? (
               <JingleMetadata 
                 jingle={activeJingleMetadata}
-                // onReplay prop will be added in Module 4
+                onReplay={handleReplayCurrentJingle}
               />
             ) : jingles.length > 0 ? (
               <EmptyMetadataWithButton onSkipToFirst={handleSkipToFirstJingle} />
@@ -525,9 +486,10 @@ export default function FabricaPage() {
         {/* CONTAINER 3: Future Jingles */}
         <div id="future-jingles-container">
           {futureJingles.map((jingle) => (
-            <CollapsedJingleRow
+            <JingleTimelineRow
               key={jingle.id}
               jingle={jingle}
+              isActive={jingle.isActive || jingle.id === activeJingleId}
               isExpanded={expandedJingleIds.has(jingle.id)}
               onToggleExpand={() => handleToggleExpand(jingle.id)}
               onSkipTo={() => handleSkipToJingle(jingle)}

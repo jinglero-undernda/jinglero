@@ -18,9 +18,15 @@ export interface YouTubePlayerRef {
 export interface YouTubePlayerProps {
   /** YouTube video ID or URL */
   videoIdOrUrl: string | null | undefined;
-  /** Width of the player (default: 100%) */
+  /**
+   * Width of the player (ignored, always 100%)
+   * @deprecated Player maintains 16:9 aspect ratio automatically.
+   */
   width?: number | string;
-  /** Height of the player (default: 315) */
+  /**
+   * Height of the player (ignored, auto-calculated)
+   * @deprecated Player maintains 16:9 aspect ratio automatically.
+   */
   height?: number | string;
   /** Autoplay the video (default: false) */
   autoplay?: boolean;
@@ -44,34 +50,28 @@ export interface YouTubePlayerProps {
 
 /**
  * YouTube IFrame Player Component
- * 
+ *
  * Uses the YouTube IFrame API to embed and control YouTube videos.
  * Requires the YouTube IFrame API script to be loaded (typically via script tag in index.html).
- * 
+ *
+ * **Aspect Ratio:** Always maintains a 16:9 aspect ratio.
+ * **Responsive:** Scales proportionally at all viewport sizes.
+ * **Preview Thumbnail:** Preview image also respects aspect ratio.
+ *
  * @example
- * ```tsx
  * const playerRef = useRef<YouTubePlayerRef>(null);
- * 
+ *
  * <YouTubePlayer
  *   ref={playerRef}
  *   videoIdOrUrl="dQw4w9WgXcQ"
- *   width="100%"
- *   height={480}
  *   onReady={() => console.log('Player ready')}
- *   onStateChange={(state) => console.log('State:', state)}
  * />
- * 
- * // Later, control the player:
- * playerRef.current?.play();
- * playerRef.current?.seekTo(120);
- * ```
  */
 const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
   (
     {
       videoIdOrUrl,
-      width = '100%',
-      height = 315,
+      // width, height, // no longer used for rendering
       autoplay = false,
       startSeconds = 0,
       controls = true,
@@ -149,8 +149,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
 
       try {
         const player = new window.YT.Player(containerRef.current, {
-          width: typeof width === 'number' ? width.toString() : width,
-          height: typeof height === 'number' ? height.toString() : height,
+          width: '100%',
+          height: '100%',
           videoId,
           playerVars: {
             autoplay: autoplay ? 1 : 0,
@@ -273,60 +273,130 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
 
     const videoId = extractVideoId(videoIdOrUrl);
 
+    // Error state
     if (error) {
       return (
-        <div className={className} style={{ padding: '20px', textAlign: 'center', color: '#d32f2f' }}>
-          <p>Error: {error}</p>
-          {videoId && (
-            <a
-              href={buildEmbedUrl(videoId) || `https://www.youtube.com/watch?v=${videoId}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#1976d2', textDecoration: 'underline' }}
-            >
-              Abrir en YouTube
-            </a>
-          )}
-        </div>
-      );
-    }
-
-    if (!videoId) {
-      return (
-        <div className={className} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
-          <p>No se proporcionó un ID de video válido</p>
-        </div>
-      );
-    }
-
-    return (
-      <div className={className} style={{ position: 'relative', width: '100%' }}>
-        {!isApiReady && (
+        <div className={className} style={{ position: "relative", width: "100%" }}>
           <div
             style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backgroundColor: '#f5f5f5',
-              zIndex: 1,
+              position: "relative",
+              width: "100%",
+              aspectRatio: "16 / 9",
+              paddingBottom: "56.25%",
+              height: 0,
             }}
           >
-            <p>Cargando reproductor...</p>
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#f5f5f5",
+                padding: "20px",
+                boxSizing: "border-box",
+              }}
+            >
+              <p style={{ color: "#d32f2f", margin: "0 0 12px 0" }}>Error: {error}</p>
+              {videoId && (
+                <a
+                  href={buildEmbedUrl(videoId) || `https://www.youtube.com/watch?v=${videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: "#1976d2", textDecoration: "underline" }}
+                >
+                  Abrir en YouTube
+                </a>
+              )}
+            </div>
           </div>
-        )}
+        </div>
+      );
+    }
+    // No video id (empty state)
+    if (!videoId) {
+      return (
+        <div className={className} style={{ position: "relative", width: "100%" }}>
+          <div
+            style={{
+              position: "relative",
+              width: "100%",
+              aspectRatio: "16 / 9",
+              paddingBottom: "56.25%",
+              height: 0,
+            }}
+          >
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#f5f5f5",
+                padding: "20px",
+                boxSizing: "border-box",
+              }}
+            >
+              <p style={{ color: "#666", margin: 0 }}>
+                No se proporcionó un ID de video válido
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // Main/playing/loading state
+    return (
+      <div className={className} style={{ position: "relative", width: "100%" }}>
         <div
-          ref={containerRef}
-          id={playerIdRef.current}
           style={{
-            width: typeof width === 'number' ? `${width}px` : width,
-            height: typeof height === 'number' ? `${height}px` : height,
+            position: "relative",
+            width: "100%",
+            aspectRatio: "16 / 9",
+            paddingBottom: "56.25%",
+            height: 0,
           }}
-        />
+        >
+          {/* Loading overlay (covers video area, matches aspect ratio) */}
+          {!isApiReady && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: "#f5f5f5",
+                zIndex: 1,
+              }}
+            >
+              <p>Cargando reproductor...</p>
+            </div>
+          )}
+          <div
+            ref={containerRef}
+            id={playerIdRef.current}
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: "100%",
+              height: "100%",
+            }}
+          />
+        </div>
       </div>
     );
   }
