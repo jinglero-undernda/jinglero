@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import type { Fabrica } from '../types';
 import { publicApi } from '../lib/api/client';
@@ -7,7 +7,7 @@ import JingleTimeline, { type JingleTimelineItem } from '../components/player/Ji
 import JingleMetadata, { type JingleMetadataData } from '../components/player/JingleMetadata';
 import { useYouTubePlayer } from '../lib/hooks/useYouTubePlayer';
 import { useJingleSync } from '../lib/hooks/useJingleSync';
-import { normalizeTimestampToSeconds } from '../lib/utils/timestamp';
+import { normalizeTimestampToSeconds, formatSecondsToTimestamp } from '../lib/utils/timestamp';
 import { extractVideoId } from '../lib/utils/youtube';
 
 export default function FabricaPage() {
@@ -15,6 +15,7 @@ export default function FabricaPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const playerRef = useRef<YouTubePlayerRef>(null);
+  const currentJingleRowRef = useRef<HTMLDivElement>(null);
 
   // State
   const [fabrica, setFabrica] = useState<Fabrica | null>(null);
@@ -23,6 +24,8 @@ export default function FabricaPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [initialTimestamp, setInitialTimestamp] = useState<number | null>(null);
+  const [expandedJingleIds, setExpandedJingleIds] = useState<Set<string>>(new Set());
+  const [previousExpandedStates, setPreviousExpandedStates] = useState<Map<string, boolean>>(new Map());
 
   // Memoize the callback for active jingle changes
   const handleActiveJingleChange = useCallback(async (jingle: JingleTimelineItem | null) => {
@@ -80,6 +83,33 @@ export default function FabricaPage() {
       onActiveJingleChange: handleActiveJingleChange,
     }
   );
+
+  // Partition jingles into past, current, and future based on active jingle
+  const { pastJingles, currentJingle, futureJingles } = useMemo(() => {
+    if (!activeJingleId) {
+      return {
+        pastJingles: [],
+        currentJingle: null,
+        futureJingles: jingles,
+      };
+    }
+
+    const currentIndex = jingles.findIndex((j) => j.id === activeJingleId);
+    
+    if (currentIndex === -1) {
+      return {
+        pastJingles: [],
+        currentJingle: null,
+        futureJingles: jingles,
+      };
+    }
+
+    return {
+      pastJingles: jingles.slice(0, currentIndex),
+      currentJingle: jingles[currentIndex],
+      futureJingles: jingles.slice(currentIndex + 1),
+    };
+  }, [jingles, activeJingleId]);
 
   // Fetch Fabrica and Jingles data
   useEffect(() => {
@@ -140,8 +170,31 @@ export default function FabricaPage() {
     if (initialTimestamp !== null && playerState.isReady && playerRef.current) {
       seekTo(initialTimestamp);
       setInitialTimestamp(null); // Clear so we don't seek again
+      
+      // Scroll to current jingle after seeking (with delay for DOM update)
+      setTimeout(() => {
+        if (currentJingleRowRef.current) {
+          currentJingleRowRef.current.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center',
+          });
+        }
+      }, 500);
     }
   }, [initialTimestamp, playerState.isReady, seekTo]);
+
+  // Auto-scroll to keep current jingle (player) in view when active jingle changes
+  useEffect(() => {
+    if (activeJingleId && currentJingleRowRef.current) {
+      // Small delay to ensure DOM is updated with new past/future jingles
+      setTimeout(() => {
+        currentJingleRowRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }, 100);
+    }
+  }, [activeJingleId]);
 
   // Update jingles with active state
   useEffect(() => {
@@ -169,6 +222,40 @@ export default function FabricaPage() {
       const newSearchParams = new URLSearchParams(searchParams);
       newSearchParams.set('t', timestampSeconds.toString());
       navigate(`/f/${fabricaId}?${newSearchParams.toString()}`, { replace: true });
+    }
+  };
+
+  // Handle toggle expand/collapse for jingle rows
+  const handleToggleExpand = (jingleId: string) => {
+    setExpandedJingleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(jingleId)) {
+        next.delete(jingleId);
+      } else {
+        next.add(jingleId);
+      }
+      return next;
+    });
+  };
+
+  // Handle skip to first jingle
+  const handleSkipToFirstJingle = () => {
+    if (jingles.length > 0 && playerRef.current?.isReady()) {
+      const firstJingle = jingles[0];
+      const timestampSeconds = normalizeTimestampToSeconds(firstJingle.timestamp);
+      if (timestampSeconds !== null) {
+        seekTo(timestampSeconds);
+      }
+    }
+  };
+
+  // Handle replay current jingle
+  const handleReplayCurrentJingle = () => {
+    if (currentJingle && playerRef.current?.isReady()) {
+      const timestampSeconds = normalizeTimestampToSeconds(currentJingle.timestamp);
+      if (timestampSeconds !== null) {
+        seekTo(timestampSeconds);
+      }
     }
   };
 
@@ -206,6 +293,141 @@ export default function FabricaPage() {
     );
   }
 
+  // Helper component: Collapsed Jingle Row
+  const CollapsedJingleRow = ({ 
+    jingle, 
+    isExpanded, 
+    onToggleExpand, 
+    onSkipTo 
+  }: {
+    jingle: JingleTimelineItem;
+    isExpanded: boolean;
+    onToggleExpand: () => void;
+    onSkipTo: () => void;
+  }) => {
+    const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
+    const timestampFormatted = timestampSeconds !== null
+      ? formatSecondsToTimestamp(timestampSeconds)
+      : String(jingle.timestamp);
+
+    const displayTitle = jingle.title || 'A CONFIRMAR';
+
+    return (
+      <div
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #ddd',
+          padding: '16px',
+          marginBottom: '8px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+        }}
+      >
+        {/* Collapsed header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{
+            fontFamily: 'monospace',
+            fontWeight: 'bold',
+            fontSize: '14px',
+            color: '#666',
+            minWidth: '80px',
+          }}>
+            {timestampFormatted}
+          </div>
+          
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '4px' }}>
+              {displayTitle}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button
+              onClick={onSkipTo}
+              style={{
+                padding: '6px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+            >
+              ⏩ Saltar
+            </button>
+            <button
+              onClick={onToggleExpand}
+              style={{
+                padding: '6px 12px',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                backgroundColor: '#fff',
+                cursor: 'pointer',
+                fontSize: '13px',
+              }}
+            >
+              {isExpanded ? '▲' : '▼'}
+            </button>
+          </div>
+        </div>
+
+        {/* Expanded content - placeholder for Module 5 */}
+        {isExpanded && (
+          <div style={{ 
+            marginTop: '16px', 
+            paddingTop: '16px', 
+            borderTop: '1px solid #eee',
+            fontSize: '14px',
+            color: '#666',
+          }}>
+            <p style={{ fontStyle: 'italic' }}>
+              Vista expandida - implementación completa en Módulo 5
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Helper component: Empty Metadata with Skip Button
+  const EmptyMetadataWithButton = ({ onSkipToFirst }: { onSkipToFirst: () => void }) => {
+    return (
+      <div
+        style={{
+          padding: '24px',
+          backgroundColor: '#fff',
+          borderRadius: '8px',
+          border: '1px solid #ddd',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '200px',
+        }}
+      >
+        <p style={{ marginBottom: '16px', fontSize: '16px', color: '#666' }}>
+          Reproducción en curso
+        </p>
+        <button
+          onClick={onSkipToFirst}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#1976d2',
+            color: '#fff',
+            border: 'none',
+            borderRadius: '4px',
+            fontSize: '16px',
+            fontWeight: '600',
+            cursor: 'pointer',
+          }}
+        >
+          Saltar al primer Jingle
+        </button>
+      </div>
+    );
+  };
+
   return (
     <main style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
@@ -233,50 +455,85 @@ export default function FabricaPage() {
         )}
       </div>
 
-      {/* Main content grid */}
+      {/* Three-Container Scrollable Layout */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 400px',
-          gap: '24px',
-          marginBottom: '24px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          maxHeight: 'calc(100vh - 200px)',
+          overflowY: 'auto',
+          paddingRight: '8px',
         }}
       >
-        {/* Left column: Video player */}
-        <div>
-          <YouTubePlayer
-            ref={playerRef}
-            videoIdOrUrl={videoId}
-            width="100%"
-            height={480}
-            autoplay={false}
-            startSeconds={initialTimestamp || undefined}
-            className="fabrica-player"
-          />
+        {/* CONTAINER 1: Past Jingles */}
+        <div id="past-jingles-container">
+          {pastJingles.map((jingle) => (
+            <CollapsedJingleRow
+              key={jingle.id}
+              jingle={jingle}
+              isExpanded={expandedJingleIds.has(jingle.id)}
+              onToggleExpand={() => handleToggleExpand(jingle.id)}
+              onSkipTo={() => handleSkipToJingle(jingle)}
+            />
+          ))}
         </div>
 
-        {/* Right column: Active jingle metadata */}
-        <div>
-          <JingleMetadata jingle={activeJingleMetadata} />
-        </div>
-      </div>
-
-      {/* Jingle Timeline */}
-      <div>
-        <h2 style={{ marginBottom: '16px', fontSize: '20px', fontWeight: '600' }}>
-          Lista de Jingles ({jingles.length})
-        </h2>
-        {jingles.length > 0 ? (
-          <JingleTimeline
-            jingles={jingles}
-            activeJingleId={activeJingleId}
-            onSkipTo={handleSkipToJingle}
-          />
-        ) : (
-          <div style={{ padding: '24px', textAlign: 'center', backgroundColor: '#f8f8f8', borderRadius: '8px' }}>
-            <p style={{ color: '#999' }}>Esta Fabrica aún no tiene Jingles</p>
+        {/* CONTAINER 2: Current Jingle - Player STAYS HERE (fixed in DOM) */}
+        <div 
+          id="current-jingle-container"
+          ref={currentJingleRowRef}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 400px',
+            gap: '24px',
+            padding: '16px',
+            backgroundColor: currentJingle ? '#f0f7ff' : '#fff',
+            borderRadius: '8px',
+            border: currentJingle ? '2px solid #1976d2' : '1px solid #ddd',
+            boxShadow: currentJingle ? '0 2px 8px rgba(25, 118, 210, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
+          }}
+        >
+          {/* YouTube Player - always rendered here */}
+          <div>
+            <YouTubePlayer
+              ref={playerRef}
+              videoIdOrUrl={videoId}
+              width="100%"
+              height={480}
+              autoplay={false}
+              startSeconds={initialTimestamp || undefined}
+              className="fabrica-player"
+            />
           </div>
-        )}
+
+          {/* Metadata Panel */}
+          <div>
+            {currentJingle ? (
+              <JingleMetadata 
+                jingle={activeJingleMetadata}
+                // onReplay prop will be added in Module 4
+              />
+            ) : jingles.length > 0 ? (
+              <EmptyMetadataWithButton onSkipToFirst={handleSkipToFirstJingle} />
+            ) : (
+              <JingleMetadata jingle={null} />
+            )}
+          </div>
+        </div>
+
+        {/* CONTAINER 3: Future Jingles */}
+        <div id="future-jingles-container">
+          {futureJingles.map((jingle) => (
+            <CollapsedJingleRow
+              key={jingle.id}
+              jingle={jingle}
+              isExpanded={expandedJingleIds.has(jingle.id)}
+              onToggleExpand={() => handleToggleExpand(jingle.id)}
+              onSkipTo={() => handleSkipToJingle(jingle)}
+            />
+          ))}
+        </div>
       </div>
     </main>
   );
