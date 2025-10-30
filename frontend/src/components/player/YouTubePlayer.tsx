@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from 'react';
 import { extractVideoId, buildEmbedUrl } from '../../lib/utils/youtube';
 import type { YTPlayer, YTPlayerState } from '../../types/youtube';
+import "../../styles/components/player.css";
 
 /**
  * Player control methods exposed via ref
@@ -356,45 +357,23 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
     }
     // Main/playing/loading state
     return (
-      <div className={className} style={{ position: "relative", width: "100%" }}>
-        <div
-          style={{
-            position: "relative",
-            width: "100%",
-            aspectRatio: "16 / 9",
-            paddingBottom: "56.25%",
-            height: 0,
-          }}
-        >
+      <div className={className ? `fabrica-player-area ${className}` : "fabrica-player-area"}>
+        <div className="fabrica-player-aspect">
           {/* Loading overlay (covers video area, matches aspect ratio) */}
           {!isApiReady && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                backgroundColor: "#f5f5f5",
-                zIndex: 1,
-              }}
-            >
+            <div style={{
+              position: "absolute", top: 0, left: 0, right: 0, bottom: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              backgroundColor: "#f5f5f5", zIndex: 1
+            }}>
               <p>Cargando reproductor...</p>
             </div>
           )}
           <div
             ref={containerRef}
             id={playerIdRef.current}
-            style={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: "100%",
-              height: "100%",
-            }}
+            className="fabrica-player-iframe"
+            // Remove style as position/size are controlled by .fabrica-player-iframe
           />
         </div>
       </div>

@@ -1,3 +1,4 @@
+import "../../styles/components/timeline.css";
 import React from 'react';
 import { formatSecondsToTimestamp, normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 
@@ -178,100 +179,24 @@ export function JingleTimelineRow({
 
   const tematicas = normalizeTematicas(jingle.tematicas);
 
-  // Common cell styles (matching JingleMetadata)
-  const labelCellStyle: React.CSSProperties = {
-    width: '120px',
-    padding: '8px 12px 8px 0',
-    color: '#666',
-    fontWeight: '600',
-    verticalAlign: 'top',
-  };
-
-  const dataCellStyle: React.CSSProperties = {
-    padding: '8px 0',
-    color: '#333',
-    wordWrap: 'break-word',
-    wordBreak: 'break-word',
-  };
-
-  const navCellStyle: React.CSSProperties = {
-    width: '40px',
-    padding: '8px 0',
-  };
-
-  const iconButtonStyle: React.CSSProperties = {
-    background: 'none',
-    border: 'none',
-    cursor: 'pointer',
-    fontSize: '20px',
-    padding: '4px 8px',
-    color: '#1976d2',
-    borderRadius: '4px',
-    transition: 'background-color 0.2s',
-  };
-
   // Collapsed view
   if (!isExpanded) {
     return (
       <div
-        style={{
-          backgroundColor: isActive ? '#f0f7ff' : '#fff',
-          border: '1px solid #ddd',
-          borderRadius: '8px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-          marginBottom: '8px',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
+        className={`timeline-row timeline-row--collapsed${isActive ? ' timeline-row--active' : ''}`}
       >
-        {/* Left: Timestamp + Comentario */}
+        {/* Left-side timestamp and comentario */}
         <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontFamily: 'monospace',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#666',
-              marginBottom: '4px',
-            }}
-          >
+          <div style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '14px', color: '#666', marginBottom: '4px' }}>
             {timestampFormatted}
           </div>
           <div style={{ fontSize: '14px', color: '#555' }}>
             {jingle.comment || 'Sin comentario'}
           </div>
         </div>
-
-        {/* Right: Icons */}
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            onClick={onSkipTo}
-            style={iconButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            title="Saltar a este jingle"
-          >
-            ⏩
-          </button>
-          <button
-            onClick={onToggleExpand}
-            style={iconButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            title="Expandir"
-          >
-            ▼
-          </button>
+          <button onClick={onSkipTo} className="icon-button skip-to-icon" title="Saltar a este jingle">⏩</button>
+          <button onClick={onToggleExpand} className="icon-button expand-icon" title="Expandir">▼</button>
         </div>
       </div>
     );
@@ -279,104 +204,44 @@ export function JingleTimelineRow({
 
   // Expanded view
   return (
-    <div
-      style={{
-        backgroundColor: isActive ? '#f0f7ff' : '#fff',
-        border: '1px solid #ddd',
-        borderRadius: '8px',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        marginBottom: '8px',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header with timestamp, title, and icons */}
-      <div
-        style={{
-          borderBottom: '2px solid #eee',
-          padding: '12px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
+    <div className={`timeline-row timeline-row--expanded${isActive ? ' timeline-row--active' : ''}`}>
+      <div style={{ borderBottom: '2px solid #eee', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ flex: 1 }}>
-          <div
-            style={{
-              fontFamily: 'monospace',
-              fontWeight: 'bold',
-              fontSize: '14px',
-              color: '#666',
-            }}
-          >
-            {timestampFormatted}
-          </div>
-          <div style={{ fontWeight: 'bold', fontSize: '16px', marginTop: '4px' }}>
-            {displayTitle}
-          </div>
+          <div style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: '14px', color: '#666' }}>{timestampFormatted}</div>
+          <div style={{ fontWeight: 'bold', fontSize: '16px', marginTop: '4px' }}>{displayTitle}</div>
         </div>
         <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={onSkipTo}
-            style={iconButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            title="Saltar a este jingle"
-          >
-            ⏩
-          </button>
-          <button
-            onClick={onToggleExpand}
-            style={iconButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#f0f0f0';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-            title="Colapsar"
-          >
-            ▲
-          </button>
+          <button onClick={onSkipTo} className="icon-button skip-to-icon" title="Saltar a este jingle">⏩</button>
+          <button onClick={onToggleExpand} className="icon-button expand-icon" title="Colapsar">▲</button>
         </div>
       </div>
-
-      {/* Table with metadata */}
       <div style={{ padding: '20px' }}>
-        <table
-          style={{
-            width: '100%',
-            borderCollapse: 'collapse',
-            fontSize: '15px',
-          }}
-        >
+        <table className="metadata-table">
           <tbody>
+            {/* Table structure, use .label-col, .data-col, .nav-col as before */}
             {/* Titulo row */}
             <tr>
-              <td className="label-col" style={labelCellStyle}>
+              <td className="label-col">
                 Titulo del Jingle:
               </td>
-              <td className="data-col" colSpan={2} style={dataCellStyle}>
+              <td className="data-col" colSpan={2}>
                 {displayTitle}
               </td>
             </tr>
 
             {/* Cancion row */}
             <tr>
-              <td className="label-col" style={labelCellStyle}>
+              <td className="label-col">
                 Cancion:
               </td>
-              <td className="data-col" style={dataCellStyle}>
+              <td className="data-col">
                 {cancionText !== 'A CONFIRMAR' ? (
                   cancionText
                 ) : (
                   <span style={{ fontStyle: 'italic', color: '#999' }}>A CONFIRMAR</span>
                 )}
               </td>
-              <td className="nav-col" style={navCellStyle}></td>
+              <td className="nav-col"></td>
             </tr>
 
             {/* Autor rows - handle multiple */}
@@ -386,33 +251,32 @@ export function JingleTimelineRow({
                   <td
                     className="label-col"
                     rowSpan={autores.length > 1 ? autores.length : undefined}
-                    style={labelCellStyle}
                   >
                     Autor:
                   </td>
-                  <td className="data-col" style={dataCellStyle}>
+                  <td className="data-col">
                     {autores[0].stageName || autores[0].name || 'A CONFIRMAR'}
                   </td>
-                  <td className="nav-col" style={navCellStyle}></td>
+                  <td className="nav-col"></td>
                 </tr>
                 {autores.slice(1).map((autor, idx) => (
                   <tr key={autor.id || `autor-${idx + 1}`}>
-                    <td className="data-col" style={dataCellStyle}>
+                    <td className="data-col">
                       {autor.stageName || autor.name || 'A CONFIRMAR'}
                     </td>
-                    <td className="nav-col" style={navCellStyle}></td>
+                    <td className="nav-col"></td>
                   </tr>
                 ))}
               </>
             ) : (
               <tr>
-                <td className="label-col" style={labelCellStyle}>
+                <td className="label-col">
                   Autor:
                 </td>
-                <td className="data-col" style={dataCellStyle}>
+                <td className="data-col">
                   <span style={{ fontStyle: 'italic', color: '#999' }}>A CONFIRMAR</span>
                 </td>
-                <td className="nav-col" style={navCellStyle}></td>
+                <td className="nav-col"></td>
               </tr>
             )}
 
@@ -423,33 +287,32 @@ export function JingleTimelineRow({
                   <td
                     className="label-col"
                     rowSpan={jingleros.length > 1 ? jingleros.length : undefined}
-                    style={labelCellStyle}
                   >
                     Jinglero:
                   </td>
-                  <td className="data-col" style={dataCellStyle}>
+                  <td className="data-col">
                     {jingleros[0].stageName || jingleros[0].name || 'Anonimo'}
                   </td>
-                  <td className="nav-col" style={navCellStyle}></td>
+                  <td className="nav-col"></td>
                 </tr>
                 {jingleros.slice(1).map((jinglero, idx) => (
                   <tr key={jinglero.id || `jinglero-${idx + 1}`}>
-                    <td className="data-col" style={dataCellStyle}>
+                    <td className="data-col">
                       {jinglero.stageName || jinglero.name || 'Anonimo'}
                     </td>
-                    <td className="nav-col" style={navCellStyle}></td>
+                    <td className="nav-col"></td>
                   </tr>
                 ))}
               </>
             ) : (
               <tr>
-                <td className="label-col" style={labelCellStyle}>
+                <td className="label-col">
                   Jinglero:
                 </td>
-                <td className="data-col" style={dataCellStyle}>
+                <td className="data-col">
                   <span style={{ fontStyle: 'italic', color: '#999' }}>Anonimo</span>
                 </td>
-                <td className="nav-col" style={navCellStyle}></td>
+                <td className="nav-col"></td>
               </tr>
             )}
 
@@ -460,21 +323,20 @@ export function JingleTimelineRow({
                   <td
                     className="label-col"
                     rowSpan={tematicas.length}
-                    style={labelCellStyle}
                   >
                     Tematica:
                   </td>
-                  <td className="data-col" style={dataCellStyle}>
+                  <td className="data-col">
                     {tematicas[0].name}
                   </td>
-                  <td className="nav-col" style={navCellStyle}></td>
+                  <td className="nav-col"></td>
                 </tr>
                 {tematicas.slice(1).map((tematica) => (
                   <tr key={tematica.id}>
-                    <td className="data-col" style={dataCellStyle}>
+                    <td className="data-col">
                       {tematica.name}
                     </td>
-                    <td className="nav-col" style={navCellStyle}></td>
+                    <td className="nav-col"></td>
                   </tr>
                 ))}
               </>
@@ -483,11 +345,10 @@ export function JingleTimelineRow({
             {/* Comentario row */}
             {jingle.comment && (
               <tr>
-                <td className="label-col" style={labelCellStyle}>
+                <td className="label-col">
                   Comentario:
                 </td>
                 <td className="data-col" colSpan={2} style={{
-                  ...dataCellStyle,
                   fontSize: '14px',
                   lineHeight: '1.6',
                   fontStyle: 'italic',

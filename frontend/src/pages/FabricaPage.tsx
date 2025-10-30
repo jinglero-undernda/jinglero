@@ -9,6 +9,10 @@ import { useYouTubePlayer } from '../lib/hooks/useYouTubePlayer';
 import { useJingleSync } from '../lib/hooks/useJingleSync';
 import { normalizeTimestampToSeconds } from '../lib/utils/timestamp';
 import { extractVideoId } from '../lib/utils/youtube';
+import "../styles/pages/fabrica.css";
+import "../styles/components/metadata.css";
+import "../styles/components/timeline.css";
+import "../styles/components/player.css";
 
 export default function FabricaPage() {
   const { fabricaId } = useParams<{ fabricaId: string }>();
@@ -25,6 +29,8 @@ export default function FabricaPage() {
   const [error, setError] = useState<string | null>(null);
   const [initialTimestamp, setInitialTimestamp] = useState<number | null>(null);
   const [expandedJingleIds, setExpandedJingleIds] = useState<Set<string>>(new Set());
+  const [showErrorModal, setShowErrorModal] = useState<boolean>(false);
+  const [modalMessage, setModalMessage] = useState<string>("");
 
   // Memoize the callback for active jingle changes
   const handleActiveJingleChange = useCallback(async (jingle: JingleTimelineItem | null) => {
@@ -137,8 +143,16 @@ export default function FabricaPage() {
         }
 
         // Fetch Jingles for this Fabrica
-        const jinglesData = await publicApi.getFabricaJingles(fabricaId);
-        
+        const jinglesResp = await publicApi.getFabricaJingles(fabricaId);
+        // Normalize response to an array in case API returns wrapper object
+        const jinglesData: any[] = Array.isArray(jinglesResp)
+          ? jinglesResp
+          : Array.isArray((jinglesResp as any)?.data)
+            ? (jinglesResp as any).data
+            : Array.isArray((jinglesResp as any)?.jingles)
+              ? (jinglesResp as any).jingles
+              : [];
+
         // Transform API response to JingleTimelineItem format
         const timelineItems: JingleTimelineItem[] = jinglesData.map((jingle: any) => ({
           id: jingle.id,
@@ -158,6 +172,34 @@ export default function FabricaPage() {
       } catch (err: any) {
         console.error('Error fetching Fabrica data:', err);
         setError(err?.message || 'Error al cargar la Fabrica');
+        // Show warning modal and attempt redirect to latest Fabrica
+        setModalMessage('Error de datos, cargando la ultima Fabrica');
+        setShowErrorModal(true);
+        try {
+          // Small delay so the user can read the message
+          await new Promise((res) => setTimeout(res, 800));
+          const fabricas = await publicApi.getFabricas();
+          if (Array.isArray(fabricas) && fabricas.length > 0) {
+            const latest = [...fabricas].sort((a, b) => {
+              const da = new Date(a.date || a.createdAt).getTime();
+              const db = new Date(b.date || b.createdAt).getTime();
+              return db - da;
+            })[0];
+            if (latest?.id && latest.id !== fabricaId) {
+              navigate(`/f/${latest.id}`);
+              return;
+            }
+          }
+          // If no fabricas available, keep modal and show final message briefly
+          setModalMessage('No hay Fabricas disponibles. Intente más tarde.');
+          await new Promise((res) => setTimeout(res, 1200));
+          setShowErrorModal(false);
+        } catch (fallbackErr) {
+          console.warn('Fallback to latest Fabrica failed:', fallbackErr);
+          // Hide modal after brief display
+          await new Promise((res) => setTimeout(res, 1200));
+          setShowErrorModal(false);
+        }
       } finally {
         setLoading(false);
       }
@@ -305,19 +347,95 @@ export default function FabricaPage() {
   // Extract video ID from Fabrica YouTube URL
   const videoId = fabrica ? extractVideoId(fabrica.youtubeUrl) : null;
 
-  // Loading state
+  // Loading state (skeletons)
   if (loading) {
     return (
-      <main style={{ padding: '24px', textAlign: 'center' }}>
-        <p>Cargando Fabrica...</p>
+      <main className="fabrica-container">
+        <div className="header">
+          <div className="skeleton skeleton-text" style={{ width: '180px', height: '16px' }} />
+          <div className="skeleton skeleton-title" style={{ width: '60%', height: '28px', marginTop: '8px' }} />
+          <div className="skeleton skeleton-text" style={{ width: '220px', height: '14px', marginTop: '6px' }} />
+        </div>
+        <div className="scrollable-containers">
+          <div id="past-jingles-container">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={`past-skel-${idx}`} className="timeline-row">
+                <div className="skeleton" style={{ width: '100%', height: '64px', borderRadius: '8px' }} />
+              </div>
+            ))}
+          </div>
+          <div id="current-jingle-container" className="timeline-row timeline-row--active">
+            <div className="fabrica-player">
+              <div className="skeleton" style={{ width: '100%', height: '100%', minHeight: '240px', borderRadius: '8px' }} />
+            </div>
+            <div>
+              <div className="skeleton" style={{ width: '100%', height: '220px', borderRadius: '8px' }} />
+            </div>
+          </div>
+          <div id="future-jingles-container">
+            {Array.from({ length: 4 }).map((_, idx) => (
+              <div key={`future-skel-${idx}`} className="timeline-row">
+                <div className="skeleton" style={{ width: '100%', height: '64px', borderRadius: '8px' }} />
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
     );
   }
 
-  // Error state
+  // Error state (fallback if redirect did not occur)
   if (error || !fabrica) {
     return (
-      <main style={{ padding: '24px', textAlign: 'center' }}>
+      <main style={{ padding: '24px', textAlign: 'center', position: 'relative' }}>
+        {showErrorModal && (
+          <div
+            className="modal-backdrop"
+            onClick={() => setShowErrorModal(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000,
+            }}
+          >
+            <div
+              className="modal"
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                backgroundColor: '#1e1e1e',
+                color: '#fff',
+                padding: '20px 24px',
+                borderRadius: '8px',
+                width: 'min(520px, 92vw)',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+              }}
+            >
+              <h2 style={{ marginTop: 0 }}>Error de datos</h2>
+              <p>{modalMessage}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+                <button
+                  onClick={() => setShowErrorModal(false)}
+                  style={{
+                    backgroundColor: '#2e2e2e',
+                    color: '#fff',
+                    border: '1px solid #444',
+                    borderRadius: '6px',
+                    padding: '8px 14px',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cerrar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <h1>Error</h1>
         <p>{error || 'Fabrica no encontrada'}</p>
         <Link to="/">Volver al inicio</Link>
@@ -391,17 +509,65 @@ export default function FabricaPage() {
   };
 
   return (
-    <main style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <main className="fabrica-container">
+      {showErrorModal && (
+        <div
+          className="modal-backdrop"
+          onClick={() => setShowErrorModal(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            className="modal"
+            role="dialog"
+            aria-modal="true"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#1e1e1e',
+              color: '#fff',
+              padding: '20px 24px',
+              borderRadius: '8px',
+              width: 'min(520px, 92vw)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.4)',
+            }}
+          >
+            <h2 style={{ marginTop: 0 }}>Error de datos</h2>
+            <p>{modalMessage}</p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '12px' }}>
+              <button
+                onClick={() => setShowErrorModal(false)}
+                style={{
+                  backgroundColor: '#2e2e2e',
+                  color: '#fff',
+                  border: '1px solid #444',
+                  borderRadius: '6px',
+                  padding: '8px 14px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <Link to="/" style={{ color: '#1976d2', textDecoration: 'none' }}>
+      <div className="header">
+        <Link to="/" className="header-link">
           ← Volver al inicio
         </Link>
-        <h1 style={{ margin: '16px 0 8px 0', fontSize: '28px', fontWeight: 'bold' }}>
+        <h1 className="fabrica-title">
           {fabrica.title || `Fabrica ${fabricaId}`}
         </h1>
         {fabrica.date && (
-          <p style={{ color: '#666', fontSize: '14px' }}>
+          <p className="fabrica-date">
             Fecha de publicacion:{" "}
             {(() => {
               try {
@@ -418,16 +584,7 @@ export default function FabricaPage() {
       </div>
 
       {/* Three-Container Scrollable Layout */}
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '12px',
-          maxHeight: 'calc(100vh - 200px)',
-          overflowY: 'auto',
-          paddingRight: '8px',
-        }}
-      >
+      <div className="scrollable-containers">
         {/* CONTAINER 1: Past Jingles */}
         <div id="past-jingles-container">
           {pastJingles.map((jingle) => (
@@ -446,16 +603,7 @@ export default function FabricaPage() {
         <div 
           id="current-jingle-container"
           ref={currentJingleRowRef}
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 400px',
-            gap: '24px',
-            padding: '16px',
-            backgroundColor: currentJingle ? '#f0f7ff' : '#fff',
-            borderRadius: '8px',
-            border: currentJingle ? '2px solid #1976d2' : '1px solid #ddd',
-            boxShadow: currentJingle ? '0 2px 8px rgba(25, 118, 210, 0.2)' : '0 1px 3px rgba(0,0,0,0.08)',
-          }}
+          className={currentJingle ? "timeline-row timeline-row--active" : "timeline-row"}
         >
           {/* YouTube Player - always rendered here */}
           <div>
