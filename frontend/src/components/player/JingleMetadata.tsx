@@ -1,5 +1,4 @@
 import "../../styles/components/metadata.css";
-import React from 'react';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 import type { JingleArtista, JingleCancion } from './JingleTimeline';
 

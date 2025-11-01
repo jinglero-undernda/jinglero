@@ -92,7 +92,7 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [x] 1.5 Add error handling for missing Fabricas or invalid timestamps
   - [x] 1.6 Test all new endpoints with sample data
 
-- [ ] 2.0 Build Core Fabrica Video Player with Dynamic Jingle Metadata (MVP CRITICAL)
+- [x] 2.0 Build Core Fabrica Video Player with Dynamic Jingle Metadata (MVP CRITICAL)
 
   - [x] 2.1 Create `frontend/src/lib/utils/youtube.ts` with YouTube URL parsing utilities (extract video ID, build embed URL)
   - [x] 2.2 Create `frontend/src/lib/utils/timestamp.ts` with timestamp utilities (parse HH:MM:SS to seconds, format seconds to HH:MM:SS)
@@ -101,11 +101,11 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [x] 2.5 Create `frontend/src/components/player/JingleTimeline.tsx` component displaying clickable list of Jingles with timestamps
   - [x] 2.6 Create `frontend/src/components/player/JingleMetadata.tsx` component displaying active Jingle details (title, Jinglero, Cancion, Autor, Tematicas)
   - [x] 2.7 Create `frontend/src/lib/hooks/useJingleSync.ts` hook to sync active Jingle based on current playback time
-  - [ ] 2.8 Rebuild `frontend/src/pages/FabricaPage.tsx` integrating all player components
-  - [ ] 2.9 Implement timestamp navigation (click Jingle in timeline to seek to that time)
-  - [ ] 2.10 Add loading states for video buffering and metadata fetching
-  - [ ] 2.11 Add error handling for video load failures or missing Jingles
-  - [ ] 2.12 Test video playback, timestamp navigation, and metadata sync with sample Fabrica
+  - [x] 2.8 Rebuild `frontend/src/pages/FabricaPage.tsx` integrating all player components
+  - [x] 2.9 Implement timestamp navigation (click Jingle in timeline to seek to that time)
+  - [x] 2.10 Add loading states for video buffering and metadata fetching
+  - [x] 2.11 Add error handling for video load failures or missing Jingles
+  - [x] 2.12 Test video playback, timestamp navigation, and metadata sync with sample Fabrica
 
 - [ ] 3.0 Implement Complete Entity Detail Pages with Relationships
 

@@ -1,5 +1,4 @@
 import "../../styles/components/timeline.css";
-import React from 'react';
 import { formatSecondsToTimestamp, normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 
 /**

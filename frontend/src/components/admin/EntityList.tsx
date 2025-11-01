@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { adminApi } from '../../lib/api/client';
 import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle } from '../../types';
+import EntityCard, { type EntityType as EntityCardType } from '../common/EntityCard';
 
 type Props = {
   type: string;
@@ -9,6 +9,30 @@ type Props = {
 };
 
 type EntityType = Usuario | Artista | Cancion | Fabrica | Tematica | Jingle;
+
+// Map admin entity types to EntityCard entity types
+const getEntityCardType = (type: string): EntityCardType | null => {
+  const typeMap: Record<string, EntityCardType> = {
+    artistas: 'artista',
+    canciones: 'cancion',
+    fabricas: 'fabrica',
+    tematicas: 'tematica',
+    jingles: 'jingle',
+  };
+  return typeMap[type] || null;
+};
+
+// Map admin entity types to route prefixes
+const getRoutePrefix = (type: string): string => {
+  const routeMap: Record<string, string> = {
+    artistas: '/a',
+    canciones: '/c',
+    fabricas: '/f',
+    tematicas: '/t',
+    jingles: '/j',
+  };
+  return routeMap[type] || '';
+};
 
 export default function EntityList({ type, title }: Props) {
   const [items, setItems] = useState<EntityType[]>([]);
@@ -53,29 +77,40 @@ export default function EntityList({ type, title }: Props) {
     fetchData();
   }, [type]);
 
-  const getDisplayName = (item: EntityType): string => {
-    if ('displayName' in item) return item.displayName;
-    if ('stageName' in item) return item.stageName || (item as Artista).name || '';
-    if ('title' in item) return (item as Fabrica | Cancion).title || '';
-    if ('name' in item) return (item as { name: string }).name || '';
-    if ('email' in item) return (item as unknown as Usuario).email;
-    return item.id;
-  };
+  const entityCardType = getEntityCardType(type);
+  const routePrefix = getRoutePrefix(type);
 
   return (
     <div className={`admin-list admin-list-${type}`}>
       <h3>{title || type}</h3>
       {loading && <div>Cargando...</div>}
       {error && <div className="error">Error: {error}</div>}
-      <ul>
-        {items.map((it) => (
-          <li key={it.id}>
-            <Link to={`/admin/dashboard/${type}/edit/${it.id}`}>
-              {it.id} — {getDisplayName(it)}
-            </Link>
-          </li>
-        ))}
-      </ul>
+      
+      {entityCardType ? (
+        // Use EntityCard for supported entity types
+        <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
+          {items.map((item) => (
+            <EntityCard
+              key={item.id}
+              entity={item as Artista | Cancion | Fabrica | Jingle | Tematica}
+              entityType={entityCardType}
+              to={`${routePrefix}/${item.id}`}
+              className="admin-entity-card"
+            />
+          ))}
+        </div>
+      ) : (
+        // Fallback for unsupported types (e.g., usuarios)
+        <ul>
+          {items.map((it) => (
+            <li key={it.id}>
+              <a href={`/admin/dashboard/${type}/edit/${it.id}`}>
+                {it.id} — {(it as any).displayName || (it as any).email || it.id}
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

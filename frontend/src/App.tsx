@@ -5,6 +5,8 @@ import FabricaPage from './pages/FabricaPage';
 import JinglePage from './pages/JinglePage';
 import CancionPage from './pages/CancionPage';
 import AdminPage from './pages/AdminPage';
+import InspectEntityPage from './pages/inspect/InspectEntityPage';
+import InspectRelatedEntitiesPage from './pages/inspect/InspectRelatedEntitiesPage';
 
 export default function App() {
   return (
@@ -20,6 +22,8 @@ export default function App() {
         <Route path="/j/:jingleId" element={<JinglePage />} />
         <Route path="/c/:cancionId" element={<CancionPage />} />
         <Route path="/admin/*" element={<AdminPage />} />
+        <Route path="/inspect/:entityType/:entityId" element={<InspectEntityPage />} />
+        <Route path="/inspect-related/:entityType/:entityId" element={<InspectRelatedEntitiesPage />} />
       </Routes>
     </BrowserRouter>
   );
