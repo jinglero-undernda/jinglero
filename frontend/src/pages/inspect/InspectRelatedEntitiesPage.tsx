@@ -27,7 +27,9 @@ export default function InspectRelatedEntitiesPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch entity data from API
+    // Load root entity from API - this is required before rendering RelatedEntities.
+    // RelatedEntities expects the entity prop to be fully loaded; it only loads
+    // related entities, never the root entity itself.
     if (!entityType || !entityId) {
       setLoading(false);
       return;
@@ -155,6 +157,12 @@ export default function InspectRelatedEntitiesPage() {
         </div>
 
         <h2>Entidades Relacionadas</h2>
+        {/* 
+          IMPORTANT: RelatedEntities expects the entity to be fully loaded before rendering.
+          This page loads the root entity in useEffect (above) and only renders
+          RelatedEntities after the entity is loaded (checked above: if (!entity) return error).
+          RelatedEntities will only load RELATED entities, never the root entity.
+        */}
         <RelatedEntities
           entity={entity}
           entityType={entityType}

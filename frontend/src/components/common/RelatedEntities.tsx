@@ -23,7 +23,11 @@ export interface RelationshipConfig {
 }
 
 export interface RelatedEntitiesProps {
-  /** Current entity */
+  /**
+   * Current entity - MUST be fully loaded by parent component before rendering.
+   * Must have a valid `id` property. RelatedEntities does NOT load the root entity,
+   * it only loads related entities via relationship configurations.
+   */
   entity: RelatedEntity;
   /** Type of current entity */
   entityType: EntityType;
@@ -35,6 +39,13 @@ export interface RelatedEntitiesProps {
   maxDepth?: number;
   /** Additional CSS class name */
   className?: string;
+  /**
+   * Admin Mode: When true, all relationships are visible immediately, expansion UI is disabled,
+   * cycle prevention is disabled, and blank rows are shown for creating new relationships.
+   * When false (default), uses User Mode with lazy loading, expansion/collapse, and cycle prevention.
+   * @default false
+   */
+  isAdmin?: boolean;
 }
 
 
@@ -68,7 +79,29 @@ export default function RelatedEntities({
   entityPath = [],
   maxDepth = 5,
   className = '',
+  isAdmin = false,
 }: RelatedEntitiesProps) {
+  // Validate entity prop - must be provided and have an id
+  // Note: Parent component is responsible for loading entity before rendering RelatedEntities
+  if (!entity || !entity.id) {
+    console.error('RelatedEntities: entity prop is required and must have an id');
+    return (
+      <div className={`related-entities ${className}`}>
+        <div className="related-entities__error" style={{ padding: '1rem', color: '#c00' }}>
+          <p>Error: Entity is required but not provided.</p>
+          <p style={{ fontSize: '0.9em', color: '#666' }}>
+            Please ensure the parent component loads the entity before rendering RelatedEntities.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // IMPORTANT: The entity prop is always pre-loaded by the parent component.
+  // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
+  // never the root entity itself. This ensures proper separation of concerns and
+  // allows parent pages to control loading states and error handling for the root entity.
+
   // Track expanded relationships and loaded data
   // Auto-expand first level (entityPath.length === 0 means it's the top level)
   const [expandedRelationships, setExpandedRelationships] = useState<Set<string>>(
