@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
+import { sortEntities } from '../../lib/utils/entitySorters';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
@@ -36,108 +37,6 @@ export interface RelatedEntitiesProps {
   className?: string;
 }
 
-/**
- * Sorts entities based on sortKey
- */
-function sortEntities<T extends RelatedEntity>(
-  entities: T[],
-  sortKey?: RelationshipConfig['sortKey'],
-  entityType?: EntityType
-): T[] {
-  if (!sortKey || entities.length === 0) return entities;
-
-  const sorted = [...entities];
-
-  switch (sortKey) {
-    case 'timestamp':
-      return sorted.sort((a, b) => {
-        const aTimestamp = (a as Jingle).timestamp;
-        const bTimestamp = (b as Jingle).timestamp;
-        
-        // Handle both string (HH:MM:SS) and number (seconds) formats, and null/undefined
-        let aSeconds: number;
-        let bSeconds: number;
-        
-        if (aTimestamp == null) {
-          aSeconds = 0;
-        } else if (typeof aTimestamp === 'string') {
-          // Parse HH:MM:SS format to seconds
-          const parts = aTimestamp.split(':');
-          if (parts.length === 3) {
-            aSeconds = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
-          } else {
-            aSeconds = 0;
-          }
-        } else if (typeof aTimestamp === 'number') {
-          aSeconds = aTimestamp;
-        } else {
-          aSeconds = 0;
-        }
-        
-        if (bTimestamp == null) {
-          bSeconds = 0;
-        } else if (typeof bTimestamp === 'string') {
-          const parts = bTimestamp.split(':');
-          if (parts.length === 3) {
-            bSeconds = parseInt(parts[0], 10) * 3600 + parseInt(parts[1], 10) * 60 + parseInt(parts[2], 10);
-          } else {
-            bSeconds = 0;
-          }
-        } else if (typeof bTimestamp === 'number') {
-          bSeconds = bTimestamp;
-        } else {
-          bSeconds = 0;
-        }
-        
-        return aSeconds - bSeconds;
-      });
-
-    case 'date':
-      return sorted.sort((a, b) => {
-        const aDate = (a as Fabrica).date || (a as Jingle).createdAt || '';
-        const bDate = (b as Fabrica).date || (b as Jingle).createdAt || '';
-        return new Date(bDate).getTime() - new Date(aDate).getTime(); // Descending
-      });
-
-    case 'stageName':
-      return sorted.sort((a, b) => {
-        const aName = (a as Artista).stageName || (a as Artista).name || '';
-        const bName = (b as Artista).stageName || (b as Artista).name || '';
-        return aName.localeCompare(bName);
-      });
-
-    case 'title':
-      return sorted.sort((a, b) => {
-        const aTitle = (a as Cancion | Fabrica | Jingle).title || '';
-        const bTitle = (b as Cancion | Fabrica | Jingle).title || '';
-        return aTitle.localeCompare(bTitle);
-      });
-
-    case 'name':
-      return sorted.sort((a, b) => {
-        const aName = (a as Tematica | Artista).name || '';
-        const bName = (b as Tematica | Artista).name || '';
-        return aName.localeCompare(bName);
-      });
-
-    case 'category':
-      // For tematicas: sort by category first, then name
-      if (entityType === 'tematica') {
-        return sorted.sort((a, b) => {
-          const aCat = (a as Tematica).category || '';
-          const bCat = (b as Tematica).category || '';
-          if (aCat !== bCat) return aCat.localeCompare(bCat);
-          const aName = (a as Tematica).name || '';
-          const bName = (b as Tematica).name || '';
-          return aName.localeCompare(bName);
-        });
-      }
-      return sorted;
-
-    default:
-      return sorted;
-  }
-}
 
 /**
  * RelatedEntities Component
