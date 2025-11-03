@@ -2,6 +2,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import EntityCard, { type EntityType } from '../../components/common/EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
+import { normalizeEntityType } from '../../lib/utils/entityTypeUtils';
 
 /**
  * InspectEntityPage - Demo/Test page for EntityCard component
@@ -20,15 +21,7 @@ export default function InspectEntityPage() {
   const { entityType: rawEntityType, entityId } = params;
 
   // Normalize entity type
-  const entityTypeMap: Record<string, EntityType> = {
-    f: 'fabrica',
-    j: 'jingle',
-    c: 'cancion',
-    a: 'artista',
-    t: 'tematica',
-  };
-
-  const entityType = rawEntityType ? entityTypeMap[rawEntityType] : null;
+  const entityType = normalizeEntityType(rawEntityType);
 
   // State for entity data (user will provide default values during implementation)
   const [entity, setEntity] = useState<Artista | Cancion | Fabrica | Jingle | Tematica | null>(null);
