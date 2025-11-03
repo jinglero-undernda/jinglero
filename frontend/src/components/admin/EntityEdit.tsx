@@ -22,6 +22,18 @@ type RelEntry = { start: string; end: string } & Record<string, unknown>;
 
 type EntityType = Usuario | Artista | Cancion | Fabrica | Tematica | Jingle;
 
+// Helper function to map entity type to short route code
+function getAdminRoute(type: string): string {
+  const routeMap: Record<string, string> = {
+    fabricas: 'f',
+    jingles: 'j',
+    canciones: 'c',
+    artistas: 'a',
+    tematicas: 't',
+  };
+  return routeMap[type] || type;
+}
+
 export default function EntityEdit({ type, id }: Props) {
   const [item, setItem] = useState<EntityType | null>(null);
   const [loading, setLoading] = useState(false);
@@ -238,8 +250,8 @@ export default function EntityEdit({ type, id }: Props) {
         default:
           throw new Error(`Unknown entity type: ${type}`);
       }
-      // navigate back to list
-      window.location.href = `/admin/dashboard/${type}`;
+      // navigate back to admin home (no list page anymore)
+      window.location.href = `/admin`;
     } catch (err: unknown) {
       setError((err as Error)?.message || String(err));
     }
@@ -305,7 +317,7 @@ export default function EntityEdit({ type, id }: Props) {
       <div>
         <button onClick={handleSave} disabled={saving}>{saving ? 'Guardando…' : 'Guardar'}</button>
         <button onClick={handleDelete} style={{ marginLeft: 8 }}>Eliminar</button>
-        <button onClick={() => { window.location.href = `/admin/dashboard/${type}` }} style={{ marginLeft: 8 }}>Cancelar</button>
+        <button onClick={() => { window.location.href = `/admin` }} style={{ marginLeft: 8 }}>Cancelar</button>
       </div>
 
       <section>
@@ -329,7 +341,7 @@ export default function EntityEdit({ type, id }: Props) {
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0', borderBottom: '1px solid #eee' }}>
                     <div style={{ flex: 1 }}>
                       <div>
-                        <a href={`/admin/dashboard/${counterpartType}/edit/${counterpartId}`}><strong>{display}</strong></a>
+                        <a href={`/admin/${getAdminRoute(counterpartType)}/${counterpartId}`}><strong>{display}</strong></a>
                         <span style={{ marginLeft: 8, color: '#666' }}>{isStart ? `→ ${id}` : `→ ${id}`}</span>
                       </div>
                       {Object.keys(props).length > 0 && (

@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home';
 import FabricaPage from '../pages/FabricaPage';
-import JinglePage from '../pages/JinglePage';
-import CancionPage from '../pages/CancionPage';
+import InspectJingle from '../pages/inspect/InspectJingle';
+import InspectCancion from '../pages/inspect/InspectCancion';
 
 describe('Routing', () => {
   it('renders Home on /', () => {
@@ -34,7 +34,7 @@ describe('Routing', () => {
     render(
       <MemoryRouter initialEntries={["/j/test-jingle"]}>
         <Routes>
-          <Route path="/j/:jingleId" element={<JinglePage />} />
+          <Route path="/j/:jingleId" element={<InspectJingle />} />
         </Routes>
       </MemoryRouter>
     );
@@ -43,7 +43,7 @@ describe('Routing', () => {
     render(
       <MemoryRouter initialEntries={["/c/test-cancion"]}>
         <Routes>
-          <Route path="/c/:cancionId" element={<CancionPage />} />
+          <Route path="/c/:cancionId" element={<InspectCancion />} />
         </Routes>
       </MemoryRouter>
     );

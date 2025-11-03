@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import type { Cancion } from '../types';
+import type { Cancion } from '../../types';
 
-export default function CancionPage() {
+export default function InspectCancion() {
   const { cancionId } = useParams();
   const [cancion, setCancion] = useState<Cancion | null>(null);
 
@@ -20,10 +20,11 @@ export default function CancionPage() {
   return (
     <main>
       <nav>
-        <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
+        <Link to="/">Inicio</Link> | <Link to="/show">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
       </nav>
       <h1>Cancion: {cancion?.title ?? cancionId}</h1>
       <p>Información de la cancion aquí.</p>
     </main>
   );
 }
+

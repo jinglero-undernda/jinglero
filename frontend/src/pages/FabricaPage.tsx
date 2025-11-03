@@ -118,19 +118,29 @@ export default function FabricaPage() {
 
   // Fetch Fabrica and Jingles data
   useEffect(() => {
-    if (!fabricaId) {
-      setError('ID de Fabrica no proporcionado');
-      setLoading(false);
-      return;
-    }
-
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
 
+        // If no fabricaId provided, get latest and redirect
+        let targetFabricaId = fabricaId;
+        if (!targetFabricaId) {
+          try {
+            const latestFabrica = await publicApi.getLatestFabrica();
+            targetFabricaId = latestFabrica.id;
+            // Redirect to /show/:id to include the ID in the URL
+            navigate(`/show/${targetFabricaId}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`, { replace: true });
+            return; // Exit early, will re-run with fabricaId
+          } catch (latestErr: any) {
+            setError('No se pudo cargar la última Fabrica');
+            setLoading(false);
+            return;
+          }
+        }
+
         // Fetch Fabrica data
-        const fabricaData = await publicApi.getFabrica(fabricaId);
+        const fabricaData = await publicApi.getFabrica(targetFabricaId);
         setFabrica(fabricaData);
 
         // Check for initial timestamp from URL query params (for deep linking)
@@ -143,7 +153,7 @@ export default function FabricaPage() {
         }
 
         // Fetch Jingles for this Fabrica
-        const jinglesResp = await publicApi.getFabricaJingles(fabricaId);
+        const jinglesResp = await publicApi.getFabricaJingles(targetFabricaId);
         // Normalize response to an array in case API returns wrapper object
         const jinglesData: any[] = Array.isArray(jinglesResp)
           ? jinglesResp
@@ -186,7 +196,7 @@ export default function FabricaPage() {
               return db - da;
             })[0];
             if (latest?.id && latest.id !== fabricaId) {
-              navigate(`/f/${latest.id}`);
+              navigate(`/show/${latest.id}`);
               return;
             }
           }
@@ -206,7 +216,7 @@ export default function FabricaPage() {
     };
 
     fetchData();
-  }, [fabricaId, searchParams]);
+  }, [fabricaId, searchParams, navigate]);
 
   // Handle seek to timestamp when initialTimestamp is set
   useEffect(() => {
@@ -501,9 +511,11 @@ export default function FabricaPage() {
         const newSearchParams = new URLSearchParams(searchParams);
         newSearchParams.set('t', seconds.toString());
         // Use history API directly to avoid navigate remounting
-        window.history.replaceState(
-          {}, '', `/f/${fabricaId}?${newSearchParams.toString()}`
-        );
+        if (fabricaId) {
+          window.history.replaceState(
+            {}, '', `/show/${fabricaId}?${newSearchParams.toString()}`
+          );
+        }
       }
     }
   };

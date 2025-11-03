@@ -55,7 +55,7 @@ function formatDate(dateString: string): string {
  */
 function getEntityRoute(entityType: EntityType, entityId: string): string {
   const routeMap: Record<EntityType, string> = {
-    fabrica: `/f/${entityId}`,
+    fabrica: `/show/${entityId}`,
     jingle: `/j/${entityId}`,
     cancion: `/c/${entityId}`,
     artista: `/a/${entityId}`,

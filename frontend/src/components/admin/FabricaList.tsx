@@ -31,7 +31,7 @@ export default function FabricaList() {
       <ul>
         {items.map((f, index) => (
           <li key={f.id ? f.id : `fabrica-${index}`}>
-            <a href={`/admin/dashboard/fabricas/edit/${f.id}`}><strong>{f.title || f.id}</strong> — <code>{f.id}</code></a>
+            <a href={`/admin/f/${f.id}`}><strong>{f.title || f.id}</strong> — <code>{f.id}</code></a>
           </li>
         ))}
       </ul>

@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import type { Jingle } from '../types';
+import type { Jingle } from '../../types';
 
-export default function JinglePage() {
+export default function InspectJingle() {
   const { jingleId } = useParams();
   const [jingle, setJingle] = useState<Jingle | null>(null);
 
@@ -25,10 +25,11 @@ export default function JinglePage() {
   return (
     <main>
       <nav>
-        <Link to="/">Inicio</Link> | <Link to="/f/sample-fabrica">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
+        <Link to="/">Inicio</Link> | <Link to="/show">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
       </nav>
       <h1>Jingle: {jingle?.title ?? jingleId}</h1>
       <p>Información del Jingle aquí.</p>
     </main>
   );
 }
+

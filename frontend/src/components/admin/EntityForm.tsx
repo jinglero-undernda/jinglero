@@ -74,7 +74,15 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
         setId('');
         // Navigate to edit page for the created entity
         if (data && data.id) {
-          window.location.href = `/admin/dashboard/${type}/edit/${data.id}`;
+          const routeMap: Record<string, string> = {
+            fabricas: 'f',
+            jingles: 'j',
+            canciones: 'c',
+            artistas: 'a',
+            tematicas: 't',
+          };
+          const routeCode = routeMap[type] || type;
+          window.location.href = `/admin/${routeCode}/${data.id}`;
         }
       }
     } catch (err: unknown) {

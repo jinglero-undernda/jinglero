@@ -22,6 +22,18 @@ const getEntityCardType = (type: string): EntityCardType | null => {
   return typeMap[type] || null;
 };
 
+// Helper function to map entity type to short route code for admin routes
+function getAdminRoute(type: string): string {
+  const routeMap: Record<string, string> = {
+    fabricas: 'f',
+    jingles: 'j',
+    canciones: 'c',
+    artistas: 'a',
+    tematicas: 't',
+  };
+  return routeMap[type] || type;
+}
+
 // Map admin entity types to route prefixes
 const getRoutePrefix = (type: string): string => {
   const routeMap: Record<string, string> = {
@@ -104,7 +116,7 @@ export default function EntityList({ type, title }: Props) {
         <ul>
           {items.map((it) => (
             <li key={it.id}>
-              <a href={`/admin/dashboard/${type}/edit/${it.id}`}>
+              <a href={`/admin/${getAdminRoute(type)}/${it.id}`}>
                 {it.id} — {(it as any).displayName || (it as any).email || it.id}
               </a>
             </li>

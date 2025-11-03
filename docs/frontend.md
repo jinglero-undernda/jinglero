@@ -84,32 +84,56 @@ Create a `.env.local` file in the frontend directory with the following variable
 VITE_API_BASE_URL=http://localhost:3000
 ```
 
-## Project Structure
-
 ## Routing and Shareable Links
 
-The frontend uses React Router for client-side navigation. The main route patterns implemented in the MVP are:
+The frontend uses React Router for client-side navigation. The route structure is organized into main application routes and admin routes.
 
-- Home: `/`
-- Fabrica detail: `/f/:fabricaId` — shareable by fabrica UUID. Example: `/f/6f9c2a3b-...`
-- Jingle detail: `/j/:jingleId` — direct link to a Jingle resource. Example: `/j/abcd1234`
-- Cancion detail: `/c/:cancionId` — link to a Cancion (song) page.
+### Main Application Routes
 
-Additionally, you can create links to a specific timestamp or jingle index within a Fabrica using query params. Examples:
+- **Home**: `/` — Landing page
+- **Fabrica (Video Player)**:
 
-- Jump to jingle index in a Fabrica: `/f/:fabricaId?j=2` — jumps to the 3rd jingle (0-based indexing is an implementation detail; prefer 1-based for UX).
-- Share with timestamp (future): `/f/:fabricaId?t=123` — starts playback at t seconds.
+  - `/show/:fabricaId` — View specific Fabrica with video player. Example: `/show/6f9c2a3b-...`
+  - `/show` — Auto-redirects to latest Fabrica (by date)
+  - Query params:
+    - `?j=2` — Jump to jingle index in Fabrica
+    - `?t=123` — Start playback at t seconds
 
-Notes:
+- **Inspect Routes** (Entity detail pages):
 
-- The route format `/f/:fabricaId` is preferred for readability and SEO over query-only formats like `/f=UUID`.
-- When implementing deep links you should consider URL encoding and validation server-side.
+  - `/f/:fabricaId` — Inspect Fabrica details (`InspectFabrica`)
+  - `/j/:jingleId` — Inspect Jingle details (`InspectJingle`)
+  - `/c/:cancionId` — Inspect Cancion details (`InspectCancion`)
+  - `/a/:artistaId` — Inspect Artista details (`InspectArtista`)
+  - `/t/:tematicaId` — Inspect Tematica details (`InspectTematica`)
 
-If you later choose to support legacy share tokens like `/f=UUID` and `/j=number` (query-like paths), add a redirect or router parse step to normalize them into the canonical routes above.
+- **Admin Routes** (Entity management):
+
+  - `/admin/j/:id` — Edit Jingle (`AdminJingle`)
+  - `/admin/f/:id` — Edit Fabrica (`AdminFabrica`)
+  - `/admin/c/:id` — Edit Cancion (`AdminCancion`)
+  - `/admin/a/:id` — Edit Artista (`AdminArtista`)
+  - `/admin/t/:id` — Edit Tematica (`AdminTematica`)
+  - `/admin` — Admin landing page
+
+- **Demo/Test Routes**:
+  - `/inspect/:entityType/:entityId` — Generic entity inspection page
+  - `/inspect-related/:entityType/:entityId` — Related entities demonstration page
+
+### Route Structure Notes
+
+- The `/show` route is the main video player interface for Fabricas, while `/f/:fabricaId` is for inspecting Fabrica details
+- Admin routes follow a simple pattern: `/admin/{entityType}/:id` where entityType is a single letter (j, f, c, a, t)
+- All routes use URL path parameters rather than query strings for entity IDs for better SEO and readability
+- When implementing deep links, consider URL encoding and validation server-side
 
 ## Performance / Data considerations (notes)
 
 If you plan to support fast search and filtering, consider denormalizing or adding useful scalar properties on Neo4j nodes (for example: `titulo`, `youtubeId`, `primaryTematica`, `artistName`) so search queries can match node properties directly instead of traversing relationships. This will improve search performance at the cost of some redundancy. (Do not act on this now; this is a design note only.)
+
+## Project Structure
+
+The frontend application follows a modular structure organized by feature and component type:
 
 ```
 frontend/
@@ -117,23 +141,55 @@ frontend/
 │   ├── assets/          # Static assets (images, icons)
 │   ├── components/      # Reusable UI components
 │   │   ├── admin/      # Admin interface components
+│   │   │   ├── EntityEdit.tsx      # Entity editing form
+│   │   │   ├── EntityForm.tsx      # Generic entity form
+│   │   │   ├── EntityList.tsx      # Generic entity list
+│   │   │   ├── FabricaList.tsx     # Fabrica list component
+│   │   │   └── RelationshipForm.tsx # Relationship creation form
 │   │   ├── common/     # Shared components
+│   │   │   ├── EntityCard.tsx      # Entity display card/row
+│   │   │   └── RelatedEntities.tsx # Nested entity relationships
 │   │   ├── layout/     # Layout components
 │   │   ├── player/     # Video player components
+│   │   │   ├── YouTubePlayer.tsx   # YouTube iframe player
+│   │   │   ├── JingleTimeline.tsx  # Timeline component
+│   │   │   └── JingleMetadata.tsx  # Jingle metadata display
 │   │   └── search/     # Search interface components
 │   ├── context/        # React context providers
 │   ├── lib/            # Utilities and services
 │   │   ├── api/        # API client and endpoints
+│   │   │   └── client.ts           # Public and Admin API clients
 │   │   ├── hooks/      # Custom React hooks
 │   │   ├── utils/      # Utility functions
+│   │   │   ├── relationshipConfigs.ts # Relationship configurations
+│   │   │   └── entitySorters.ts    # Entity sorting utilities
 │   │   └── validation/ # Form validation schemas
 │   ├── pages/          # Route-level components
 │   │   ├── admin/      # Admin pages
-│   │   ├── fabrica/    # Fabrica (video) pages
-│   │   ├── jingle/     # Jingle pages
-│   │   └── cancion/    # Cancion (song) pages
+│   │   │   ├── AdminJingle.tsx     # Admin Jingle editor
+│   │   │   ├── AdminFabrica.tsx    # Admin Fabrica editor
+│   │   │   ├── AdminCancion.tsx    # Admin Cancion editor
+│   │   │   ├── AdminArtista.tsx    # Admin Artista editor
+│   │   │   └── AdminTematica.tsx   # Admin Tematica editor
+│   │   ├── inspect/    # Entity inspection pages
+│   │   │   ├── InspectJingle.tsx   # Jingle detail page
+│   │   │   ├── InspectCancion.tsx  # Cancion detail page
+│   │   │   ├── InspectFabrica.tsx  # Fabrica detail page
+│   │   │   ├── InspectArtista.tsx  # Artista detail page
+│   │   │   ├── InspectTematica.tsx # Tematica detail page
+│   │   │   ├── InspectEntityPage.tsx # Generic entity inspector
+│   │   │   └── InspectRelatedEntitiesPage.tsx # Related entities demo
+│   │   ├── FabricaPage.tsx         # Main Fabrica video player page
+│   │   ├── Home.tsx                # Landing page
+│   │   └── AdminPage.tsx           # Admin routing wrapper
 │   ├── styles/         # Global styles and themes
+│   │   ├── components/ # Component-specific styles
+│   │   │   ├── entity-card.css
+│   │   │   ├── related-entities.css
+│   │   │   └── ...
+│   │   └── pages/      # Page-specific styles
 │   └── types/          # TypeScript type definitions
+│       └── index.ts    # Core entity and API types
 ```
 
 ## Code Style and Best Practices
