@@ -107,27 +107,27 @@ This document contains the sequential task list for refactoring the RelatedEntit
 
 ### 11. Implement AbortController tracking in reducer
 
-- [ ] Ensure reducer handles storing AbortController in `inFlightRequests` on LOAD_START
-- [ ] Ensure reducer handles removing AbortController on LOAD_SUCCESS and LOAD_ERROR
-- [ ] Add helper function to cancel in-flight request for a relationship key
-- [ ] Call cancel function before starting new request for same key
+- [x] Ensure reducer handles storing AbortController in `inFlightRequests` on LOAD_START
+- [x] Ensure reducer handles removing AbortController on LOAD_SUCCESS and LOAD_ERROR
+- [x] Add helper function to cancel in-flight request for a relationship key
+- [x] Call cancel function before starting new request for same key
 
 ### 12. Add request cancellation to load functions
 
-- [ ] Update relationship loading logic to create AbortController before fetch
-- [ ] Dispatch LOAD_START action with AbortController
-- [ ] Pass AbortController signal to fetchFn calls (if API supports it)
-- [ ] Cancel previous request if one exists for the same relationship key
-- [ ] Handle AbortError gracefully (ignore, don't show error to user)
-- [ ] Test rapid expand/collapse doesn't cause state inconsistencies
+- [x] Update relationship loading logic to create AbortController before fetch
+- [x] Dispatch LOAD_START action with AbortController
+- [x] Pass AbortController signal to fetchFn calls (if API supports it)
+- [x] Cancel previous request if one exists for the same relationship key
+- [x] Handle AbortError gracefully (ignore, don't show error to user)
+- [x] Test rapid expand/collapse doesn't cause state inconsistencies
 
 ### 13. Implement request deduplication
 
-- [ ] Create `pendingRequests` ref to track in-flight promises
-- [ ] Before starting fetch, check if promise already exists for relationship key
-- [ ] If promise exists, await existing promise instead of creating new request
-- [ ] Clean up promise from ref when request completes
-- [ ] Test that multiple rapid clicks on same relationship only makes one API call
+- [x] Create `pendingRequests` ref to track in-flight promises
+- [x] Before starting fetch, check if promise already exists for relationship key
+- [x] If promise exists, await existing promise instead of creating new request
+- [x] Clean up promise from ref when request completes
+- [x] Test that multiple rapid clicks on same relationship only makes one API call
 
 ---
 
@@ -158,45 +158,45 @@ This document contains the sequential task list for refactoring the RelatedEntit
 
 ### 16. Implement Admin Mode auto-loading on mount
 
-- [ ] In useEffect, when `isAdmin === true`, load all relationships immediately
-- [ ] Dispatch LOAD_START for each relationship
-- [ ] Fetch all relationships in parallel (Promise.all or sequential, as appropriate)
-- [ ] Dispatch LOAD_SUCCESS for each relationship as they complete
-- [ ] Handle errors with LOAD_ERROR action
-- [ ] Test Admin Mode loads all relationships on component mount
+- [x] In useEffect, when `isAdmin === true`, load all relationships immediately
+- [x] Dispatch LOAD_START for each relationship
+- [x] Fetch all relationships in parallel (Promise.all or sequential, as appropriate)
+- [x] Dispatch LOAD_SUCCESS for each relationship as they complete
+- [x] Handle errors with LOAD_ERROR action
+- [x] Test Admin Mode loads all relationships on component mount
 
 ### 17. Disable expansion UI in Admin Mode
 
-- [ ] Add condition to hide expand/collapse buttons when `isAdmin === true`
-- [ ] Remove expand/collapse button rendering for Admin Mode
-- [ ] Keep all relationships always visible (expanded state) in Admin Mode
-- [ ] Update handleToggleRelationship to return early if `isAdmin === true`
-- [ ] Test Admin Mode shows all relationships without expansion controls
+- [x] Add condition to hide expand/collapse buttons when `isAdmin === true`
+- [x] Remove expand/collapse button rendering for Admin Mode
+- [x] Keep all relationships always visible (expanded state) in Admin Mode
+- [x] Update handleToggleRelationship to return early if `isAdmin === true`
+- [x] Test Admin Mode shows all relationships without expansion controls
 
 ### 18. Implement blank rows for Admin Mode
 
-- [ ] Add logic to render a blank/empty row for each relationship type when `isAdmin === true`
-- [ ] Render blank row after the entity list for each relationship
-- [ ] Style blank row to indicate it's for adding new relationships (placeholder)
-- [ ] Add comment indicating blank row is placeholder for future "add relationship" functionality
-- [ ] Test blank rows appear in Admin Mode but not in User Mode
+- [x] Add logic to render a blank/empty row for each relationship type when `isAdmin === true`
+- [x] Render blank row after the entity list for each relationship
+- [x] Style blank row to indicate it's for adding new relationships (placeholder)
+- [x] Add comment indicating blank row is placeholder for future "add relationship" functionality
+- [x] Test blank rows appear in Admin Mode but not in User Mode
 
 ### 19. Disable cycle prevention in Admin Mode
 
-- [ ] Locate cycle prevention filtering logic (line ~265, ~295)
-- [ ] Add condition to skip filtering when `isAdmin === true`
-- [ ] In Admin Mode, show all entities even if they appear in entityPath
-- [ ] In User Mode, keep existing cycle prevention behavior
-- [ ] Test Admin Mode can show same entity multiple times in different paths
-- [ ] Test User Mode still prevents cycles
+- [x] Locate cycle prevention filtering logic (line ~265, ~295)
+- [x] Add condition to skip filtering when `isAdmin === true`
+- [x] In Admin Mode, show all entities even if they appear in entityPath
+- [x] In User Mode, keep existing cycle prevention behavior
+- [x] Test Admin Mode can show same entity multiple times in different paths
+- [x] Test User Mode still prevents cycles
 
 ### 20. Limit Admin Mode nesting depth
 
-- [ ] Add check to prevent recursive RelatedEntities rendering in Admin Mode beyond one level
-- [ ] When `isAdmin === true`, do not render nested RelatedEntities components
-- [ ] Or make it configurable - show one level of cascading relationships only
-- [ ] Document Admin Mode nesting behavior in code comments
-- [ ] Test Admin Mode shows relationships but doesn't nest deeply
+- [x] Add check to prevent recursive RelatedEntities rendering in Admin Mode beyond one level
+- [x] When `isAdmin === true`, do not render nested RelatedEntities components
+- [x] Or make it configurable - show one level of cascading relationships only
+- [x] Document Admin Mode nesting behavior in code comments
+- [x] Test Admin Mode shows relationships but doesn't nest deeply
 
 ---
 

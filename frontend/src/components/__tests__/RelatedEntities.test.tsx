@@ -666,8 +666,9 @@ describe('RelatedEntities', () => {
       const collapseButton = screen.getByLabelText(/Colapsar/i);
       fireEvent.click(collapseButton);
 
-      // Expand again
-      fireEvent.click(expandButton);
+      // Expand again - need to get the button again after collapse
+      const expandButtonAgain = screen.getByLabelText(/Expandir/i);
+      fireEvent.click(expandButtonAgain);
 
       // Should NOT call fetchFn again (data already loaded)
       await waitFor(() => {

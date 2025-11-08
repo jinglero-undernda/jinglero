@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer } from 'react';
+import { useCallback, useEffect, useReducer, useRef } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
@@ -236,6 +236,20 @@ export default function RelatedEntities({
 
   const [state, dispatch] = useReducer(relatedEntitiesReducer, initialState);
 
+  // Track pending promises for request deduplication (Task 13)
+  const pendingRequestsRef = useRef<Record<string, Promise<RelatedEntity[]>>>({});
+
+  // Helper to cancel in-flight request for a relationship key (Task 11)
+  const cancelInFlightRequest = useCallback((key: string) => {
+    const abortController = state.inFlightRequests[key];
+    if (abortController) {
+      abortController.abort();
+      dispatch({ type: 'CLEAR_IN_FLIGHT', key });
+    }
+    // Also clean up pending promise if it exists
+    delete pendingRequestsRef.current[key];
+  }, [state.inFlightRequests]);
+
   // Check if we've exceeded max depth
   const currentDepth = entityPath.length;
   const canExpand = currentDepth < maxDepth;
@@ -250,92 +264,172 @@ export default function RelatedEntities({
       const loadRelationships = async () => {
         for (const rel of relationships) {
           const key = getRelationshipKey(rel);
-          // Only set loading if not already loading
-          if (state.loadingStates[key]) continue;
+          
+          // Request deduplication (Task 13): Check if request already in flight
+          if (pendingRequestsRef.current[key]) {
+            // Request already in progress, skip
+            continue;
+          }
+          
+          // Cancel any previous in-flight request (Task 12)
+          cancelInFlightRequest(key);
 
           const abortController = new AbortController();
           dispatch({ type: 'LOAD_START', key, abortController });
 
-          try {
-            // Fetch entities
-            const entities = await rel.fetchFn(entity.id, entityType);
-            const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
+          // Create and store the promise for deduplication (Task 13)
+          const fetchPromise = (async () => {
+            try {
+              // Fetch entities
+              const entities = await rel.fetchFn(entity.id, entityType);
+              
+              // Check if request was aborted
+              if (abortController.signal.aborted) {
+                return [];
+              }
+              
+              const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
 
-            // Filter out entities in path (cycle prevention) - disabled in Admin Mode per spec
-            // But we'll keep it for now until Phase 6 Task 19
-            const filtered = sorted.filter((e) => !entityPath.includes(e.id));
+              // Task 19: Disable cycle prevention in Admin Mode
+              // In Admin Mode, show all entities even if they appear in entityPath
+              // In User Mode, filter out entities in path to prevent cycles
+              const filtered = isAdmin 
+                ? sorted 
+                : sorted.filter((e) => !entityPath.includes(e.id));
 
-            // Update count based on actual loaded entities
-            const finalCount = filtered.length;
+              // Update count based on actual loaded entities
+              const finalCount = filtered.length;
 
-            dispatch({
-              type: 'LOAD_SUCCESS',
-              key,
-              data: filtered,
-              count: finalCount,
-            });
-          } catch (error) {
-            console.error(`Error loading ${rel.label}:`, error);
-            dispatch({
-              type: 'LOAD_ERROR',
-              key,
-              error: error instanceof Error ? error : new Error(String(error)),
-            });
-          }
+              dispatch({
+                type: 'LOAD_SUCCESS',
+                key,
+                data: filtered,
+                count: finalCount,
+              });
+              
+              return filtered;
+            } catch (error) {
+              // Handle AbortError gracefully (Task 12) - don't show error to user
+              if (error instanceof Error && error.name === 'AbortError') {
+                // Request was cancelled, ignore
+                return [];
+              }
+              
+              console.error(`Error loading ${rel.label}:`, error);
+              dispatch({
+                type: 'LOAD_ERROR',
+                key,
+                error: error instanceof Error ? error : new Error(String(error)),
+              });
+              return [];
+            } finally {
+              // Clean up pending promise (Task 13)
+              delete pendingRequestsRef.current[key];
+            }
+          })();
+          
+          pendingRequestsRef.current[key] = fetchPromise;
         }
       };
       loadRelationships();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, entity?.id]); // Run on mount for top level, and when isAdmin changes
+  }, [isAdmin, entity?.id, cancelInFlightRequest, getRelationshipKey]); // Run on mount for top level, and when isAdmin changes
 
   // Handle expand/collapse for relationship
   const handleToggleRelationship = useCallback(
     async (rel: RelationshipConfig) => {
+      // Task 17: Disable expansion UI in Admin Mode - return early if Admin Mode
+      if (isAdmin) {
+        return;
+      }
+      
       const key = getRelationshipKey(rel);
       const isExpanded = state.expandedRelationships.has(key);
 
       if (isExpanded) {
-        // Collapse
+        // Collapse - cancel any in-flight request (Task 12)
+        cancelInFlightRequest(key);
         dispatch({ type: 'TOGGLE_RELATIONSHIP', key });
       } else {
         // Expand - lazy load data if not already loaded
         dispatch({ type: 'TOGGLE_RELATIONSHIP', key });
 
+        // Request deduplication (Task 13): Check if request already in flight
+        if (pendingRequestsRef.current[key]) {
+          // Request already in progress, await it
+          try {
+            await pendingRequestsRef.current[key];
+          } catch {
+            // Error already handled in the promise
+          }
+          return;
+        }
+
         if (!state.loadedData[key] && !state.loadingStates[key]) {
+          // Cancel any previous in-flight request (Task 12)
+          cancelInFlightRequest(key);
+
           const abortController = new AbortController();
           dispatch({ type: 'LOAD_START', key, abortController });
 
-          try {
-            // Fetch entities
-            if (!entity?.id) return; // Guard against null entity
-            const entities = await rel.fetchFn(entity.id, entityType);
-            const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
+          // Create and store the promise for deduplication (Task 13)
+          const fetchPromise = (async () => {
+            try {
+              // Fetch entities
+              if (!entity?.id) return []; // Guard against null entity
+              const entities = await rel.fetchFn(entity.id, entityType);
+              
+              // Check if request was aborted
+              if (abortController.signal.aborted) {
+                return [];
+              }
+              
+              const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
 
-            // Filter out entities in path (cycle prevention)
-            const filtered = sorted.filter((e) => !entityPath.includes(e.id));
+              // Task 19: Disable cycle prevention in Admin Mode
+              // In Admin Mode, show all entities even if they appear in entityPath
+              // In User Mode, filter out entities in path to prevent cycles
+              const filtered = isAdmin 
+                ? sorted 
+                : sorted.filter((e) => !entityPath.includes(e.id));
 
-            // Update count based on actual loaded entities
-            const finalCount = filtered.length;
+              // Update count based on actual loaded entities
+              const finalCount = filtered.length;
 
-            dispatch({
-              type: 'LOAD_SUCCESS',
-              key,
-              data: filtered,
-              count: finalCount,
-            });
-          } catch (error) {
-            console.error(`Error loading ${rel.label}:`, error);
-            dispatch({
-              type: 'LOAD_ERROR',
-              key,
-              error: error instanceof Error ? error : new Error(String(error)),
-            });
-          }
+              dispatch({
+                type: 'LOAD_SUCCESS',
+                key,
+                data: filtered,
+                count: finalCount,
+              });
+              
+              return filtered;
+            } catch (error) {
+              // Handle AbortError gracefully (Task 12) - don't show error to user
+              if (error instanceof Error && error.name === 'AbortError') {
+                // Request was cancelled, ignore
+                return [];
+              }
+              
+              console.error(`Error loading ${rel.label}:`, error);
+              dispatch({
+                type: 'LOAD_ERROR',
+                key,
+                error: error instanceof Error ? error : new Error(String(error)),
+              });
+              return [];
+            } finally {
+              // Clean up pending promise (Task 13)
+              delete pendingRequestsRef.current[key];
+            }
+          })();
+          
+          pendingRequestsRef.current[key] = fetchPromise;
         }
       }
     },
-    [entity?.id, entityType, entityPath, state.loadedData, state.loadingStates, state.expandedRelationships, getRelationshipKey]
+    [entity?.id, entityType, entityPath, state.loadedData, state.loadingStates, state.expandedRelationships, getRelationshipKey, cancelInFlightRequest]
   );
 
   // Validate entity prop - must be provided and have an id
@@ -372,25 +466,27 @@ export default function RelatedEntities({
         <tbody>
           {visibleRelationships.map((rel) => {
             const key = getRelationshipKey(rel);
-            const isExpanded = state.expandedRelationships.has(key);
+            // Task 17: In Admin Mode, always show expanded (no collapse/expand UI)
+            const isExpanded = isAdmin ? true : state.expandedRelationships.has(key);
             const isLoading = state.loadingStates[key] || false;
             const entities = state.loadedData[key] || [];
             // Use entities.length if we have loaded data, otherwise use count if available
             const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
 
             return (
-              <tr key={key} className="related-entities__row">
+              <tr key={key} className={`related-entities__row ${isAdmin ? 'related-entities__row--admin' : ''}`}>
                 <td className="related-entities__label-col">{rel.label}:</td>
                 <td className="related-entities__data-col">
                   {!isExpanded ? (
-                    // Collapsed: show count
+                    // Collapsed: show count (only in User Mode)
                     <div className="related-entities__collapsed">
                       {count > 0 ? (
                         <span className="related-entities__count">{count} {rel.label.toLowerCase()}</span>
                       ) : (
                         <span className="related-entities__empty">—</span>
                       )}
-                      {rel.expandable && canExpand && (
+                      {/* Task 17: Hide expand button in Admin Mode */}
+                      {!isAdmin && rel.expandable && canExpand && (
                         <button
                           className="related-entities__expand-btn"
                           onClick={() => handleToggleRelationship(rel)}
@@ -411,8 +507,8 @@ export default function RelatedEntities({
                       ) : (
                         <>
                           {entities.map((relatedEntity) => {
-                            // Determine if this related entity has nested entities (could be expanded)
-                            const hasNested = rel.expandable && canExpand;
+                            // Task 20: In Admin Mode, don't show nested relationships (limit nesting depth)
+                            const hasNested = isAdmin ? false : (rel.expandable && canExpand);
                             const relatedEntityPath = [...entityPath, relatedEntity.id];
 
                             return (
@@ -428,8 +524,8 @@ export default function RelatedEntities({
                                     // This toggle is not needed for the EntityCard itself in this context
                                   }}
                                 />
-                                {/* Recursive nested RelatedEntities - only if can expand and has nested relationships */}
-                                {hasNested && canExpand && (
+                                {/* Task 20: Recursive nested RelatedEntities - disabled in Admin Mode */}
+                                {hasNested && canExpand && !isAdmin && (
                                   <RelatedEntities
                                     entity={relatedEntity}
                                     entityType={rel.entityType}
@@ -437,6 +533,7 @@ export default function RelatedEntities({
                                     entityPath={relatedEntityPath}
                                     maxDepth={maxDepth}
                                     className="related-entities__nested"
+                                    isAdmin={isAdmin}
                                   />
                                 )}
                               </div>
@@ -444,7 +541,14 @@ export default function RelatedEntities({
                           })}
                         </>
                       )}
-                      {rel.expandable && (
+                      {/* Task 18: Add blank row for Admin Mode (placeholder for adding new relationships) */}
+                      {isAdmin && (
+                        <div className="related-entities__blank-row" title="Fila en blanco para agregar nueva relación (funcionalidad futura)">
+                          <div className="related-entities__empty">+ Agregar {rel.label.toLowerCase()}</div>
+                        </div>
+                      )}
+                      {/* Task 17: Hide collapse button in Admin Mode */}
+                      {!isAdmin && rel.expandable && (
                         <button
                           className="related-entities__collapse-btn"
                           onClick={() => handleToggleRelationship(rel)}
