@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
@@ -208,7 +208,7 @@ function relatedEntitiesReducer(
  * />
  * ```
  */
-export default function RelatedEntities({
+function RelatedEntities({
   entity,
   entityType,
   relationships,
@@ -239,6 +239,14 @@ export default function RelatedEntities({
   // Track pending promises for request deduplication (Task 13)
   const pendingRequestsRef = useRef<Record<string, Promise<RelatedEntity[]>>>({});
 
+  // Task 26: Request caching - cache key is combination of entityId, entityType, and relationship key
+  const requestCacheRef = useRef<Record<string, RelatedEntity[]>>({});
+
+  // Helper to create cache key for a relationship
+  const getCacheKey = useCallback((entityId: string, entityType: string, relKey: string) => {
+    return `${entityId}-${entityType}-${relKey}`;
+  }, []);
+
   // Helper to cancel in-flight request for a relationship key (Task 11)
   const cancelInFlightRequest = useCallback((key: string) => {
     const abortController = state.inFlightRequests[key];
@@ -254,8 +262,17 @@ export default function RelatedEntities({
   const currentDepth = entityPath.length;
   const canExpand = currentDepth < maxDepth;
 
-  // Helper to create relationship key
+  // Helper to create relationship key (Task 24: Memoized with useCallback)
   const getRelationshipKey = useCallback((rel: RelationshipConfig) => `${rel.label}-${rel.entityType}`, []);
+
+  // Task 23: Memoize visibleRelationships filtering
+  const visibleRelationships = useMemo(() => {
+    return relationships.filter(() => {
+      // Could add logic here to hide relationships that don't exist
+      // For now, show all configured relationships
+      return true;
+    });
+  }, [relationships]);
 
   // Auto-load first level relationships on mount (Admin Mode only)
   useEffect(() => {
@@ -265,8 +282,24 @@ export default function RelatedEntities({
         for (const rel of relationships) {
           const key = getRelationshipKey(rel);
           
+          // Task 26: Check cache before making API request
+          const cacheKey = getCacheKey(entity.id, entityType, key);
+          const cachedData = requestCacheRef.current[cacheKey];
+          
+          if (cachedData !== undefined) {
+            // Use cached data
+            const finalCount = cachedData.length;
+            dispatch({
+              type: 'LOAD_SUCCESS',
+              key,
+              data: cachedData,
+              count: finalCount,
+            });
+            continue;
+          }
+
           // Request deduplication (Task 13): Check if request already in flight
-          if (pendingRequestsRef.current[key]) {
+          if (pendingRequestsRef.current[key] !== undefined) {
             // Request already in progress, skip
             continue;
           }
@@ -288,8 +321,10 @@ export default function RelatedEntities({
                 return [];
               }
               
+              // Task 22: Sorting is done here (memoization not needed as it's one-time per fetch)
               const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
 
+              // Task 23: Filtering is done here (memoization not needed as it's one-time per fetch)
               // Task 19: Disable cycle prevention in Admin Mode
               // In Admin Mode, show all entities even if they appear in entityPath
               // In User Mode, filter out entities in path to prevent cycles
@@ -297,7 +332,11 @@ export default function RelatedEntities({
                 ? sorted 
                 : sorted.filter((e) => !entityPath.includes(e.id));
 
-              // Update count based on actual loaded entities
+              // Task 26: Store in cache
+              requestCacheRef.current[cacheKey] = filtered;
+
+              // Task 28: Use entities.length as count (no redundant fetchCountFn calls)
+              // The count is derived from the loaded entities, eliminating the need for separate count API calls
               const finalCount = filtered.length;
 
               dispatch({
@@ -334,7 +373,7 @@ export default function RelatedEntities({
       loadRelationships();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin, entity?.id, cancelInFlightRequest, getRelationshipKey]); // Run on mount for top level, and when isAdmin changes
+  }, [isAdmin, entity?.id, entityType, relationships, cancelInFlightRequest, getRelationshipKey, getCacheKey]); // Run on mount for top level, and when isAdmin changes
 
   // Handle expand/collapse for relationship
   const handleToggleRelationship = useCallback(
@@ -356,7 +395,7 @@ export default function RelatedEntities({
         dispatch({ type: 'TOGGLE_RELATIONSHIP', key });
 
         // Request deduplication (Task 13): Check if request already in flight
-        if (pendingRequestsRef.current[key]) {
+        if (pendingRequestsRef.current[key] !== undefined) {
           // Request already in progress, await it
           try {
             await pendingRequestsRef.current[key];
@@ -364,6 +403,24 @@ export default function RelatedEntities({
             // Error already handled in the promise
           }
           return;
+        }
+
+        // Task 26: Check cache before making API request
+        if (entity?.id) {
+          const cacheKey = getCacheKey(entity.id, entityType, key);
+          const cachedData = requestCacheRef.current[cacheKey];
+          
+          if (cachedData !== undefined) {
+            // Use cached data
+            const finalCount = cachedData.length;
+            dispatch({
+              type: 'LOAD_SUCCESS',
+              key,
+              data: cachedData,
+              count: finalCount,
+            });
+            return;
+          }
         }
 
         if (!state.loadedData[key] && !state.loadingStates[key]) {
@@ -385,8 +442,10 @@ export default function RelatedEntities({
                 return [];
               }
               
+              // Task 22: Sorting is done here (memoization not needed as it's one-time per fetch)
               const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
 
+              // Task 23: Filtering is done here (memoization not needed as it's one-time per fetch)
               // Task 19: Disable cycle prevention in Admin Mode
               // In Admin Mode, show all entities even if they appear in entityPath
               // In User Mode, filter out entities in path to prevent cycles
@@ -394,7 +453,14 @@ export default function RelatedEntities({
                 ? sorted 
                 : sorted.filter((e) => !entityPath.includes(e.id));
 
-              // Update count based on actual loaded entities
+              // Task 26: Store in cache
+              if (entity?.id) {
+                const cacheKey = getCacheKey(entity.id, entityType, key);
+                requestCacheRef.current[cacheKey] = filtered;
+              }
+
+              // Task 28: Use entities.length as count (no redundant fetchCountFn calls)
+              // The count is derived from the loaded entities, eliminating the need for separate count API calls
               const finalCount = filtered.length;
 
               dispatch({
@@ -429,7 +495,7 @@ export default function RelatedEntities({
         }
       }
     },
-    [entity?.id, entityType, entityPath, state.loadedData, state.loadingStates, state.expandedRelationships, getRelationshipKey, cancelInFlightRequest]
+    [entity?.id, entityType, entityPath, isAdmin, state.loadedData, state.loadingStates, state.expandedRelationships, getRelationshipKey, getCacheKey, cancelInFlightRequest]
   );
 
   // Validate entity prop - must be provided and have an id
@@ -448,13 +514,7 @@ export default function RelatedEntities({
     );
   }
 
-  // Filter relationships - only show if entity has that relationship
-  // For now, we'll show all configured relationships and let them be empty
-  const visibleRelationships = relationships.filter(() => {
-    // Could add logic here to hide relationships that don't exist
-    // For now, show all configured relationships
-    return true;
-  });
+  // visibleRelationships is already memoized above
 
   if (visibleRelationships.length === 0) {
     return null;
@@ -569,4 +629,44 @@ export default function RelatedEntities({
     </div>
   );
 }
+
+// Task 21: Add React.memo to RelatedEntities component with custom comparison function
+export default React.memo(RelatedEntities, (prevProps, nextProps) => {
+  // Custom comparison: only re-render if props actually change
+  // This prevents unnecessary re-renders when parent re-renders with same entity
+  
+  // Compare entity.id (primary identifier)
+  if (prevProps.entity.id !== nextProps.entity.id) return false;
+  
+  // Compare entityType
+  if (prevProps.entityType !== nextProps.entityType) return false;
+  
+  // Compare entityPath (check length and contents)
+  const prevPath = prevProps.entityPath || [];
+  const nextPath = nextProps.entityPath || [];
+  if (prevPath.length !== nextPath.length) return false;
+  if (!prevPath.every((id, idx) => id === nextPath[idx])) return false;
+  
+  // Compare other props
+  if (prevProps.isAdmin !== nextProps.isAdmin) return false;
+  if (prevProps.maxDepth !== nextProps.maxDepth) return false;
+  if (prevProps.className !== nextProps.className) return false;
+  
+  // Compare relationships array (shallow compare)
+  if (prevProps.relationships.length !== nextProps.relationships.length) return false;
+  if (!prevProps.relationships.every((rel, idx) => {
+    const nextRel = nextProps.relationships[idx];
+    return (
+      rel.label === nextRel.label &&
+      rel.entityType === nextRel.entityType &&
+      rel.sortKey === nextRel.sortKey &&
+      rel.expandable === nextRel.expandable &&
+      rel.fetchFn === nextRel.fetchFn &&
+      rel.fetchCountFn === nextRel.fetchCountFn
+    );
+  })) return false;
+  
+  // All props are equal, skip re-render
+  return true;
+});
 

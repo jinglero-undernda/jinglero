@@ -1,3 +1,4 @@
+import React from 'react';
 import { Link } from 'react-router-dom';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import '../../styles/components/entity-card.css';
@@ -210,7 +211,7 @@ function getEntityBadges(entity: Entity, entityType: EntityType): React.ReactNod
  * />
  * ```
  */
-export default function EntityCard({
+function EntityCard({
   entity,
   entityType,
   variant = 'card',
@@ -351,4 +352,8 @@ export default function EntityCard({
     </div>
   );
 }
+
+// Task 25: Add React.memo to EntityCard component
+// Using default shallow comparison - EntityCard props are mostly primitives and stable references
+export default React.memo(EntityCard);
 
