@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useReducer } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
@@ -6,6 +6,26 @@ import { sortEntities } from '../../lib/utils/entitySorters';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
+
+// State management types for useReducer
+export type RelatedEntitiesState = {
+  expandedRelationships: Set<string>; // Only used in User Mode
+  loadedData: Record<string, RelatedEntity[]>;
+  loadingStates: Record<string, boolean>;
+  counts: Record<string, number>;
+  // Track in-flight requests to prevent race conditions
+  inFlightRequests: Record<string, AbortController>;
+  // Add error states for better UX
+  errors: Record<string, Error | null>;
+};
+
+export type RelatedEntitiesAction =
+  | { type: 'TOGGLE_RELATIONSHIP'; key: string } // Only valid in User Mode
+  | { type: 'LOAD_START'; key: string; abortController: AbortController }
+  | { type: 'LOAD_SUCCESS'; key: string; data: RelatedEntity[]; count: number }
+  | { type: 'LOAD_ERROR'; key: string; error: Error }
+  | { type: 'CLEAR_IN_FLIGHT'; key: string }
+  | { type: 'CLEAR_ERROR'; key: string };
 
 export interface RelationshipConfig {
   /** Label to display in left column (e.g., "Jingles", "Autor") */
@@ -50,6 +70,122 @@ export interface RelatedEntitiesProps {
 
 
 /**
+ * Reducer function for RelatedEntities state management
+ */
+function relatedEntitiesReducer(
+  state: RelatedEntitiesState,
+  action: RelatedEntitiesAction
+): RelatedEntitiesState {
+  switch (action.type) {
+    case 'TOGGLE_RELATIONSHIP': {
+      const next = new Set(state.expandedRelationships);
+      if (next.has(action.key)) {
+        next.delete(action.key);
+      } else {
+        next.add(action.key);
+      }
+      return {
+        ...state,
+        expandedRelationships: next,
+      };
+    }
+
+    case 'LOAD_START': {
+      return {
+        ...state,
+        loadingStates: {
+          ...state.loadingStates,
+          [action.key]: true,
+        },
+        inFlightRequests: {
+          ...state.inFlightRequests,
+          [action.key]: action.abortController,
+        },
+        errors: {
+          ...state.errors,
+          [action.key]: null, // Clear any previous error
+        },
+      };
+    }
+
+    case 'LOAD_SUCCESS': {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [action.key]: _, ...remainingRequests } = state.inFlightRequests;
+      return {
+        ...state,
+        loadedData: {
+          ...state.loadedData,
+          [action.key]: action.data,
+        },
+        counts: {
+          ...state.counts,
+          [action.key]: action.count,
+        },
+        loadingStates: {
+          ...state.loadingStates,
+          [action.key]: false,
+        },
+        inFlightRequests: remainingRequests,
+        errors: {
+          ...state.errors,
+          [action.key]: null,
+        },
+      };
+    }
+
+    case 'LOAD_ERROR': {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [action.key]: _, ...remainingRequests } = state.inFlightRequests;
+      return {
+        ...state,
+        loadingStates: {
+          ...state.loadingStates,
+          [action.key]: false,
+        },
+        inFlightRequests: remainingRequests,
+        errors: {
+          ...state.errors,
+          [action.key]: action.error,
+        },
+        // Set empty array on error to prevent retry loops
+        loadedData: {
+          ...state.loadedData,
+          [action.key]: [],
+        },
+        counts: {
+          ...state.counts,
+          [action.key]: 0,
+        },
+      };
+    }
+
+    case 'CLEAR_IN_FLIGHT': {
+      const { [action.key]: abortController, ...remainingRequests } = state.inFlightRequests;
+      if (abortController) {
+        abortController.abort();
+      }
+      return {
+        ...state,
+        inFlightRequests: remainingRequests,
+      };
+    }
+
+    case 'CLEAR_ERROR': {
+      return {
+        ...state,
+        errors: {
+          ...state.errors,
+          [action.key]: null,
+        },
+      };
+    }
+
+    default:
+      return state;
+  }
+}
+
+/**
  * RelatedEntities Component
  * 
  * Displays related entities in a nested table format with expand/collapse functionality.
@@ -81,6 +217,127 @@ export default function RelatedEntities({
   className = '',
   isAdmin = false,
 }: RelatedEntitiesProps) {
+  // IMPORTANT: The entity prop is always pre-loaded by the parent component.
+  // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
+  // never the root entity itself. This ensures proper separation of concerns and
+  // allows parent pages to control loading states and error handling for the root entity.
+
+  // Initialize state with useReducer (must be before early return)
+  const initialState: RelatedEntitiesState = {
+    expandedRelationships: entityPath.length === 0 && isAdmin
+      ? new Set(relationships.map(rel => `${rel.label}-${rel.entityType}`))
+      : new Set(),
+    loadedData: {},
+    loadingStates: {},
+    counts: {},
+    inFlightRequests: {},
+    errors: {},
+  };
+
+  const [state, dispatch] = useReducer(relatedEntitiesReducer, initialState);
+
+  // Check if we've exceeded max depth
+  const currentDepth = entityPath.length;
+  const canExpand = currentDepth < maxDepth;
+
+  // Helper to create relationship key
+  const getRelationshipKey = useCallback((rel: RelationshipConfig) => `${rel.label}-${rel.entityType}`, []);
+
+  // Auto-load first level relationships on mount (Admin Mode only)
+  useEffect(() => {
+    if (entityPath.length === 0 && isAdmin && entity?.id) {
+      // This is the top level in Admin Mode - auto-expand and load all relationships
+      const loadRelationships = async () => {
+        for (const rel of relationships) {
+          const key = getRelationshipKey(rel);
+          // Only set loading if not already loading
+          if (state.loadingStates[key]) continue;
+
+          const abortController = new AbortController();
+          dispatch({ type: 'LOAD_START', key, abortController });
+
+          try {
+            // Fetch entities
+            const entities = await rel.fetchFn(entity.id, entityType);
+            const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
+
+            // Filter out entities in path (cycle prevention) - disabled in Admin Mode per spec
+            // But we'll keep it for now until Phase 6 Task 19
+            const filtered = sorted.filter((e) => !entityPath.includes(e.id));
+
+            // Update count based on actual loaded entities
+            const finalCount = filtered.length;
+
+            dispatch({
+              type: 'LOAD_SUCCESS',
+              key,
+              data: filtered,
+              count: finalCount,
+            });
+          } catch (error) {
+            console.error(`Error loading ${rel.label}:`, error);
+            dispatch({
+              type: 'LOAD_ERROR',
+              key,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
+        }
+      };
+      loadRelationships();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, entity?.id]); // Run on mount for top level, and when isAdmin changes
+
+  // Handle expand/collapse for relationship
+  const handleToggleRelationship = useCallback(
+    async (rel: RelationshipConfig) => {
+      const key = getRelationshipKey(rel);
+      const isExpanded = state.expandedRelationships.has(key);
+
+      if (isExpanded) {
+        // Collapse
+        dispatch({ type: 'TOGGLE_RELATIONSHIP', key });
+      } else {
+        // Expand - lazy load data if not already loaded
+        dispatch({ type: 'TOGGLE_RELATIONSHIP', key });
+
+        if (!state.loadedData[key] && !state.loadingStates[key]) {
+          const abortController = new AbortController();
+          dispatch({ type: 'LOAD_START', key, abortController });
+
+          try {
+            // Fetch entities
+            if (!entity?.id) return; // Guard against null entity
+            const entities = await rel.fetchFn(entity.id, entityType);
+            const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
+
+            // Filter out entities in path (cycle prevention)
+            const filtered = sorted.filter((e) => !entityPath.includes(e.id));
+
+            // Update count based on actual loaded entities
+            const finalCount = filtered.length;
+
+            dispatch({
+              type: 'LOAD_SUCCESS',
+              key,
+              data: filtered,
+              count: finalCount,
+            });
+          } catch (error) {
+            console.error(`Error loading ${rel.label}:`, error);
+            dispatch({
+              type: 'LOAD_ERROR',
+              key,
+              error: error instanceof Error ? error : new Error(String(error)),
+            });
+          }
+        }
+      }
+    },
+    [entity?.id, entityType, entityPath, state.loadedData, state.loadingStates, state.expandedRelationships, getRelationshipKey]
+  );
+
   // Validate entity prop - must be provided and have an id
   // Note: Parent component is responsible for loading entity before rendering RelatedEntities
   if (!entity || !entity.id) {
@@ -96,124 +353,6 @@ export default function RelatedEntities({
       </div>
     );
   }
-
-  // IMPORTANT: The entity prop is always pre-loaded by the parent component.
-  // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
-  // never the root entity itself. This ensures proper separation of concerns and
-  // allows parent pages to control loading states and error handling for the root entity.
-
-  // Track expanded relationships and loaded data
-  // Auto-expand first level only in Admin Mode (entityPath.length === 0 means it's the top level)
-  const [expandedRelationships, setExpandedRelationships] = useState<Set<string>>(
-    entityPath.length === 0 && isAdmin
-      ? new Set(relationships.map(rel => `${rel.label}-${rel.entityType}`))
-      : new Set()
-  );
-  const [loadedData, setLoadedData] = useState<Record<string, RelatedEntity[]>>({});
-  const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
-  const [counts, setCounts] = useState<Record<string, number>>({});
-
-  // Check if we've exceeded max depth
-  const currentDepth = entityPath.length;
-  const canExpand = currentDepth < maxDepth;
-
-  // Helper to create relationship key
-  const getRelationshipKey = useCallback((rel: RelationshipConfig) => `${rel.label}-${rel.entityType}`, []);
-
-  // Auto-load first level relationships on mount (Admin Mode only)
-  useEffect(() => {
-    if (entityPath.length === 0 && isAdmin) {
-      // This is the top level in Admin Mode - auto-expand and load all relationships
-      const loadRelationships = async () => {
-        for (const rel of relationships) {
-          const key = getRelationshipKey(rel);
-          setLoadingStates((prev) => {
-            // Only set loading if not already loading
-            if (prev[key]) return prev;
-            return { ...prev, [key]: true };
-          });
-          try {
-            // Fetch count first if function provided
-            if (rel.fetchCountFn) {
-              const count = await rel.fetchCountFn(entity.id, entityType);
-              setCounts((prev) => ({ ...prev, [key]: count }));
-            }
-
-            // Fetch entities
-            const entities = await rel.fetchFn(entity.id, entityType);
-            const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
-
-            // Filter out entities in path (cycle prevention) - disabled in Admin Mode per spec
-            // But we'll keep it for now until Phase 6 Task 19
-            const filtered = sorted.filter((e) => !entityPath.includes(e.id));
-
-            setLoadedData((prev) => ({ ...prev, [key]: filtered }));
-            // Update count based on actual loaded entities
-            setCounts((prev) => ({ ...prev, [key]: filtered.length }));
-          } catch (error) {
-            console.error(`Error loading ${rel.label}:`, error);
-            // Set empty array on error to prevent retry loops
-            setLoadedData((prev) => ({ ...prev, [key]: [] }));
-            setCounts((prev) => ({ ...prev, [key]: 0 }));
-          } finally {
-            setLoadingStates((prev) => ({ ...prev, [key]: false }));
-          }
-        }
-      };
-      loadRelationships();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]); // Run on mount for top level, and when isAdmin changes
-
-  // Handle expand/collapse for relationship
-  const handleToggleRelationship = useCallback(
-    async (rel: RelationshipConfig) => {
-      const key = getRelationshipKey(rel);
-      const isExpanded = expandedRelationships.has(key);
-
-      if (isExpanded) {
-        // Collapse
-        setExpandedRelationships((prev) => {
-          const next = new Set(prev);
-          next.delete(key);
-          return next;
-        });
-      } else {
-        // Expand - lazy load data if not already loaded
-        setExpandedRelationships((prev) => new Set(prev).add(key));
-
-        if (!loadedData[key] && !loadingStates[key]) {
-          setLoadingStates((prev) => ({ ...prev, [key]: true }));
-          try {
-            // Fetch count first if function provided
-            if (rel.fetchCountFn) {
-              const count = await rel.fetchCountFn(entity.id, entityType);
-              setCounts((prev) => ({ ...prev, [key]: count }));
-            }
-
-            // Fetch entities
-            const entities = await rel.fetchFn(entity.id, entityType);
-            const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
-
-            // Filter out entities in path (cycle prevention)
-            const filtered = sorted.filter((e) => !entityPath.includes(e.id));
-
-            setLoadedData((prev) => ({ ...prev, [key]: filtered }));
-            // Update count based on actual loaded entities
-            setCounts((prev) => ({ ...prev, [key]: filtered.length }));
-          } catch (error) {
-            console.error(`Error loading ${rel.label}:`, error);
-            // Set empty array on error to prevent retry loops
-            setLoadedData((prev) => ({ ...prev, [key]: [] }));
-            setCounts((prev) => ({ ...prev, [key]: 0 }));
-          } finally {
-            setLoadingStates((prev) => ({ ...prev, [key]: false }));
-          }
-        }
-      }
-    },
-    [entity.id, entityType, entityPath, loadedData, loadingStates, expandedRelationships]
-  );
 
   // Filter relationships - only show if entity has that relationship
   // For now, we'll show all configured relationships and let them be empty
@@ -233,11 +372,11 @@ export default function RelatedEntities({
         <tbody>
           {visibleRelationships.map((rel) => {
             const key = getRelationshipKey(rel);
-            const isExpanded = expandedRelationships.has(key);
-            const isLoading = loadingStates[key] || false;
-            const entities = loadedData[key] || [];
+            const isExpanded = state.expandedRelationships.has(key);
+            const isLoading = state.loadingStates[key] || false;
+            const entities = state.loadedData[key] || [];
             // Use entities.length if we have loaded data, otherwise use count if available
-            const count = entities.length > 0 ? entities.length : (counts[key] || 0);
+            const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
 
             return (
               <tr key={key} className="related-entities__row">
