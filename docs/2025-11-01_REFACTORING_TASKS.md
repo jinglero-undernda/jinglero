@@ -60,14 +60,14 @@ This document contains the sequential task list for refactoring the RelatedEntit
 
 ### 7. Remove showAllForRelationship state and related UI
 
-- [ ] Remove `showAllForRelationship` useState hook from `RelatedEntities.tsx` (line ~181)
-- [ ] Remove `handleShowAll` callback function (lines ~284-306)
-- [ ] Remove "Mostrar # entidades" button rendering logic (lines ~343-350)
-- [ ] Remove "Mostrar X más" button rendering logic (lines ~408-416)
-- [ ] Remove `hasMoreThan5`, `displayEntities`, `remainingCount` variables (lines ~332-334)
-- [ ] Update entity rendering to always show all entities from `loadedData[key]`
-- [ ] Remove CSS classes related to show-all buttons if they exist
-- [ ] Test that all entities display when relationship is expanded
+- [x] Remove `showAllForRelationship` useState hook from `RelatedEntities.tsx` (line ~113)
+- [x] Remove `handleShowAll` callback function (lines ~217-238)
+- [x] Remove "Mostrar # entidades" button rendering logic (lines ~274-283)
+- [x] Remove "Mostrar X más" button rendering logic (lines ~340-348)
+- [x] Remove `hasMoreThan5`, `displayEntities`, `remainingCount` variables (lines ~264-266)
+- [x] Update entity rendering to always show all entities from `loadedData[key]`
+- [x] Remove CSS classes related to show-all buttons if they exist
+- [x] Test that all entities display when relationship is expanded
 
 ---
 
@@ -135,22 +135,22 @@ This document contains the sequential task list for refactoring the RelatedEntit
 
 ### 14. Remove auto-loading on mount for User Mode
 
-- [ ] Locate useEffect that auto-loads relationships on mount (lines ~191-232)
-- [ ] Add condition to check `isAdmin` prop
-- [ ] Only auto-load if `isAdmin === true` (Admin Mode)
-- [ ] For User Mode (`isAdmin === false` or undefined), do not auto-load on mount
-- [ ] Update initial expandedRelationships state to be empty Set for User Mode
-- [ ] Keep auto-expand behavior for Admin Mode only
-- [ ] Test that User Mode shows collapsed relationships on initial load
-- [ ] Test that Admin Mode shows all relationships loaded on initial load
+- [x] Locate useEffect that auto-loads relationships on mount (lines ~123-166)
+- [x] Add condition to check `isAdmin` prop
+- [x] Only auto-load if `isAdmin === true` (Admin Mode)
+- [x] For User Mode (`isAdmin === false` or undefined), do not auto-load on mount
+- [x] Update initial expandedRelationships state to be empty Set for User Mode
+- [x] Keep auto-expand behavior for Admin Mode only
+- [x] Test that User Mode shows collapsed relationships on initial load
+- [x] Test that Admin Mode shows all relationships loaded on initial load
 
 ### 15. Update handleToggleRelationship for User Mode lazy loading
 
-- [ ] Ensure `handleToggleRelationship` only loads data when expanding in User Mode
-- [ ] Check if data is already loaded before making API call
-- [ ] Only fetch if relationship is being expanded AND data not already loaded
-- [ ] Keep existing logic for collapsing (just update expanded state)
-- [ ] Verify clicking expand button loads data on-demand in User Mode
+- [x] Ensure `handleToggleRelationship` only loads data when expanding in User Mode
+- [x] Check if data is already loaded before making API call
+- [x] Only fetch if relationship is being expanded AND data not already loaded
+- [x] Keep existing logic for collapsing (just update expanded state)
+- [x] Verify clicking expand button loads data on-demand in User Mode
 
 ---
 

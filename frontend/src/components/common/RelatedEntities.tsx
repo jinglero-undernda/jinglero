@@ -18,7 +18,7 @@ export interface RelationshipConfig {
   expandable: boolean;
   /** Function to fetch related entities */
   fetchFn: (entityId: string, entityType: string) => Promise<RelatedEntity[]>;
-  /** Function to get count of related entities (for "Mostrar # entidades") */
+  /** Function to get count of related entities (optional, for display purposes) */
   fetchCountFn?: (entityId: string, entityType: string) => Promise<number>;
 }
 
@@ -57,7 +57,7 @@ export interface RelatedEntitiesProps {
  * 
  * Features:
  * - Two-column layout (label + entities)
- * - Expand/collapse with "Mostrar # entidades" for >5 items
+ * - Expand/collapse functionality
  * - Cycle prevention
  * - Lazy loading
  * - Responsive design
@@ -103,14 +103,15 @@ export default function RelatedEntities({
   // allows parent pages to control loading states and error handling for the root entity.
 
   // Track expanded relationships and loaded data
-  // Auto-expand first level (entityPath.length === 0 means it's the top level)
+  // Auto-expand first level only in Admin Mode (entityPath.length === 0 means it's the top level)
   const [expandedRelationships, setExpandedRelationships] = useState<Set<string>>(
-    entityPath.length === 0 ? new Set(relationships.map(rel => `${rel.label}-${rel.entityType}`)) : new Set()
+    entityPath.length === 0 && isAdmin
+      ? new Set(relationships.map(rel => `${rel.label}-${rel.entityType}`))
+      : new Set()
   );
   const [loadedData, setLoadedData] = useState<Record<string, RelatedEntity[]>>({});
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
   const [counts, setCounts] = useState<Record<string, number>>({});
-  const [showAllForRelationship, setShowAllForRelationship] = useState<Set<string>>(new Set());
 
   // Check if we've exceeded max depth
   const currentDepth = entityPath.length;
@@ -119,10 +120,10 @@ export default function RelatedEntities({
   // Helper to create relationship key
   const getRelationshipKey = useCallback((rel: RelationshipConfig) => `${rel.label}-${rel.entityType}`, []);
 
-  // Auto-load first level relationships on mount
+  // Auto-load first level relationships on mount (Admin Mode only)
   useEffect(() => {
-    if (entityPath.length === 0) {
-      // This is the top level - auto-expand and load all relationships
+    if (entityPath.length === 0 && isAdmin) {
+      // This is the top level in Admin Mode - auto-expand and load all relationships
       const loadRelationships = async () => {
         for (const rel of relationships) {
           const key = getRelationshipKey(rel);
@@ -142,7 +143,8 @@ export default function RelatedEntities({
             const entities = await rel.fetchFn(entity.id, entityType);
             const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
 
-            // Filter out entities in path (cycle prevention)
+            // Filter out entities in path (cycle prevention) - disabled in Admin Mode per spec
+            // But we'll keep it for now until Phase 6 Task 19
             const filtered = sorted.filter((e) => !entityPath.includes(e.id));
 
             setLoadedData((prev) => ({ ...prev, [key]: filtered }));
@@ -161,7 +163,7 @@ export default function RelatedEntities({
       loadRelationships();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount for top level
+  }, [isAdmin]); // Run on mount for top level, and when isAdmin changes
 
   // Handle expand/collapse for relationship
   const handleToggleRelationship = useCallback(
@@ -213,30 +215,6 @@ export default function RelatedEntities({
     [entity.id, entityType, entityPath, loadedData, loadingStates, expandedRelationships]
   );
 
-  // Handle "Mostrar # entidades" expand
-  const handleShowAll = useCallback(
-    async (rel: RelationshipConfig) => {
-      const key = getRelationshipKey(rel);
-      setShowAllForRelationship((prev) => new Set(prev).add(key));
-
-      if (!loadedData[key] && !loadingStates[key]) {
-        setLoadingStates((prev) => ({ ...prev, [key]: true }));
-        try {
-          const entities = await rel.fetchFn(entity.id, entityType);
-          const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
-          const filtered = sorted.filter((e) => !entityPath.includes(e.id));
-          setLoadedData((prev) => ({ ...prev, [key]: filtered }));
-          setCounts((prev) => ({ ...prev, [key]: filtered.length }));
-        } catch (error) {
-          console.error(`Error loading all ${rel.label}:`, error);
-        } finally {
-          setLoadingStates((prev) => ({ ...prev, [key]: false }));
-        }
-      }
-    },
-    [entity.id, entityType, entityPath, loadedData, loadingStates]
-  );
-
   // Filter relationships - only show if entity has that relationship
   // For now, we'll show all configured relationships and let them be empty
   const visibleRelationships = relationships.filter(() => {
@@ -260,27 +238,15 @@ export default function RelatedEntities({
             const entities = loadedData[key] || [];
             // Use entities.length if we have loaded data, otherwise use count if available
             const count = entities.length > 0 ? entities.length : (counts[key] || 0);
-            const showAll = showAllForRelationship.has(key);
-            const hasMoreThan5 = count > 5;
-            const displayEntities = hasMoreThan5 && !showAll ? entities.slice(0, 5) : entities;
-            const remainingCount = hasMoreThan5 && !showAll ? count - 5 : 0;
 
             return (
               <tr key={key} className="related-entities__row">
                 <td className="related-entities__label-col">{rel.label}:</td>
                 <td className="related-entities__data-col">
                   {!isExpanded ? (
-                    // Collapsed: show count or "Mostrar # entidades" if >5
+                    // Collapsed: show count
                     <div className="related-entities__collapsed">
-                      {hasMoreThan5 ? (
-                        <button
-                          className="related-entities__show-all-btn"
-                          onClick={() => handleShowAll(rel)}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? 'Cargando...' : `Mostrar ${count} ${rel.label.toLowerCase()}`}
-                        </button>
-                      ) : count > 0 ? (
+                      {count > 0 ? (
                         <span className="related-entities__count">{count} {rel.label.toLowerCase()}</span>
                       ) : (
                         <span className="related-entities__empty">—</span>
@@ -301,11 +267,11 @@ export default function RelatedEntities({
                     <div className="related-entities__expanded">
                       {isLoading && entities.length === 0 ? (
                         <div className="related-entities__loading">Cargando...</div>
-                      ) : displayEntities.length === 0 ? (
+                      ) : entities.length === 0 ? (
                         <div className="related-entities__empty">No hay entidades relacionadas</div>
                       ) : (
                         <>
-                          {displayEntities.map((relatedEntity) => {
+                          {entities.map((relatedEntity) => {
                             // Determine if this related entity has nested entities (could be expanded)
                             const hasNested = rel.expandable && canExpand;
                             const relatedEntityPath = [...entityPath, relatedEntity.id];
@@ -337,15 +303,6 @@ export default function RelatedEntities({
                               </div>
                             );
                           })}
-                          {remainingCount > 0 && (
-                            <button
-                              className="related-entities__show-more-btn"
-                              onClick={() => handleShowAll(rel)}
-                              disabled={isLoading}
-                            >
-                              {isLoading ? 'Cargando...' : `Mostrar ${remainingCount} más`}
-                            </button>
-                          )}
                         </>
                       )}
                       {rel.expandable && (
