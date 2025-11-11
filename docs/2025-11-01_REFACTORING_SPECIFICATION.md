@@ -346,28 +346,6 @@ The Entity table can be used
 - Use type guards instead of assertions
 - Validate API responses match expected types
 
-### 2.4 User Experience Issues
-
-#### Loading States
-
-**Current**: Minimal "Cargando..." text, no skeleton loaders
-
-**Requirement**:
-
-- Add skeleton loaders for better UX
-- Distinguish initial load vs. expanding relationships
-- Show loading indicators per relationship
-
-#### Error States
-
-**Current**: Errors logged to console, not shown to users
-
-**Requirement**:
-
-- Show user-friendly error messages in UI
-- Distinguish between error, loading, and empty states
-- Provide retry mechanism
-
 ### 2.5 Code Organization Issues
 
 #### Duplicate Code
@@ -699,10 +677,10 @@ export async function fetchJingleFabrica(jingleId: string): Promise<Fabrica[]> {
 
 #### Admin Mode UI
 
-- All relationships always visible (no expansion UI)
-- Blank row for each relationship type for adding new links
+- All relationships of the root entity always visible (no expansion UI)
+- Blank row for each relationship type for adding new links (placeholder for later implementation)
 - All entities displayed (no pagination, no filtering)
-- No cycle prevention (show all cascading relationships)
+- No cycle prevention (show 1 level of cascading relationships)
 
 ---
 

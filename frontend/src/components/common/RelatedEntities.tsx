@@ -70,9 +70,22 @@ export interface RelatedEntitiesProps {
 
 
 /**
- * Reducer function for RelatedEntities state management
+ * Reducer function for RelatedEntities state management.
+ * 
+ * Handles all state transitions for the RelatedEntities component including:
+ * - Expanding/collapsing relationships (User Mode only)
+ * - Loading states and request tracking
+ * - Data storage and error handling
+ * - Request cancellation tracking
+ * 
+ * @param state - Current state of the component
+ * @param action - Action to perform on the state
+ * @returns New state after applying the action
+ * 
+ * @internal - Exported for testing purposes
  */
-function relatedEntitiesReducer(
+// eslint-disable-next-line react-refresh/only-export-components
+export function relatedEntitiesReducer(
   state: RelatedEntitiesState,
   action: RelatedEntitiesAction
 ): RelatedEntitiesState {
@@ -191,21 +204,129 @@ function relatedEntitiesReducer(
  * Displays related entities in a nested table format with expand/collapse functionality.
  * Uses EntityCard in row variant for each entity.
  * 
- * Features:
- * - Two-column layout (label + entities)
- * - Expand/collapse functionality
- * - Cycle prevention
- * - Lazy loading
- * - Responsive design
+ * ## Features
+ * 
+ * - **Two-column layout**: Label column (left) and data column (right)
+ * - **Expand/collapse functionality**: User Mode only, relationships can be expanded to show nested entities
+ * - **Cycle prevention**: User Mode prevents entities from appearing multiple times in the same path
+ * - **Lazy loading**: User Mode loads relationships only when expanded
+ * - **Eager loading**: Admin Mode loads all relationships immediately on mount
+ * - **Responsive design**: Adapts to mobile and desktop viewports
+ * - **Request management**: Cancellation, deduplication, and caching
+ * - **Error handling**: User-friendly error messages with retry functionality
+ * - **Loading states**: Skeleton loaders during data fetching
+ * 
+ * ## Modes
+ * 
+ * ### User Mode (default, `isAdmin={false}`)
+ * 
+ * - Relationships are collapsed by default
+ * - User clicks expand button to load and display related entities
+ * - Cycle prevention enabled (entities in `entityPath` are filtered out)
+ * - Maximum nesting depth enforced (default: 5 levels)
+ * - Expansion UI visible (expand/collapse buttons)
+ * 
+ * ### Admin Mode (`isAdmin={true}`)
+ * 
+ * - All relationships are visible immediately (no expansion UI)
+ * - All relationships load eagerly on mount
+ * - Cycle prevention disabled (entities can appear multiple times)
+ * - Blank rows shown for each relationship type (placeholder for adding new relationships)
+ * - Typically shows only one level of nesting (configurable)
+ * 
+ * ## Root Entity Loading Responsibility
+ * 
+ * **CRITICAL**: The `entity` prop MUST be fully loaded by the parent component BEFORE rendering RelatedEntities.
+ * 
+ * - RelatedEntities does NOT load the root entity - it only loads RELATED entities via `relationship.fetchFn` calls
+ * - Parent pages (e.g., InspectRelatedEntitiesPage, FabricaPage) are responsible for:
+ *   1. Fetching the root entity from the API
+ *   2. Handling loading states and errors for the root entity
+ *   3. Passing the fully-loaded entity to RelatedEntities
+ * 
+ * This separation ensures:
+ * - Clear responsibility boundaries
+ * - Better error handling (parent can show loading/error states)
+ * - Proper TypeScript type safety
+ * 
+ * ## Internal State Management
+ * 
+ * Uses `useReducer` for state management with the following state shape:
+ * 
+ * - `expandedRelationships`: Set of relationship keys that are currently expanded (User Mode only)
+ * - `loadedData`: Record mapping relationship keys to loaded entity arrays
+ * - `loadingStates`: Record tracking which relationships are currently loading
+ * - `counts`: Record storing entity counts for each relationship
+ * - `inFlightRequests`: Record tracking AbortController instances for request cancellation
+ * - `errors`: Record storing error objects for failed relationship loads
+ * 
+ * ## Performance Optimizations
+ * 
+ * - Component wrapped with `React.memo` to prevent unnecessary re-renders
+ * - Sorting and filtering operations memoized with `useMemo`
+ * - Callbacks memoized with `useCallback`
+ * - Request caching to avoid re-fetching same data
+ * - Request deduplication to prevent duplicate API calls
+ * - Request cancellation to handle rapid expand/collapse
  * 
  * @example
  * ```tsx
+ * // User Mode example
  * <RelatedEntities
  *   entity={jingle}
  *   entityType="jingle"
- *   relationships={jingleRelationships}
+ *   relationships={getJingleRelationships()}
  *   entityPath={[jingle.id]}
+ *   maxDepth={5}
+ *   isAdmin={false}
  * />
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Admin Mode example
+ * <RelatedEntities
+ *   entity={fabrica}
+ *   entityType="fabrica"
+ *   relationships={getFabricaRelationships()}
+ *   entityPath={[fabrica.id]}
+ *   isAdmin={true}
+ * />
+ * ```
+ * 
+ * @example
+ * ```tsx
+ * // Parent component must load entity first
+ * function InspectJinglePage({ jingleId }: { jingleId: string }) {
+ *   const [jingle, setJingle] = useState<Jingle | null>(null);
+ *   const [loading, setLoading] = useState(true);
+ * 
+ *   useEffect(() => {
+ *     const loadJingle = async () => {
+ *       try {
+ *         const loaded = await publicApi.getJingle(jingleId);
+ *         setJingle(loaded);
+ *       } catch (error) {
+ *         console.error('Failed to load jingle:', error);
+ *       } finally {
+ *         setLoading(false);
+ *       }
+ *     };
+ *     loadJingle();
+ *   }, [jingleId]);
+ * 
+ *   if (loading) return <LoadingSpinner />;
+ *   if (!jingle) return <ErrorMessage />;
+ * 
+ *   return (
+ *     <RelatedEntities
+ *       entity={jingle}
+ *       entityType="jingle"
+ *       relationships={getJingleRelationships()}
+ *       entityPath={[jingle.id]}
+ *     />
+ *   );
+ * }
  * ```
  */
 function RelatedEntities({
@@ -354,11 +475,19 @@ function RelatedEntities({
                 return [];
               }
               
+              // Task 35: Create user-friendly error message
+              const errorMessage = error instanceof Error 
+                ? error.message || 'Error desconocido'
+                : String(error) || 'Error desconocido';
+              
+              const friendlyError = new Error(errorMessage);
+              friendlyError.name = error instanceof Error ? error.name : 'Error';
+              
               console.error(`Error loading ${rel.label}:`, error);
               dispatch({
                 type: 'LOAD_ERROR',
                 key,
-                error: error instanceof Error ? error : new Error(String(error)),
+                error: friendlyError,
               });
               return [];
             } finally {
@@ -478,11 +607,19 @@ function RelatedEntities({
                 return [];
               }
               
+              // Task 35: Create user-friendly error message
+              const errorMessage = error instanceof Error 
+                ? error.message || 'Error desconocido'
+                : String(error) || 'Error desconocido';
+              
+              const friendlyError = new Error(errorMessage);
+              friendlyError.name = error instanceof Error ? error.name : 'Error';
+              
               console.error(`Error loading ${rel.label}:`, error);
               dispatch({
                 type: 'LOAD_ERROR',
                 key,
-                error: error instanceof Error ? error : new Error(String(error)),
+                error: friendlyError,
               });
               return [];
             } finally {
@@ -520,8 +657,11 @@ function RelatedEntities({
     return null;
   }
 
+  // Task 37: Add mode-specific CSS classes
+  const modeClass = isAdmin ? 'related-entities--admin' : 'related-entities--user';
+
   return (
-    <div className={`related-entities ${className}`}>
+    <div className={`related-entities ${modeClass} ${className}`}>
       <table className="related-entities__table">
         <tbody>
           {visibleRelationships.map((rel) => {
@@ -534,8 +674,12 @@ function RelatedEntities({
             const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
 
             return (
-              <tr key={key} className={`related-entities__row ${isAdmin ? 'related-entities__row--admin' : ''}`}>
-                <td className="related-entities__label-col">{rel.label}:</td>
+              <tr 
+                key={key} 
+                className={`related-entities__row ${isAdmin ? 'related-entities__row--admin' : ''}`}
+                aria-expanded={isExpanded}
+              >
+                <td className="related-entities__label-col" scope="row">{rel.label}:</td>
                 <td className="related-entities__data-col">
                   {!isExpanded ? (
                     // Collapsed: show count (only in User Mode)
@@ -550,20 +694,77 @@ function RelatedEntities({
                         <button
                           className="related-entities__expand-btn"
                           onClick={() => handleToggleRelationship(rel)}
-                          aria-label="Expandir"
+                          onKeyDown={(e) => {
+                            // Task 42: Keyboard navigation support
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleToggleRelationship(rel);
+                            }
+                          }}
+                          aria-label={`Expandir ${rel.label.toLowerCase()}`}
+                          aria-expanded={isExpanded}
                           title="Expandir"
                         >
-                          ▼
+                          {isExpanded ? '▲' : '▼'}
                         </button>
                       )}
                     </div>
                   ) : (
                     // Expanded: show entity list
-                    <div className="related-entities__expanded">
+                    <div 
+                      className="related-entities__expanded"
+                      role="region"
+                      aria-label={`${rel.label} relacionadas`}
+                      aria-live="polite"
+                      aria-busy={isLoading}
+                    >
                       {isLoading && entities.length === 0 ? (
-                        <div className="related-entities__loading">Cargando...</div>
+                        // Task 34: Skeleton loaders for loading states
+                        <div className="related-entities__skeleton-container" aria-label="Cargando">
+                          {Array.from({ length: 3 }).map((_, idx) => (
+                            <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                              <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                              <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                              <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : state.errors[key] ? (
+                        // Task 35: User-friendly error messages with retry
+                        <div 
+                          className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                          role="alert"
+                          aria-live="assertive"
+                        >
+                          <span className="related-entities__error-text">
+                            {state.errors[key]?.name === 'AbortError' 
+                              ? 'Carga cancelada'
+                              : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`
+                            }
+                          </span>
+                          {state.errors[key]?.name !== 'AbortError' && (
+                            <button
+                              className="related-entities__error-retry"
+                              onClick={() => {
+                                dispatch({ type: 'CLEAR_ERROR', key });
+                                handleToggleRelationship(rel);
+                              }}
+                              onKeyDown={(e) => {
+                                // Task 42: Keyboard navigation support
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  dispatch({ type: 'CLEAR_ERROR', key });
+                                  handleToggleRelationship(rel);
+                                }
+                              }}
+                              aria-label="Reintentar carga"
+                            >
+                              Reintentar
+                            </button>
+                          )}
+                        </div>
                       ) : entities.length === 0 ? (
-                        <div className="related-entities__empty">No hay entidades relacionadas</div>
+                        <div className="related-entities__empty" aria-live="polite">No hay entidades relacionadas</div>
                       ) : (
                         <>
                           {entities.map((relatedEntity) => {
@@ -576,13 +777,10 @@ function RelatedEntities({
                                 <EntityCard
                                   entity={relatedEntity}
                                   entityType={rel.entityType}
-                                  variant="row"
-                                  hasNestedEntities={hasNested}
-                                  isExpanded={false}
-                                  onToggleExpand={() => {
-                                    // Nested expansion is handled by recursive RelatedEntities component below
-                                    // This toggle is not needed for the EntityCard itself in this context
-                                  }}
+                                  variant="contents"
+                                  relationshipLabel={rel.label}
+                                  // Task 36: Remove expansion props - expansion is handled by RelatedEntities component
+                                  // hasNestedEntities and onToggleExpand removed as expansion is handled by RelatedEntities
                                 />
                                 {/* Task 20: Recursive nested RelatedEntities - disabled in Admin Mode */}
                                 {hasNested && canExpand && !isAdmin && (

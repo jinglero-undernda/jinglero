@@ -12,12 +12,10 @@ export interface EntityCardProps {
   entity: Entity;
   /** Type of entity to determine rendering logic */
   entityType: EntityType;
-  /** Display variant: 'card' for card layout, 'row' for compact table row */
-  variant?: 'card' | 'row';
+  /** Display variant: 'heading' for title rows, 'contents' for content rows */
+  variant?: 'heading' | 'contents' | 'card' | 'row'; // 'card' and 'row' are deprecated
   /** Optional route destination (if provided, card becomes clickable link) */
   to?: string;
-  /** Whether the card is active/selected (highlighted state) */
-  active?: boolean;
   /** Custom badge or status indicator */
   badge?: React.ReactNode;
   /** Additional CSS class name */
@@ -32,6 +30,12 @@ export interface EntityCardProps {
   onToggleExpand?: () => void;
   /** Number of nested entities (for "Mostrar # entidades" display) */
   nestedCount?: number;
+  /** Optional relationship label for context-dependent icons (e.g., "Jinglero", "Autor" for Artista) */
+  relationshipLabel?: string;
+  /** Indentation level for table rows (0 = no indent, 1 = 16px, 2 = 32px, etc.) */
+  indentationLevel?: number;
+  /** Optional relationship data for enhanced field display (e.g., autores for Cancion, fabrica for Jingle) */
+  relationshipData?: Record<string, unknown>;
 }
 
 /**
@@ -67,13 +71,30 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
 
 /**
  * Gets entity icon (emoji for MVP)
+ * Context-dependent for Artista based on variant and relationship label
  */
-function getEntityIcon(entityType: EntityType): string {
-  const iconMap: Record<EntityType, string> = {
+function getEntityIcon(
+  entityType: EntityType,
+  variant?: 'heading' | 'contents',
+  relationshipLabel?: string
+): string {
+  // Context-dependent Artista icons
+  if (entityType === 'artista') {
+    if (variant === 'contents' && relationshipLabel === 'Jinglero') {
+      return '🔧';
+    }
+    if (variant === 'contents' && relationshipLabel === 'Autor') {
+      return '🚚';
+    }
+    // Default: heading or no context
+    return '👤';
+  }
+
+  // Standard icons
+  const iconMap: Record<Exclude<EntityType, 'artista'>, string> = {
     fabrica: '🏭',
-    jingle: '🎵',
-    cancion: '🎶',
-    artista: '👤',
+    jingle: '🎤',
+    cancion: '📦',
     tematica: '🏷️',
   };
   return iconMap[entityType];
@@ -82,7 +103,11 @@ function getEntityIcon(entityType: EntityType): string {
 /**
  * Gets primary display text for entity
  */
-function getPrimaryText(entity: Entity, entityType: EntityType): string {
+function getPrimaryText(
+  entity: Entity,
+  entityType: EntityType,
+  relationshipData?: Record<string, unknown>
+): string {
   switch (entityType) {
     case 'fabrica': {
       const fabrica = entity as Fabrica;
@@ -94,8 +119,16 @@ function getPrimaryText(entity: Entity, entityType: EntityType): string {
     }
     case 'cancion': {
       const cancion = entity as Cancion;
-      // For cancion, we might want to show "Title (Artist)" format later
-      // For now, just show title
+      // Format as "Titulo (Autor1, Autor2)" when autor data available
+      if (relationshipData?.autores && Array.isArray(relationshipData.autores) && relationshipData.autores.length > 0) {
+        const autorNames = relationshipData.autores
+          .map((a: Artista) => a.stageName || a.name)
+          .filter(Boolean)
+          .join(', ');
+        if (autorNames) {
+          return `${cancion.title || cancion.id} (${autorNames})`;
+        }
+      }
       return cancion.title || cancion.id;
     }
     case 'artista': {
@@ -107,14 +140,18 @@ function getPrimaryText(entity: Entity, entityType: EntityType): string {
       return tematica.name || tematica.id;
     }
     default:
-      return (entity as any).id || 'A CONFIRMAR';
+      return ((entity as { id?: string }).id) || 'A CONFIRMAR';
   }
 }
 
 /**
  * Gets secondary metadata text for entity
  */
-function getSecondaryText(entity: Entity, entityType: EntityType): string | null {
+function getSecondaryText(
+  entity: Entity,
+  entityType: EntityType,
+  relationshipData?: Record<string, unknown>
+): string | null {
   switch (entityType) {
     case 'fabrica': {
       const fabrica = entity as Fabrica;
@@ -124,10 +161,12 @@ function getSecondaryText(entity: Entity, entityType: EntityType): string | null
       return null;
     }
     case 'jingle': {
-      // For jingle, we'd ideally show fabrica.date or "INEDITO"
-      // But we don't have fabrica relationship in the Jingle type itself
-      // This will be handled by badge/relationship data when available
-      return null;
+      // Show fabrica.date or "INEDITO"
+      const fabrica = relationshipData?.fabrica as { date?: string } | undefined;
+      if (fabrica?.date) {
+        return formatDate(fabrica.date);
+      }
+      return 'INEDITO';
     }
     case 'cancion': {
       const cancion = entity as Cancion;
@@ -188,23 +227,22 @@ function getEntityBadges(entity: Entity, entityType: EntityType): React.ReactNod
  * 
  * Displays a compact, navigable card for any entity type.
  * Used in lists, search results, and related-entities displays.
- * Supports both 'card' and 'row' variants for different contexts.
+ * Supports 'heading' and 'contents' variants for table structure.
  * 
  * @example
  * ```tsx
- * // Card variant (default)
+ * // Heading variant (for title rows)
  * <EntityCard
  *   entity={jingle}
  *   entityType="jingle"
- *   to={`/j/${jingle.id}`}
- *   active={activeJingleId === jingle.id}
+ *   variant="heading"
  * />
  * 
- * // Row variant for nested tables
+ * // Contents variant (for content rows, default)
  * <EntityCard
  *   entity={fabrica}
  *   entityType="fabrica"
- *   variant="row"
+ *   variant="contents"
  *   hasNestedEntities={true}
  *   isExpanded={expandedIds.has(fabrica.id)}
  *   onToggleExpand={() => handleToggle(fabrica.id)}
@@ -214,20 +252,28 @@ function getEntityBadges(entity: Entity, entityType: EntityType): React.ReactNod
 function EntityCard({
   entity,
   entityType,
-  variant = 'card',
+  variant = 'contents',
   to,
-  active = false,
   badge,
   className = '',
   onClick,
   hasNestedEntities = false,
   isExpanded = false,
   onToggleExpand,
-  nestedCount: _nestedCount,
+  relationshipLabel,
+  indentationLevel = 0,
+  relationshipData,
 }: EntityCardProps) {
-  const primaryText = getPrimaryText(entity, entityType);
-  const secondaryText = getSecondaryText(entity, entityType);
-  const icon = getEntityIcon(entityType);
+  // Handle deprecated variants with warnings
+  let actualVariant: 'heading' | 'contents' = variant as 'heading' | 'contents';
+  if (variant === 'card' || variant === 'row') {
+    console.warn(`EntityCard: variant="${variant}" is deprecated. Use "contents" instead.`);
+    actualVariant = 'contents';
+  }
+
+  const primaryText = getPrimaryText(entity, entityType, relationshipData);
+  const secondaryText = getSecondaryText(entity, entityType, relationshipData);
+  const icon = getEntityIcon(entityType, actualVariant, relationshipLabel);
   const defaultBadges = getEntityBadges(entity, entityType);
   const route = to || (onClick ? undefined : getEntityRoute(entityType, entity.id));
 
@@ -253,8 +299,8 @@ function EntityCard({
     </button>
   ) : null;
 
-  const cardContent = variant === 'row' ? (
-    // Row variant: compact horizontal layout for table rows
+  // Both heading and contents use the same horizontal compact layout
+  const cardContent = (
     <>
       <div className="entity-card__icon">{icon}</div>
       <div className="entity-card__content entity-card__content--row">
@@ -277,38 +323,20 @@ function EntityCard({
         </div>
       )}
     </>
-  ) : (
-    // Card variant: vertical layout with icon, primary, secondary, badges
-    <>
-      <div className="entity-card__icon">{icon}</div>
-      <div className="entity-card__content">
-        <div className="entity-card__primary">
-          {primaryText || 'A CONFIRMAR'}
-          {expandIcon && (
-            <span className="entity-card__expand-icon-inline">{expandIcon}</span>
-          )}
-        </div>
-        {secondaryText && (
-          <div className="entity-card__secondary">{secondaryText}</div>
-        )}
-        {(defaultBadges.length > 0 || badge) && (
-          <div className="entity-card__badges">
-            {defaultBadges}
-            {badge}
-          </div>
-        )}
-      </div>
-    </>
   );
 
   const cardClasses = [
     'entity-card',
-    `entity-card--${variant}`,
-    active ? 'entity-card--active' : '',
+    `entity-card--${actualVariant}`,
     className,
   ].filter(Boolean).join(' ');
 
   const ariaLabel = `${entityType}: ${primaryText}${secondaryText ? `, ${secondaryText}` : ''}`;
+
+  // Calculate indentation styling
+  const indentationStyle = {
+    paddingLeft: `calc(var(--indent-base, 16px) * ${indentationLevel})`,
+  };
 
   // Render as Link if route is provided
   if (route && !onClick) {
@@ -316,6 +344,7 @@ function EntityCard({
       <Link
         to={route}
         className={cardClasses}
+        style={indentationStyle}
         aria-label={ariaLabel}
         role="article"
       >
@@ -329,6 +358,7 @@ function EntityCard({
     return (
       <div
         className={cardClasses}
+        style={indentationStyle}
         onClick={onClick}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
@@ -347,7 +377,7 @@ function EntityCard({
 
   // Render as non-clickable div
   return (
-    <div className={cardClasses} aria-label={ariaLabel} role="article">
+    <div className={cardClasses} style={indentationStyle} aria-label={ariaLabel} role="article">
       {cardContent}
     </div>
   );

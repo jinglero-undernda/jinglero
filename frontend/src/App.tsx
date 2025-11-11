@@ -8,8 +8,6 @@ import InspectFabrica from './pages/inspect/InspectFabrica';
 import InspectArtista from './pages/inspect/InspectArtista';
 import InspectTematica from './pages/inspect/InspectTematica';
 import AdminPage from './pages/AdminPage';
-import InspectEntityPage from './pages/inspect/InspectEntityPage';
-import InspectRelatedEntitiesPage from './pages/inspect/InspectRelatedEntitiesPage';
 
 export default function App() {
   return (
@@ -29,8 +27,6 @@ export default function App() {
         <Route path="/a/:artistaId" element={<InspectArtista />} />
         <Route path="/t/:tematicaId" element={<InspectTematica />} />
         <Route path="/admin/*" element={<AdminPage />} />
-        <Route path="/inspect/:entityType/:entityId" element={<InspectEntityPage />} />
-        <Route path="/inspect-related/:entityType/:entityId" element={<InspectRelatedEntitiesPage />} />
       </Routes>
     </BrowserRouter>
   );

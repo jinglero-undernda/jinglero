@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { publicApi } from '../../lib/api/client';
+import '../../styles/admin.css';
 
 type EntityType = 'fabrica' | 'jingle' | 'cancion' | 'artista' | 'tematica';
 
@@ -156,53 +157,32 @@ export default function AdminHome() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         {ENTITY_TYPES.map((entityConfig) => {
           const currentValue = selectedEntities[entityConfig.type] || '';
-          // Use the current value directly - React's controlled select will handle it
-          // The value will be displayed as long as it matches an option value
+          const options = entityOptions[entityConfig.type];
+          const selectedOption = options.find(opt => opt.id === currentValue);
           
           return (
           <div
             key={entityConfig.type}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '1rem',
-              padding: '1rem',
-              border: '1px solid #ddd',
-              borderRadius: '8px',
-              backgroundColor: '#f9f9f9',
-            }}
+            className="admin-entity-row"
           >
-            <label
-              style={{
-                minWidth: '120px',
-                fontWeight: '600',
-                color: '#333',
-                flexShrink: 0,
-              }}
-            >
+            <label className="admin-entity-row__label">
               {entityConfig.label}:
             </label>
             <select
               value={currentValue}
               onChange={(e) => handleSelectChange(entityConfig.type, e.target.value)}
               disabled={loading[entityConfig.type]}
+              className="admin-entity-row__select"
+              size={1}
+              title={selectedOption ? `${selectedOption.label} (${selectedOption.id})` : ''}
               style={{
-                flex: 1,
-                minWidth: 0, // Allow flex item to shrink below content size
-                padding: '0.5rem',
-                fontSize: '14px',
-                border: '1px solid #ccc',
-                borderRadius: '4px',
                 backgroundColor: loading[entityConfig.type] ? '#f0f0f0' : 'white',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                maxWidth: '100%',
               }}
             >
               <option value="">
                 {loading[entityConfig.type] ? 'Cargando...' : '-- Seleccionar --'}
               </option>
-              {entityOptions[entityConfig.type].map((option) => (
+              {options.map((option) => (
                 <option key={option.id} value={option.id}>
                   {option.label} ({option.id})
                 </option>
@@ -211,22 +191,14 @@ export default function AdminHome() {
             <button
               onClick={() => handleAnalyze(entityConfig.type)}
               disabled={!currentValue || loading[entityConfig.type]}
+              className="admin-entity-row__button"
               style={{
-                padding: '0.5rem 1.5rem',
-                fontSize: '14px',
-                fontWeight: '600',
-                color: 'white',
                 backgroundColor: currentValue && !loading[entityConfig.type]
                   ? '#1976d2'
                   : '#ccc',
-                border: 'none',
-                borderRadius: '4px',
                 cursor: currentValue && !loading[entityConfig.type]
                   ? 'pointer'
                   : 'not-allowed',
-                transition: 'background-color 0.2s',
-                flexShrink: 0, // Prevent button from shrinking
-                whiteSpace: 'nowrap', // Prevent button text from wrapping
               }}
               onMouseEnter={(e) => {
                 if (currentValue && !loading[entityConfig.type]) {

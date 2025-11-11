@@ -117,25 +117,47 @@ export default function AdminEntityAnalyze() {
 
         const response = await publicApi.getEntityRelationships(apiType, entityId);
         
+        console.log('API Response:', response);
+        
         // Transform the response into table rows
         const rows: RelationshipRow[] = [];
         
         // Process outgoing relationships
         if (response.outgoing && Array.isArray(response.outgoing)) {
           response.outgoing.forEach((rel: any) => {
-            if (rel.type && rel.target) {
-              const target = rel.target.properties || rel.target;
-              const entityType = getEntityTypeFromLabel(rel.target.labels?.[0] || '');
-              rows.push({
-                type: rel.type,
-                direction: 'outgoing',
-                relatedEntity: {
-                  id: target.id || '',
-                  type: entityType,
-                  label: getEntityLabel(target, entityType),
-                },
-                properties: rel.properties || {},
-              });
+            console.log('Processing outgoing relationship:', rel);
+            if (rel.type) {
+              // Handle different response structures
+              let target: any = null;
+              let targetLabels: string[] = [];
+              
+              if (rel.target) {
+                // Neo4j node structure
+                if (rel.target.properties) {
+                  target = rel.target.properties;
+                  targetLabels = rel.target.labels || [];
+                } else {
+                  target = rel.target;
+                }
+              } else if (rel.end) {
+                // Alternative structure
+                target = rel.end.properties || rel.end;
+                targetLabels = rel.end.labels || [];
+              }
+              
+              if (target && target.id) {
+                const entityType = getEntityTypeFromLabel(targetLabels[0] || '');
+                rows.push({
+                  type: rel.type,
+                  direction: 'outgoing',
+                  relatedEntity: {
+                    id: target.id,
+                    type: entityType,
+                    label: getEntityLabel(target, entityType),
+                  },
+                  properties: rel.properties || {},
+                });
+              }
             }
           });
         }
@@ -143,23 +165,44 @@ export default function AdminEntityAnalyze() {
         // Process incoming relationships
         if (response.incoming && Array.isArray(response.incoming)) {
           response.incoming.forEach((rel: any) => {
-            if (rel.type && rel.source) {
-              const source = rel.source.properties || rel.source;
-              const entityType = getEntityTypeFromLabel(rel.source.labels?.[0] || '');
-              rows.push({
-                type: rel.type,
-                direction: 'incoming',
-                relatedEntity: {
-                  id: source.id || '',
-                  type: entityType,
-                  label: getEntityLabel(source, entityType),
-                },
-                properties: rel.properties || {},
-              });
+            console.log('Processing incoming relationship:', rel);
+            if (rel.type) {
+              // Handle different response structures
+              let source: any = null;
+              let sourceLabels: string[] = [];
+              
+              if (rel.source) {
+                // Neo4j node structure
+                if (rel.source.properties) {
+                  source = rel.source.properties;
+                  sourceLabels = rel.source.labels || [];
+                } else {
+                  source = rel.source;
+                }
+              } else if (rel.start) {
+                // Alternative structure
+                source = rel.start.properties || rel.start;
+                sourceLabels = rel.start.labels || [];
+              }
+              
+              if (source && source.id) {
+                const entityType = getEntityTypeFromLabel(sourceLabels[0] || '');
+                rows.push({
+                  type: rel.type,
+                  direction: 'incoming',
+                  relatedEntity: {
+                    id: source.id,
+                    type: entityType,
+                    label: getEntityLabel(source, entityType),
+                  },
+                  properties: rel.properties || {},
+                });
+              }
             }
           });
         }
         
+        console.log('Processed rows:', rows);
         setRelationshipsTable(rows);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
@@ -285,43 +328,50 @@ export default function AdminEntityAnalyze() {
         />
       </section>
 
-      <section style={{ marginTop: '3rem' }}>
-        <h2>Tabla de Relaciones</h2>
+      <section style={{ marginTop: '3rem', marginBottom: '3rem' }}>
+        <h2>Tabla de Entidades y Relaciones (Modo Admin)</h2>
         {relationshipsLoading ? (
-          <p>Cargando relaciones...</p>
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <p>Cargando relaciones...</p>
+          </div>
         ) : relationshipsError ? (
           <div style={{ padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
             <strong>Error:</strong> {relationshipsError}
+            <div style={{ marginTop: '0.5rem', fontSize: '0.875rem' }}>
+              <details>
+                <summary>Ver detalles técnicos</summary>
+                <pre style={{ marginTop: '0.5rem', fontSize: '0.75rem', overflow: 'auto' }}>
+                  {relationshipsError}
+                </pre>
+              </details>
+            </div>
           </div>
-        ) : relationshipsTable.length === 0 ? (
-          <p>No hay relaciones para esta entidad.</p>
         ) : (
-          <div style={{ overflowX: 'auto' }}>
+          <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
             <table
               style={{
                 width: '100%',
                 borderCollapse: 'collapse',
-                marginTop: '1rem',
                 backgroundColor: 'white',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
               }}
             >
               <thead>
                 <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
-                    Tipo de Relación
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', borderRight: '1px solid #ddd' }}>
+                    Entidad
                   </th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
-                    Dirección
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', borderRight: '1px solid #ddd' }}>
+                    Tipo
                   </th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
-                    Tipo de Entidad
-                  </th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', borderRight: '1px solid #ddd' }}>
                     ID
                   </th>
-                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
-                    Nombre
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', borderRight: '1px solid #ddd' }}>
+                    Relación
+                  </th>
+                  <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd', borderRight: '1px solid #ddd' }}>
+                    Dirección
                   </th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '2px solid #ddd' }}>
                     Acciones
@@ -329,52 +379,89 @@ export default function AdminEntityAnalyze() {
                 </tr>
               </thead>
               <tbody>
-                {relationshipsTable.map((rel, index) => (
-                  <tr
-                    key={`${rel.type}-${rel.direction}-${rel.relatedEntity.id}-${index}`}
-                    style={{
-                      borderBottom: '1px solid #eee',
-                    }}
-                  >
-                    <td style={{ padding: '0.75rem' }}>
-                      <code style={{ backgroundColor: '#f0f0f0', padding: '0.2rem 0.4rem', borderRadius: '3px' }}>
-                        {rel.type}
-                      </code>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span
-                        style={{
-                          padding: '0.2rem 0.5rem',
-                          borderRadius: '3px',
-                          fontSize: '0.875rem',
-                          backgroundColor: rel.direction === 'outgoing' ? '#e3f2fd' : '#fff3e0',
-                          color: rel.direction === 'outgoing' ? '#1976d2' : '#f57c00',
-                        }}
-                      >
-                        {rel.direction === 'outgoing' ? '→ Saliente' : '← Entrante'}
-                      </span>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <span style={{ textTransform: 'capitalize' }}>{rel.relatedEntity.type}</span>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <code style={{ fontSize: '0.875rem', color: '#666' }}>{rel.relatedEntity.id}</code>
-                    </td>
-                    <td style={{ padding: '0.75rem' }}>{rel.relatedEntity.label}</td>
-                    <td style={{ padding: '0.75rem' }}>
-                      <Link
-                        to={`/admin/${getRoutePrefix(rel.relatedEntity.type)}/${rel.relatedEntity.id}`}
-                        style={{
-                          color: '#1976d2',
-                          textDecoration: 'none',
-                          fontSize: '0.875rem',
-                        }}
-                      >
-                        Ver →
-                      </Link>
+                {/* Main entity row - always show */}
+                <tr
+                  style={{
+                    borderBottom: '2px solid #ddd',
+                    backgroundColor: '#f9f9f9',
+                  }}
+                >
+                  <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd', fontWeight: '600' }}>
+                    {getEntityLabel(entity, entityType)}
+                  </td>
+                  <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                    <span style={{ textTransform: 'capitalize' }}>{entityType}</span>
+                  </td>
+                  <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                    <code style={{ fontSize: '0.875rem', color: '#666' }}>{entity.id}</code>
+                  </td>
+                  <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd', fontStyle: 'italic', color: '#999' }}>
+                    Entidad Principal
+                  </td>
+                  <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                    <span style={{ fontStyle: 'italic', color: '#999' }}>—</span>
+                  </td>
+                  <td style={{ padding: '0.75rem' }}>
+                    <span style={{ fontStyle: 'italic', color: '#999' }}>—</span>
+                  </td>
+                </tr>
+                {/* Related entities rows */}
+                {relationshipsTable.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '1.5rem', textAlign: 'center', color: '#999', fontStyle: 'italic' }}>
+                      No hay relaciones para esta entidad.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  relationshipsTable.map((rel, index) => (
+                    <tr
+                      key={`${rel.type}-${rel.direction}-${rel.relatedEntity.id}-${index}`}
+                      style={{
+                        borderBottom: '1px solid #eee',
+                      }}
+                    >
+                      <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                        {rel.relatedEntity.label}
+                      </td>
+                      <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                        <span style={{ textTransform: 'capitalize' }}>{rel.relatedEntity.type}</span>
+                      </td>
+                      <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                        <code style={{ fontSize: '0.875rem', color: '#666' }}>{rel.relatedEntity.id}</code>
+                      </td>
+                      <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                        <code style={{ backgroundColor: '#f0f0f0', padding: '0.2rem 0.4rem', borderRadius: '3px' }}>
+                          {rel.type}
+                        </code>
+                      </td>
+                      <td style={{ padding: '0.75rem', borderRight: '1px solid #ddd' }}>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.5rem',
+                            borderRadius: '3px',
+                            fontSize: '0.875rem',
+                            backgroundColor: rel.direction === 'outgoing' ? '#e3f2fd' : '#fff3e0',
+                            color: rel.direction === 'outgoing' ? '#1976d2' : '#f57c00',
+                          }}
+                        >
+                          {rel.direction === 'outgoing' ? '→ Saliente' : '← Entrante'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <Link
+                          to={`/admin/${getRoutePrefix(rel.relatedEntity.type)}/${rel.relatedEntity.id}`}
+                          style={{
+                            color: '#1976d2',
+                            textDecoration: 'none',
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          Ver →
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

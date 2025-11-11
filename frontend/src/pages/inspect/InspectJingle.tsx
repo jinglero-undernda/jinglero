@@ -1,34 +1,64 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { Jingle } from '../../types';
+import EntityCard from '../../components/common/EntityCard';
+import RelatedEntities from '../../components/common/RelatedEntities';
+import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
+import { publicApi } from '../../lib/api';
 
 export default function InspectJingle() {
   const { jingleId } = useParams();
   const [jingle, setJingle] = useState<Jingle | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (jingleId) {
-      setJingle({
-        id: jingleId,
-        title: `Jingle ${jingleId}`,
-        timestamp: '00:00:00',
-        youtubeUrl: 'dQw4w9WgXcQ',
-        isJinglazo: false,
-        isJinglazoDelDia: false,
-        isPrecario: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
+    const fetchJingle = async () => {
+      if (!jingleId) return;
+      
+      try {
+        setLoading(true);
+        setError(null);
+        const fetchedJingle = await publicApi.getJingle(jingleId);
+        setJingle(fetchedJingle);
+      } catch (err) {
+        setError('Error loading jingle');
+        console.error('Error fetching jingle:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchJingle();
   }, [jingleId]);
 
+  const relationships = getRelationshipsForEntityType('jingle');
+
   return (
-    <main>
-      <nav>
+    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      <nav style={{ marginBottom: '2rem' }}>
         <Link to="/">Inicio</Link> | <Link to="/show">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
       </nav>
-      <h1>Jingle: {jingle?.title ?? jingleId}</h1>
-      <p>Información del Jingle aquí.</p>
+      
+      {loading && <p>Loading...</p>}
+      {error && <p style={{ color: 'red' }}>Error: {error}</p>}
+      
+      {jingle && (
+        <>
+          <EntityCard
+            entity={jingle}
+            entityType="jingle"
+            variant="heading"
+            indentationLevel={0}
+          />
+          <RelatedEntities
+            entity={jingle}
+            entityType="jingle"
+            relationships={relationships}
+            entityPath={[jingle.id]}
+          />
+        </>
+      )}
     </main>
   );
 }

@@ -107,7 +107,109 @@
   padding: var(--spacing-sm, 8px) 0;
 }
 
-/* Admin Mode styles */
+/* Task 34: Skeleton loaders for loading states */
+.related-entities__skeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-xs, 4px) 0;
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+.related-entities__skeleton-item {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  border-radius: var(--border-radius-sm, 4px);
+  height: 20px;
+}
+
+.related-entities__skeleton-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.related-entities__skeleton-text {
+  flex: 1;
+  max-width: 200px;
+}
+
+.related-entities__skeleton-text--secondary {
+  max-width: 150px;
+  height: 16px;
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Task 35: Error message styles */
+.related-entities__error-message {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm, 8px);
+  padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+  background-color: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: var(--border-radius-sm, 4px);
+  color: #856404;
+  font-size: 14px;
+  margin: var(--spacing-xs, 4px) 0;
+}
+
+.related-entities__error-message--critical {
+  background-color: #f8d7da;
+  border-color: #dc3545;
+  color: #721c24;
+}
+
+.related-entities__error-text {
+  flex: 1;
+}
+
+.related-entities__error-retry {
+  background: none;
+  border: 1px solid currentColor;
+  color: inherit;
+  padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+  border-radius: var(--border-radius-sm, 4px);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color var(--transition-fast, 0.15s ease);
+}
+
+.related-entities__error-retry:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.related-entities__error-retry:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+/* Task 37: Mode-specific CSS classes */
+.related-entities--admin {
+  /* Admin Mode specific styling */
+}
+
+.related-entities--user {
+  /* User Mode specific styling */
+}
+
+.related-entities--admin .related-entities__row {
+  /* Admin Mode row styling */
+}
+
+.related-entities--user .related-entities__row {
+  /* User Mode row styling */
+}
+
 .related-entities__row--admin {
   /* Admin Mode specific styling if needed */
 }

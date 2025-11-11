@@ -54,8 +54,8 @@ const createMockTematica = (overrides?: Partial<Tematica>): Tematica => ({
 });
 
 describe('EntityCard', () => {
-  describe('Rendering - Card Variant', () => {
-    it('renders Fabrica card with title and date', () => {
+  describe('Rendering - Contents Variant (default)', () => {
+    it('renders Fabrica with title and date', () => {
       const fabrica = createMockFabrica();
       render(<EntityCard entity={fabrica} entityType="fabrica" />);
       
@@ -64,23 +64,23 @@ describe('EntityCard', () => {
       expect(screen.getByText('🏭')).toBeInTheDocument(); // Fabrica icon
     });
 
-    it('renders Jingle card with title', () => {
+    it('renders Jingle with updated icon', () => {
       const jingle = createMockJingle();
       render(<EntityCard entity={jingle} entityType="jingle" />);
       
       expect(screen.getByText('Test Jingle')).toBeInTheDocument();
-      expect(screen.getByText('🎵')).toBeInTheDocument(); // Jingle icon
+      expect(screen.getByText('🎤')).toBeInTheDocument(); // Updated Jingle icon
     });
 
-    it('renders Cancion card with title', () => {
+    it('renders Cancion with updated icon', () => {
       const cancion = createMockCancion();
       render(<EntityCard entity={cancion} entityType="cancion" />);
       
       expect(screen.getByText('Test Cancion')).toBeInTheDocument();
-      expect(screen.getByText('🎶')).toBeInTheDocument(); // Cancion icon
+      expect(screen.getByText('📦')).toBeInTheDocument(); // Updated Cancion icon
     });
 
-    it('renders Artista card with stageName', () => {
+    it('renders Artista with default icon', () => {
       const artista = createMockArtista();
       render(<EntityCard entity={artista} entityType="artista" />);
       
@@ -88,7 +88,7 @@ describe('EntityCard', () => {
       expect(screen.getByText('👤')).toBeInTheDocument(); // Artista icon
     });
 
-    it('renders Tematica card with name', () => {
+    it('renders Tematica with name', () => {
       const tematica = createMockTematica();
       render(<EntityCard entity={tematica} entityType="tematica" />);
       
@@ -97,19 +97,19 @@ describe('EntityCard', () => {
     });
   });
 
-  describe('Rendering - Row Variant', () => {
-    it('renders Fabrica row variant with compact layout', () => {
+  describe('Rendering - Heading Variant', () => {
+    it('renders Fabrica heading variant with light background', () => {
       const fabrica = createMockFabrica();
-      render(<EntityCard entity={fabrica} entityType="fabrica" variant="row" />);
+      render(<EntityCard entity={fabrica} entityType="fabrica" variant="heading" />);
       
       expect(screen.getByText('Test Fabrica')).toBeInTheDocument();
       const card = screen.getByText('Test Fabrica').closest('.entity-card');
-      expect(card).toHaveClass('entity-card--row');
+      expect(card).toHaveClass('entity-card--heading');
     });
 
-    it('renders row variant with inline secondary text', () => {
+    it('renders heading variant with inline secondary text', () => {
       const cancion = createMockCancion({ album: 'Test Album', year: 2024 });
-      render(<EntityCard entity={cancion} entityType="cancion" variant="row" />);
+      render(<EntityCard entity={cancion} entityType="cancion" variant="heading" />);
       
       expect(screen.getByText('Test Cancion')).toBeInTheDocument();
       expect(screen.getByText(/Test Album/)).toBeInTheDocument();
@@ -308,24 +308,6 @@ describe('EntityCard', () => {
     });
   });
 
-  describe('Active State', () => {
-    it('applies active styling when active prop is true', () => {
-      const fabrica = createMockFabrica();
-      render(<EntityCard entity={fabrica} entityType="fabrica" active={true} />);
-      
-      const card = screen.getByRole('article').closest('.entity-card');
-      expect(card).toHaveClass('entity-card--active');
-    });
-
-    it('does not apply active styling when active prop is false', () => {
-      const fabrica = createMockFabrica();
-      render(<EntityCard entity={fabrica} entityType="fabrica" active={false} />);
-      
-      const card = screen.getByRole('article').closest('.entity-card');
-      expect(card).not.toHaveClass('entity-card--active');
-    });
-  });
-
   describe('Accessibility', () => {
     it('has appropriate ARIA labels', () => {
       const fabrica = createMockFabrica();
@@ -391,7 +373,7 @@ describe('EntityCard', () => {
     });
 
     it('handles Tematica without category', () => {
-      const tematica = createMockTematica({ category: undefined } as any);
+      const tematica = createMockTematica({ category: undefined } as Partial<Tematica>);
       render(<EntityCard entity={tematica} entityType="tematica" />);
       
       expect(screen.getByText('Test Tematica')).toBeInTheDocument();
@@ -418,6 +400,210 @@ describe('EntityCard', () => {
       
       const card = screen.getByRole('article').closest('.entity-card');
       expect(card).toHaveClass('custom-class');
+    });
+  });
+
+  describe('Context-Dependent Artista Icons', () => {
+    it('shows default icon for Artista in heading variant', () => {
+      const artista = createMockArtista();
+      render(
+        <EntityCard
+          entity={artista}
+          entityType="artista"
+          variant="heading"
+        />
+      );
+      
+      expect(screen.getByText('👤')).toBeInTheDocument(); // Default Artista icon
+    });
+
+    it('shows Jinglero icon for Artista in contents variant with Jinglero label', () => {
+      const artista = createMockArtista();
+      render(
+        <EntityCard
+          entity={artista}
+          entityType="artista"
+          variant="contents"
+          relationshipLabel="Jinglero"
+        />
+      );
+      
+      expect(screen.getByText('🔧')).toBeInTheDocument(); // Jinglero icon
+    });
+
+    it('shows Autor icon for Artista in contents variant with Autor label', () => {
+      const artista = createMockArtista();
+      render(
+        <EntityCard
+          entity={artista}
+          entityType="artista"
+          variant="contents"
+          relationshipLabel="Autor"
+        />
+      );
+      
+      expect(screen.getByText('🚚')).toBeInTheDocument(); // Autor icon
+    });
+
+    it('shows default icon for Artista without relationship label', () => {
+      const artista = createMockArtista();
+      render(
+        <EntityCard
+          entity={artista}
+          entityType="artista"
+          variant="contents"
+        />
+      );
+      
+      expect(screen.getByText('👤')).toBeInTheDocument(); // Default icon
+    });
+  });
+
+  describe('Indentation Level', () => {
+    it('applies no indentation with level 0', () => {
+      const fabrica = createMockFabrica();
+      const { container } = render(
+        <EntityCard
+          entity={fabrica}
+          entityType="fabrica"
+          indentationLevel={0}
+        />
+      );
+      
+      const card = container.querySelector('.entity-card');
+      expect(card).toHaveStyle({ paddingLeft: 'calc(var(--indent-base, 16px) * 0)' });
+    });
+
+    it('applies indentation with level 1', () => {
+      const fabrica = createMockFabrica();
+      const { container } = render(
+        <EntityCard
+          entity={fabrica}
+          entityType="fabrica"
+          indentationLevel={1}
+        />
+      );
+      
+      const card = container.querySelector('.entity-card');
+      expect(card).toHaveStyle({ paddingLeft: 'calc(var(--indent-base, 16px) * 1)' });
+    });
+
+    it('applies indentation with level 2', () => {
+      const fabrica = createMockFabrica();
+      const { container } = render(
+        <EntityCard
+          entity={fabrica}
+          entityType="fabrica"
+          indentationLevel={2}
+        />
+      );
+      
+      const card = container.querySelector('.entity-card');
+      expect(card).toHaveStyle({ paddingLeft: 'calc(var(--indent-base, 16px) * 2)' });
+    });
+  });
+
+  describe('Field Mapping with Relationship Data', () => {
+    it('displays Cancion with autores in title format', () => {
+      const cancion = createMockCancion();
+      const relationshipData = {
+        autores: [
+          { id: 'a1', stageName: 'Artist One', isArg: true, createdAt: '', updatedAt: '' },
+          { id: 'a2', stageName: 'Artist Two', isArg: true, createdAt: '', updatedAt: '' },
+        ],
+      };
+      
+      render(
+        <EntityCard
+          entity={cancion}
+          entityType="cancion"
+          relationshipData={relationshipData}
+        />
+      );
+      
+      expect(screen.getByText('Test Cancion (Artist One, Artist Two)')).toBeInTheDocument();
+    });
+
+    it('displays Cancion without autores when relationship data not provided', () => {
+      const cancion = createMockCancion();
+      render(
+        <EntityCard
+          entity={cancion}
+          entityType="cancion"
+        />
+      );
+      
+      expect(screen.getByText('Test Cancion')).toBeInTheDocument();
+    });
+
+    it('displays Jingle with fabrica date', () => {
+      const jingle = createMockJingle();
+      const relationshipData = {
+        fabrica: { date: '2024-03-15' },
+      };
+      
+      render(
+        <EntityCard
+          entity={jingle}
+          entityType="jingle"
+          relationshipData={relationshipData}
+        />
+      );
+      
+      // Check for formatted date
+      expect(screen.getByText(/2024/)).toBeInTheDocument();
+    });
+
+    it('displays Jingle with INEDITO when no fabrica date', () => {
+      const jingle = createMockJingle();
+      render(
+        <EntityCard
+          entity={jingle}
+          entityType="jingle"
+        />
+      );
+      
+      expect(screen.getByText('INEDITO')).toBeInTheDocument();
+    });
+  });
+
+  describe('Variant Deprecation Warnings', () => {
+    it('shows deprecation warning for card variant', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fabrica = createMockFabrica();
+      
+      render(
+        <EntityCard
+          entity={fabrica}
+          entityType="fabrica"
+          variant="card"
+        />
+      );
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'EntityCard: variant="card" is deprecated. Use "contents" instead.'
+      );
+      
+      consoleSpy.mockRestore();
+    });
+
+    it('shows deprecation warning for row variant', () => {
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const fabrica = createMockFabrica();
+      
+      render(
+        <EntityCard
+          entity={fabrica}
+          entityType="fabrica"
+          variant="row"
+        />
+      );
+      
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'EntityCard: variant="row" is deprecated. Use "contents" instead.'
+      );
+      
+      consoleSpy.mockRestore();
     });
   });
 });
