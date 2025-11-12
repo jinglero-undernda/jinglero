@@ -537,16 +537,12 @@ describe('EntityCard', () => {
     });
 
     it('displays Jingle with fabrica date', () => {
-      const jingle = createMockJingle();
-      const relationshipData = {
-        fabrica: { date: '2024-03-15' },
-      };
+      const jingle = createMockJingle({ fabricaDate: '2024-03-15' });
       
       render(
         <EntityCard
           entity={jingle}
           entityType="jingle"
-          relationshipData={relationshipData}
         />
       );
       

@@ -42,6 +42,8 @@ export interface Cancion {
   genre?: string;
   youtubeMusic?: string;
   lyrics?: string;
+  // NEW: Redundant foreign keys for performance (denormalized)
+  autorIds?: string[]; // Array of Artista IDs (redundant with AUTOR_DE relationships)
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +85,13 @@ export interface Jingle {
   isJinglazo: boolean;
   isJinglazoDelDia: boolean;
   isPrecario: boolean;
+  // NEW: Redundant foreign keys for performance (denormalized)
+  fabricaId?: string; // ID of Fabrica (redundant with APPEARS_IN relationship)
+  fabricaDate?: string; // Date of Fabrica (redundant with APPEARS_IN->Fabrica.date, for display/query performance)
+  cancionId?: string; // ID of Cancion (redundant with VERSIONA relationship)
+  // NEW: UX identification props
+  isLive?: boolean; // Indicates if Jingle was performed live
+  isRepeat?: boolean; // Indicates if this song was performed on the show before
   createdAt: string;
   updatedAt: string;
 }

@@ -98,7 +98,7 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [x] 2.2 Create `frontend/src/lib/utils/timestamp.ts` with timestamp utilities (parse HH:MM:SS to seconds, format seconds to HH:MM:SS)
   - [x] 2.3 Create `frontend/src/components/player/YouTubePlayer.tsx` component using YouTube IFrame API
   - [x] 2.4 Create `frontend/src/lib/hooks/useYouTubePlayer.ts` hook to manage player state (play, pause, seek, getCurrentTime)
-  - [x] 2.5 Create `frontend/src/components/player/JingleTimeline.tsx` component displaying clickable list of Jingles with timestamps
+  - [x] 2.5 Create `frontend/src/components/player/JingleTimeline.tsx` component displaying expandable/collapsible Jingle rows with timestamps (used in timeline layout with past/current/future sections)
   - [x] 2.6 Create `frontend/src/components/player/JingleMetadata.tsx` component displaying active Jingle details (title, Jinglero, Cancion, Autor, Tematicas)
   - [x] 2.7 Create `frontend/src/lib/hooks/useJingleSync.ts` hook to sync active Jingle based on current playback time
   - [x] 2.8 Rebuild `frontend/src/pages/FabricaPage.tsx` integrating all player components
@@ -107,21 +107,24 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [x] 2.11 Add error handling for video load failures or missing Jingles
   - [x] 2.12 Test video playback, timestamp navigation, and metadata sync with sample Fabrica
 
-- [ ] 3.0 Implement Complete Entity Detail Pages with Relationships
+- [x] 3.0 Implement Complete Entity Detail Pages with Relationships
 
-  - [ ] 3.1 Create `frontend/src/components/common/EntityCard.tsx` reusable component for displaying entity summary cards
-  - [ ] 3.2 Create `frontend/src/components/common/RelatedEntities.tsx` component for displaying related entities with links
-  - [ ] 3.3 Rebuild `frontend/src/pages/JinglePage.tsx` to fetch and display full Jingle data with relationships (Fabrica link with timestamp, Cancion, Jinglero, Autor, Tematicas)
-  - [ ] 3.4 Rebuild `frontend/src/pages/CancionPage.tsx` to display Cancion with list of Jingles using it, other Canciones by same Autor, and related Artistas
-  - [ ] 3.5 Create `frontend/src/pages/ArtistaPage.tsx` to display Artista with their Jingles (as Jinglero) and Canciones (as Autor)
-  - [ ] 3.6 Create `frontend/src/pages/TematicaPage.tsx` to display Tematica with all tagged Jingles
-  - [ ] 3.7 Update `frontend/src/App.tsx` routing to include Artista (`/a/:artistaId`) and Tematica (`/t/:tematicaId`) routes
-  - [ ] 3.8 Add breadcrumb navigation component to show entity hierarchy
-  - [ ] 3.9 Add loading and error states for all entity pages
-  - [ ] 3.10 Test navigation between related entities (e.g., Jingle → Cancion → Autor → other Canciones)
+  - [x] 3.1 Create `frontend/src/components/common/EntityCard.tsx` reusable component for displaying entity summary cards
+  - [x] 3.2 Create `frontend/src/components/common/RelatedEntities.tsx` component for displaying related entities with links
+  - [x] 3.3 Rebuild entity detail pages to fetch and display full entity data with relationships (implemented as `InspectJingle.tsx`, `InspectCancion.tsx`, `InspectArtista.tsx`, `InspectTematica.tsx`, `InspectFabrica.tsx` in `frontend/src/pages/inspect/`)
+  - [x] 3.4 All entity pages display relationships: Jingle (Fabrica link with timestamp, Cancion, Jinglero, Autor, Tematicas), Cancion (Jingles using it, other Canciones by same Autor, related Artistas), Artista (Jingles as Jinglero, Canciones as Autor), Tematica (all tagged Jingles), Fabrica (Jingles with timestamps)
+  - [x] 3.5 All entity detail pages implemented and functional
+  - [x] 3.6 All entity detail pages implemented and functional
+  - [x] 3.7 Update `frontend/src/App.tsx` routing to include all entity routes (`/j/:jingleId`, `/c/:cancionId`, `/a/:artistaId`, `/t/:tematicaId`, `/f/:fabricaId`)
+  - [ ] 3.8 Add breadcrumb navigation component to show entity hierarchy (Post-MVP enhancement)
+  - [x] 3.9 Add loading and error states for all entity pages
+  - [ ] 3.10 Test navigation between related entities (e.g., Jingle → Cancion → Autor → other Canciones) - More thorough testing needed once database is more complete
+  - [ ] 3.11 Consider renaming `Inspect*.tsx` files to `*Page.tsx` for consistency with PRD naming (non-blocking, recommended)
 
-- [ ] 4.0 Build Search Results Page and Enhance Search Experience
+- [ ] 4.0 Build Search Results Page and Enhance Search Experience (PENDING - Future Implementation)
 
+  - [x] 4.0.1 Backend search API implemented (`/api/search` with autocomplete support)
+  - [x] 4.0.2 `SearchBar` component created with autocomplete functionality (debounced, grouped suggestions)
   - [ ] 4.1 Create `frontend/src/pages/SearchResultsPage.tsx` to display grouped search results
   - [ ] 4.2 Update `frontend/src/components/search/SearchBar.tsx` to navigate to `/search?q=query` on submit
   - [ ] 4.3 Create `frontend/src/components/search/SearchResults.tsx` component to display results grouped by entity type (Jingles, Canciones, Artistas, Tematicas)
@@ -134,19 +137,21 @@ This task list outlines the implementation steps for the MVP version of the Jing
 
 - [ ] 5.0 Refine Database Schema Based on UX Insights
 
-  - [ ] 5.1 Document schema issues and improvement opportunities identified during Tasks 1-4 (create `backend/src/server/db/schema/REFINEMENT_NOTES.md`)
-  - [ ] 5.2 Design schema improvements (additional properties, new relationships, constraint changes)
-  - [ ] 5.3 Create migration scripts in `backend/src/server/db/migration/` for schema changes
-  - [ ] 5.4 Update `backend/src/server/db/types.ts` with refined TypeScript types
-  - [ ] 5.5 Update `backend/src/server/db/schema/schema.ts` documentation to reflect changes
-  - [ ] 5.6 Update API endpoints in `backend/src/server/api/public.ts` and `admin.ts` to handle new schema
-  - [ ] 5.7 Update frontend types in `frontend/src/types/index.ts`
-  - [ ] 5.8 Run migration scripts on development database
+  - [x] 5.1 Document schema issues and improvement opportunities identified during Tasks 1-4 (create `backend/src/server/db/schema/REFINEMENT_NOTES.md`)
+  - [x] 5.2 Design schema improvements (additional properties, new relationships, constraint changes)
+  - [x] 5.3 Create migration scripts in `backend/src/server/db/migration/` for schema changes
+  - [x] 5.4 Update `backend/src/server/db/types.ts` with refined TypeScript types
+  - [x] 5.5 Update `backend/src/server/db/schema/schema.ts` documentation to reflect changes
+  - [x] 5.6 Update API endpoints in `backend/src/server/api/public.ts` and `admin.ts` to handle new schema
+  - [x] 5.7 Update frontend types in `frontend/src/types/index.ts`
+  - [x] 5.8 Run migration scripts on development database
   - [ ] 5.9 Test data integrity and API endpoints after migration
   - [ ] 5.10 Update CSV seed files in `backend/src/server/db/import/` if schema changes require it
   - [ ] 5.11 Document migration steps for production deployment
 
-- [ ] 6.0 Rebuild Admin Portal with Knowledge Graph Validation Tools
+- [ ] 6.0 Rebuild Admin Portal with Knowledge Graph Validation Tools (PENDING - Future Implementation)
+
+  **Note:** Admin CRUD pages exist (`AdminJingle`, `AdminFabrica`, `AdminArtista`, `AdminCancion`, `AdminTematica`, `AdminHome`, `AdminEntityAnalyze`) with basic forms (`EntityForm`, `EntityList`, `RelationshipForm`). The rebuild will leverage `RelatedEntities` component in Admin mode (which already supports `isAdmin` prop for immediate relationship visibility and cycle prevention disabled).
 
   - [ ] 6.1 Create `backend/src/server/middleware/auth.ts` with password protection middleware for admin routes
   - [ ] 6.2 Add admin password authentication endpoint `/api/admin/login` (simple password check)
@@ -160,46 +165,53 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [ ] 6.10 Create `backend/src/server/db/import/csvImporter.ts` utilities for CSV parsing and import
   - [ ] 6.11 Add CSV import endpoint `/api/admin/import/csv` with support for all entity types
   - [ ] 6.12 Create `frontend/src/components/admin/CSVImporter.tsx` interface for uploading and importing CSV files
-  - [ ] 6.13 Rebuild `frontend/src/pages/admin/AdminDashboard.tsx` with barebone layout showing entity counts, validation status, and quick actions
+  - [ ] 6.13 Rebuild `frontend/src/pages/admin/AdminDashboard.tsx` with barebone layout showing entity counts, validation status, and quick actions (will use RelatedEntities in Admin mode)
   - [ ] 6.14 Update admin CRUD forms to include validation feedback
   - [ ] 6.15 Add bulk actions (delete multiple entities, bulk relationship creation)
   - [ ] 6.16 Test admin workflows: login, validation, CSV import, CRUD operations
 
-- [ ] 7.0 UX Design and Visual Refinement (Look & Feel)
+- [ ] 7.0 UX Design and Visual Refinement (Look & Feel) (PENDING - Future Implementation)
 
-  - [ ] 7.1 Create `frontend/src/styles/theme/design-system.css` with design tokens (colors, typography, spacing, breakpoints)
-  - [ ] 7.2 Define color palette (primary, secondary, accent, neutral, semantic colors for success/error/warning)
-  - [ ] 7.3 Define typography scale (headings, body, captions, font families)
-  - [ ] 7.4 Create component library styles for buttons, cards, inputs, badges, links
-  - [ ] 7.5 Design and implement visual styles for Fabrica video player page (player, timeline, metadata panel)
-  - [ ] 7.6 Design and implement visual styles for entity detail pages (layout, cards, related entities sections)
-  - [ ] 7.7 Design and implement visual styles for search interface (search bar, results page, filters)
-  - [ ] 7.8 Design and implement visual styles for Home page (hero section, featured Fabricas grid)
-  - [ ] 7.9 Create loading states with skeleton screens or spinners
-  - [ ] 7.10 Create error states with helpful messages and actions
-  - [ ] 7.11 Add micro-interactions and transitions (hover states, focus states, page transitions)
-  - [ ] 7.12 Ensure visual consistency across all public-facing pages
-  - [ ] 7.13 Test visual design across different screen sizes
-  - [ ] 7.14 Gather feedback and iterate on design
+  **Current Status:** Basic styling exists with `variables.css` (design tokens), component styles (`entity-card.css`, `metadata.css`, `player.css`, `timeline.css`, `related-entities.css`), and page styles (`fabrica.css`). Loading states (skeleton screens) and error states are implemented. Formal design system, comprehensive visual refinement, and consistency testing are pending.
+
+  - [ ] 7.1 Create `frontend/src/styles/theme/design-system.css` with design tokens (colors, typography, spacing, breakpoints) - Note: `variables.css` exists but formal design system file pending
+  - [ ] 7.2 Define color palette (primary, secondary, accent, neutral, semantic colors for success/error/warning) - Basic colors exist in `variables.css`, full palette definition pending
+  - [ ] 7.3 Define typography scale (headings, body, captions, font families) - Basic typography exists, full scale definition pending
+  - [ ] 7.4 Create component library styles for buttons, cards, inputs, badges, links - Component styles exist but formal library documentation pending
+  - [ ] 7.5 Design and implement visual styles for Fabrica video player page (player, timeline, metadata panel) - Basic styles exist, visual refinement pending
+  - [ ] 7.6 Design and implement visual styles for entity detail pages (layout, cards, related entities sections) - Basic styles exist, visual refinement pending
+  - [ ] 7.7 Design and implement visual styles for search interface (search bar, results page, filters) - Pending search results page implementation
+  - [ ] 7.8 Design and implement visual styles for Home page (hero section, featured Fabricas grid) - Pending Home page enhancement
+  - [x] 7.9 Create loading states with skeleton screens or spinners - Implemented
+  - [x] 7.10 Create error states with helpful messages and actions - Implemented
+  - [ ] 7.11 Add micro-interactions and transitions (hover states, focus states, page transitions) - Some hover/focus states exist, comprehensive micro-interactions pending
+  - [ ] 7.12 Ensure visual consistency across all public-facing pages - Pending comprehensive review
+  - [ ] 7.13 Test visual design across different screen sizes - Pending
+  - [ ] 7.14 Gather feedback and iterate on design - Pending
 
 - [ ] 8.0 Responsive Design and Legal Compliance
 
-  - [ ] 8.1 Make Fabrica player page responsive (stacked layout on mobile, side-by-side on desktop)
-  - [ ] 8.2 Ensure YouTube player resizes properly on all screen sizes
-  - [ ] 8.3 Make Jingle timeline scrollable and touch-friendly on mobile
-  - [ ] 8.4 Make all entity detail pages responsive (card grids, flexible layouts)
-  - [ ] 8.5 Make search interface responsive (mobile-friendly search bar and results)
-  - [ ] 8.6 Make navigation responsive (hamburger menu on mobile if needed)
-  - [ ] 8.7 Test touch interactions on mobile devices (tap targets, scrolling, gestures)
-  - [ ] 8.8 Test on various devices (iPhone, Android, iPad, different browsers)
-  - [ ] 8.9 Translate all UI text to Spanish (Argentina) - buttons, labels, messages, placeholders
+  **Current Status:** Responsive design is partially implemented with media queries in `fabrica.css` (599px breakpoint for stacked layout), `related-entities.css`, `entity-card.css`, and `admin.css` (600px breakpoints). YouTube player uses aspect-ratio for responsive sizing. Comprehensive device testing pending.
+
+  - [x] 8.1 Make Fabrica player page responsive (stacked layout on mobile, side-by-side on desktop) - Partially implemented with media queries
+  - [x] 8.2 Ensure YouTube player resizes properly on all screen sizes - Implemented with aspect-ratio CSS
+  - [ ] 8.3 Make Jingle timeline scrollable and touch-friendly on mobile (needs testing/refinement)
+  - [x] 8.4 Make all entity detail pages responsive (card grids, flexible layouts) - Partially implemented with media queries
+  - [ ] 8.5 Make search interface responsive (mobile-friendly search bar and results) - Pending search results page implementation
+  - [ ] 8.6 Make navigation responsive (hamburger menu on mobile if needed) - Pending
+  - [ ] 8.7 Test touch interactions on mobile devices (tap targets, scrolling, gestures) - Pending comprehensive testing
+  - [ ] 8.8 Test on various devices (iPhone, Android, iPad, different browsers) - Pending comprehensive testing
+  - [ ] 8.9 Translate all UI text to Spanish (Argentina) - buttons, labels, messages, placeholders (Ongoing task - language review planned for later MVP stages)
   - [ ] 8.10 Create `frontend/src/components/common/LegalDisclaimer.tsx` component with IP rights disclaimer
   - [ ] 8.11 Create `frontend/src/components/layout/Footer.tsx` with legal information and links
   - [ ] 8.12 Add legal disclaimer text referencing Argentinean law (intellectual property, YouTube content usage)
   - [ ] 8.13 Add attribution to "La Fabrica de Jingles" and "Gelatina" streaming station
   - [ ] 8.14 Ensure all legal text is in Spanish and culturally appropriate
 
-- [ ] 9.0 Testing, Polish, and Deployment Preparation
+- [ ] 9.0 Testing, Polish, and Deployment Preparation (PENDING - Future Implementation)
+
+  **Current Status:** Some tests exist (`RelatedEntities.test.tsx`, `EntityCard.test.tsx`, `RelatedEntities.integration.test.tsx`, `routing.test.tsx`, `SearchBar.test.tsx`, `RelatedEntities.reducer.test.ts`, backend `schema.test.ts`, `db.test.ts`). Comprehensive testing suite, deployment documentation, and production preparation are pending.
+
   - [ ] 9.1 Write unit tests for YouTube player component (`frontend/src/components/player/__tests__/YouTubePlayer.test.tsx`)
   - [ ] 9.2 Write unit tests for useJingleSync hook (`frontend/src/lib/hooks/__tests__/useJingleSync.test.ts`)
   - [ ] 9.3 Write unit tests for timestamp utilities

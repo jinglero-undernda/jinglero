@@ -832,7 +832,7 @@ router.get('/entities/jingles/:id/related', async (req, res) => {
       const q1 = `
         MATCH (j:Jingle {id: $jId})<-[:JINGLERO_DE]-(a:Artista)-[:JINGLERO_DE]->(other:Jingle)
         WHERE other.id <> j.id
-        RETURN other { .id, .title, .songTitle, .updatedAt } AS jingle
+        RETURN other { .id, .title, .songTitle, .updatedAt, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle
         ORDER BY jingle.updatedAt DESC
         LIMIT $limit
       `;
@@ -846,7 +846,7 @@ router.get('/entities/jingles/:id/related', async (req, res) => {
       const q2 = `
         MATCH (j:Jingle {id: $jId})-[:VERSIONA]->(c:Cancion)<-[:VERSIONA]-(other:Jingle)
         WHERE other.id <> j.id
-        RETURN other { .id, .title, .songTitle, .updatedAt } AS jingle
+        RETURN other { .id, .title, .songTitle, .updatedAt, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle
         ORDER BY jingle.updatedAt DESC
         LIMIT $limit
       `;
@@ -861,7 +861,7 @@ router.get('/entities/jingles/:id/related', async (req, res) => {
         MATCH (j:Jingle {id: $jId})-[:TAGGED_WITH]->(t:Tematica)<-[:TAGGED_WITH]-(other:Jingle)
         WHERE other.id <> j.id
         WITH other, collect(DISTINCT t.name) AS sharedTematicas
-        RETURN { jingle: other { .id, .title, .songTitle, .updatedAt }, sharedTematicas: sharedTematicas } AS rec
+        RETURN { jingle: other { .id, .title, .songTitle, .updatedAt, .fabricaId, .fabricaDate, .isLive, .isRepeat }, sharedTematicas: sharedTematicas } AS rec
         ORDER BY size(sharedTematicas) DESC, rec.jingle.updatedAt DESC
         LIMIT $limit
       `;
@@ -903,7 +903,7 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
     const jinglesUsingCancionQuery = `
       MATCH (c:Cancion {id: $cId})<-[:VERSIONA]-(j:Jingle)
       OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
-      RETURN j { .id, .title, .songTitle, .updatedAt } AS jingle,
+      RETURN j { .id, .title, .songTitle, .updatedAt, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle,
              f { .id, .title, .date, .updatedAt } AS fabrica
       ORDER BY j.updatedAt DESC
       LIMIT $limit
@@ -917,7 +917,7 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
     `;
     const jinglesByAutorIfJingleroQuery = `
       MATCH (c:Cancion {id: $cId})<-[:AUTOR_DE]-(a:Artista)-[:JINGLERO_DE]->(j:Jingle)
-      RETURN j { .id, .title, .songTitle, .updatedAt } AS jingle
+      RETURN j { .id, .title, .songTitle, .updatedAt, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle
       ORDER BY j.updatedAt DESC
       LIMIT $limit
     `;
@@ -990,7 +990,7 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
     const jinglesByJingleroQuery = `
       MATCH (a:Artista {id: $aId})-[:JINGLERO_DE]->(j:Jingle)
       OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
-      RETURN j { .id, .title, .songTitle, .updatedAt, .isJinglazo, .isJinglazoDelDia, .isPrecario } AS jingle,
+      RETURN j { .id, .title, .songTitle, .updatedAt, .isJinglazo, .isJinglazoDelDia, .isPrecario, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle,
              f { .id, .title, .date, .updatedAt } AS fabrica
       ORDER BY j.updatedAt DESC
       LIMIT $limit

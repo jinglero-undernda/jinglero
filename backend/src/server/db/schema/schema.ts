@@ -40,6 +40,11 @@ Nodes:
    - isJinglazo: boolean
    - isJinglazoDelDia: boolean
    - isPrecario: boolean
+  - fabricaId: string (optional, redundant with APPEARS_IN relationship - for performance)
+  - fabricaDate: datetime (optional, redundant with APPEARS_IN->Fabrica.date - for display/query performance)
+  - cancionId: string (optional, redundant with VERSIONA relationship - for performance)
+  - isLive: boolean (optional, indicates if Jingle was performed live)
+  - isRepeat: boolean (optional, indicates if this song was performed on the show before)
    - createdAt: datetime
    - updatedAt: datetime
 
@@ -73,6 +78,7 @@ Nodes:
    - genre: string (optional)
    - youtubeMusic: string (optional)
    - lyrics: string (optional, URL to retrieve lyrics)
+   - autorIds: string[] (optional, redundant with AUTOR_DE relationships - for performance)
    - createdAt: datetime
    - updatedAt: datetime
 

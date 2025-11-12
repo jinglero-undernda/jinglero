@@ -12,7 +12,7 @@ The platform will utilize React for the frontend, Neo4j for the knowledge databa
 
 ### Dataset Size
 
-- **50-60 Fabricas** (complete video episodes)
+- **50-85 Fabricas** (complete video episodes)
 - **1,300 Jingles** (individual performances with timestamps)
 - **800 Canciones** (original songs)
 - **1,000 Artistas** (performers and original artists)
@@ -60,6 +60,8 @@ The absolute minimum features required to launch the MVP:
 - Grouped results by entity type
 - Links to detail pages
 
+**Current Status:** Backend search API and SearchBar component with autocomplete are implemented. Search results page, Home page integration, and navigation to search results are pending future implementation.
+
 ### 3. Entity Detail Pages (CORE)
 
 - **Jingle page**: Show single Jingle details with links to Fabrica (timestamp), Cancion, Jinglero, Autor, and Tematicas
@@ -74,6 +76,8 @@ The absolute minimum features required to launch the MVP:
 - CSV import for initial data seeding
 - Password-protected admin route
 
+**Current Status:** Basic Admin CRUD pages and forms exist (`AdminJingle`, `AdminFabrica`, `AdminArtista`, `AdminCancion`, `AdminTematica`, `AdminHome`, `AdminEntityAnalyze` with `EntityForm`, `EntityList`, `RelationshipForm`). Password protection, validation tools, and CSV import are pending future implementation. The rebuild will leverage `RelatedEntities` component in Admin mode (already supports `isAdmin` prop).
+
 ### MVP Success Criteria
 
 - User can search for content and find it
@@ -86,9 +90,9 @@ The absolute minimum features required to launch the MVP:
 ### Listening Experience
 
 - As a user, I want to view / listen to the streaming show, while detailed information of the current Jingle is being dynamically displayed.
-- As a user, I want to expand or collapse the blocks of information being displayed.
+- As a user, I want to expand or collapse the blocks of information being displayed. (Implemented in Entity detail pages; timeline rows in Show page are expandable; active metadata panel expand/collapse may be added in future iteration)
 - As a user, I want to skip forward or back to the time-stamps where a Jingle starts.
-- As a user, I want to be able to jump to another Jingle or Cancion that I have discivered in the dynamic information display.
+- As a user, I want to be able to jump to another Jingle or Cancion that I have discivered in the dynamic information display. (Note: Navigation to related entity pages from Show page metadata is Post-MVP; skip navigation within video is MVP)
 
 ### Content Curation and Discovery
 
@@ -99,8 +103,8 @@ The absolute minimum features required to launch the MVP:
 
 ### General Layout
 
-1. Present all user interface elements in Spanish (Argentina)
-2. Include disclaimers on Intellectual Property rights and ties to actual people - use Argentinean legal references.
+1. Present all user interface elements in Spanish (Argentina) - Ongoing task; language review planned for later MVP stages
+2. Include disclaimers on Intellectual Property rights and ties to actual people - use Argentinean legal references. (Pending - LegalDisclaimer and Footer components to be created)
 
 ### Authentication System
 
@@ -138,24 +142,32 @@ The absolute minimum features required to launch the MVP:
 
 **Cancion Detail Page:**
 
-19. Enable direct YouTube video playback on the platform (embed)
-20. Load thumbnail first, buffer video only on user play
-21. Display list of Jingles that use this Cancion, with links to Fabrica + timestamp
-22. Display list of other Canciones by the same Autor (if available)
-23. **Post-MVP**: Cancion sharing functionality
+19. Display Cancion metadata with related entities (Note: Direct YouTube video playback is not required for Cancion detail page; video playback is on Fabrica/Show page)
+20. Display list of Jingles that use this Cancion, with links to Fabrica + timestamp
+21. Display list of other Canciones by the same Autor (if available)
+22. **Post-MVP**: Cancion sharing functionality
 
-**Fabrica Detail Page - MVP CORE FEATURE:** 24. **MVP Critical**: Enable full YouTube video playback on the platform 25. **MVP Critical**: Load thumbnail first, buffer video only on user play 26. **MVP Critical**: Display list of Jingles with metadata that updates based on current playback time 27. **MVP Critical**: Allow users to skip directly to Jingle timestamps 28. **MVP Critical**: Display active Jingle metadata: - Titulo del Jingle - Jinglero name and link - Cancion title and link - Autor name and link - Tematicas 29. **Post-MVP**: Expandable metadata panels showing related content 30. **Post-MVP**: Direct Jingle sharing with timestamp deep-links
+**Fabrica Detail Page (Show/Video Player) - MVP CORE FEATURE:** 24. **MVP Critical**: Enable full YouTube video playback on the platform 25. **MVP Critical**: Video player loads with thumbnail visible; buffering occurs only when user initiates play (autoplay=false by default) 26. **MVP Critical**: Display Jingles in a timeline layout with three scrollable sections: past Jingles (collapsed rows above), current Jingle (player + metadata panel in center, fixed position to prevent reload), and future Jingles (collapsed rows below). Metadata updates based on current playback time. 27. **MVP Critical**: Allow users to skip directly to Jingle timestamps (forward/backward navigation within video) 28. **MVP Critical**: Display active Jingle metadata: - Titulo del Jingle - Jinglero name - Cancion title - Autor name - Tematicas (Note: Navigation links to related entity pages are not required for MVP; skip navigation within video is the primary navigation mechanism) 29. **Post-MVP**: Expandable metadata panels showing related content 30. **Post-MVP**: Navigation links to related entity pages (Jinglero, Cancion, Autor, Tematica detail pages) 31. **Post-MVP**: Direct Jingle sharing with timestamp deep-links
 
 **Artista Detail Page:**
 
-31. Display Jinglero's Jingles with links to Fabricas
-32. Display Autor's Canciones with links to related Jingles
-33. **Post-MVP**: User verification and claiming functionality
+32. Display Artista metadata with related entities
+33. Display Jinglero's Jingles with links to Fabricas
+34. Display Autor's Canciones with links to related Jingles
+35. **Post-MVP**: User verification and claiming functionality
 
 **Tematica Page:**
 
-34. Display Jingles tagged with this Tematica
-35. Show Tematica category and description
+36. Display Tematica metadata with related entities
+37. Display Jingles tagged with this Tematica
+38. Show Tematica category and description
+
+**Fabrica Detail Page (Entity View):**
+
+39. Display Fabrica metadata with related entities (Note: This is separate from the Show/Video Player page; entity detail page shows relationships, while `/show/:fabricaId` is the video player experience)
+40. Display list of Jingles in this Fabrica with links to timestamps
+
+**Note:** All entity detail pages (Jingle, Cancion, Artista, Tematica, Fabrica) are implemented using `EntityCard` and `RelatedEntities` components. Pages are currently named `Inspect*.tsx` in `frontend/src/pages/inspect/` folder. Renaming to `*Page.tsx` for consistency is recommended but non-blocking. More thorough testing of navigation between related entities is needed once the database is more complete.
 
 ### Navigation and Relationships - MVP Critical
 

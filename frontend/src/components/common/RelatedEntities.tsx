@@ -973,10 +973,21 @@ function RelatedEntities({
                           
                           // Extract relationship data from entity if it exists (e.g., fabrica for Jingle)
                           // The backend may include relationship data directly in the entity object
-                          const relationshipData: Record<string, unknown> | undefined = 
-                            rel.entityType === 'jingle' && (entity as any).fabrica
-                              ? { fabrica: (entity as any).fabrica }
-                              : undefined;
+                          // If Jingle is nested under a Fabrica, use the parent Fabrica's ID
+                          const relationshipData: Record<string, unknown> | undefined = (() => {
+                            if (rel.entityType === 'jingle') {
+                              // Check if fabrica data is in the entity object
+                              if ((entity as any).fabrica) {
+                                return { fabrica: (entity as any).fabrica };
+                              }
+                              // If the parent entity (root entity) is a Fabrica, use its ID
+                              // This handles the case where Jingles are nested under a Fabrica
+                              if (entityType === 'fabrica') {
+                                return { fabrica: { id: entity.id } };
+                              }
+                            }
+                            return undefined;
+                          })();
                           
                           return (
                             <React.Fragment key={rowId}>
@@ -1122,6 +1133,31 @@ function RelatedEntities({
                                         // Check if nested entity has expandable relationships
                                         const nestedEntityHasNested = !isAdmin && expandableNestedRelationships.length > 0 && nestedEntityCanExpand;
                                         const nestedEntityIsExpanded = state.expandedEntities.has(row.entity.id);
+                                        // Determine parent entity type by checking the entity object structure
+                                        // This is needed to know if a Jingle is nested under a Fabrica
+                                        const parentEntityType: EntityType | null = (() => {
+                                          // Check if entity has Fabrica properties
+                                          if ((entity as any).date && (entity as any).youtubeUrl) {
+                                            return 'fabrica';
+                                          }
+                                          // Check if entity has Jingle properties
+                                          if ((entity as any).timestamp !== undefined) {
+                                            return 'jingle';
+                                          }
+                                          // Check if entity has Cancion properties
+                                          if ((entity as any).album !== undefined || (entity as any).year !== undefined) {
+                                            return 'cancion';
+                                          }
+                                          // Check if entity has Artista properties
+                                          if ((entity as any).stageName !== undefined || (entity as any).name !== undefined) {
+                                            return 'artista';
+                                          }
+                                          // Check if entity has Tematica properties
+                                          if ((entity as any).category !== undefined) {
+                                            return 'tematica';
+                                          }
+                                          return null;
+                                        })();
                                         
                                         console.log(`[DEBUG] Nested entity ${row.entity.id} (${row.entityType}):`, {
                                           hasRelationships: nestedEntityRelationships.length > 0,
@@ -1159,10 +1195,27 @@ function RelatedEntities({
                                           : [];
                                         
                                         // Extract relationship data for nested entity
-                                        const nestedRelationshipData: Record<string, unknown> | undefined = 
-                                          row.entityType === 'jingle' && (row.entity as any).fabrica
-                                            ? { fabrica: (row.entity as any).fabrica }
-                                            : undefined;
+                                        // If Jingle is nested under a Fabrica, use the parent entity's ID
+                                        const nestedRelationshipData: Record<string, unknown> | undefined = (() => {
+                                          if (row.entityType === 'jingle') {
+                                            // Check if fabrica data is in the entity object
+                                            if ((row.entity as any).fabrica) {
+                                              return { fabrica: (row.entity as any).fabrica };
+                                            }
+                                            // If the parent entity (the one that was expanded) is a Fabrica, use its ID
+                                            if (parentEntityType === 'fabrica') {
+                                              return { fabrica: { id: entity.id } };
+                                            }
+                                            // Check if the Jingle has a Fabrica relationship that's been loaded
+                                            // Look for "Fabrica-fabrica-{jingleId}" in loadedData
+                                            const fabricaKey = `Fabrica-fabrica-${row.entity.id}`;
+                                            const fabricaData = state.loadedData[fabricaKey];
+                                            if (Array.isArray(fabricaData) && fabricaData.length > 0 && fabricaData[0]) {
+                                              return { fabrica: fabricaData[0] };
+                                            }
+                                          }
+                                          return undefined;
+                                        })();
                                         
                                         return (
                                           <React.Fragment key={row.id}>

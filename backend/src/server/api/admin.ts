@@ -71,6 +71,85 @@ function generateId(type: string): string {
   return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
+/**
+ * Update redundant properties when relationships are created/updated/deleted
+ * This maintains data consistency between relationships and denormalized properties
+ */
+async function updateRedundantPropertiesOnRelationshipChange(
+  relType: string,
+  startId: string,
+  endId: string,
+  operation: 'create' | 'delete'
+): Promise<void> {
+  try {
+    // APPEARS_IN: Jingle -> Fabrica
+    // Update Jingle.fabricaId and Jingle.fabricaDate
+    if (relType === 'APPEARS_IN' && operation === 'create') {
+      const updateQuery = `
+        MATCH (j:Jingle {id: $startId}), (f:Fabrica {id: $endId})
+        SET j.fabricaId = f.id,
+            j.fabricaDate = f.date
+      `;
+      await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+    } else if (relType === 'APPEARS_IN' && operation === 'delete') {
+      // Only clear fabricaId and fabricaDate if no other APPEARS_IN relationships exist
+      const updateQuery = `
+        MATCH (j:Jingle {id: $startId})
+        WHERE NOT EXISTS((j)-[:APPEARS_IN]->())
+        SET j.fabricaId = null,
+            j.fabricaDate = null
+      `;
+      await db.executeQuery(updateQuery, { startId }, undefined, true);
+    }
+
+    // VERSIONA: Jingle -> Cancion
+    // Update Jingle.cancionId
+    if (relType === 'VERSIONA' && operation === 'create') {
+      const updateQuery = `
+        MATCH (j:Jingle {id: $startId}), (c:Cancion {id: $endId})
+        SET j.cancionId = c.id
+      `;
+      await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+    } else if (relType === 'VERSIONA' && operation === 'delete') {
+      const updateQuery = `
+        MATCH (j:Jingle {id: $startId})
+        WHERE NOT EXISTS((j)-[:VERSIONA]->())
+        SET j.cancionId = null
+      `;
+      await db.executeQuery(updateQuery, { startId }, undefined, true);
+    }
+
+    // AUTOR_DE: Artista -> Cancion
+    // Update Cancion.autorIds array
+    if (relType === 'AUTOR_DE') {
+      if (operation === 'create') {
+        // Add artista ID to Cancion.autorIds array
+        const updateQuery = `
+          MATCH (a:Artista {id: $startId}), (c:Cancion {id: $endId})
+          SET c.autorIds = CASE
+            WHEN c.autorIds IS NULL THEN [$startId]
+            WHEN NOT $startId IN c.autorIds THEN c.autorIds + [$startId]
+            ELSE c.autorIds
+          END
+        `;
+        await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+      } else if (operation === 'delete') {
+        // Remove artista ID from Cancion.autorIds array
+        const updateQuery = `
+          MATCH (c:Cancion {id: $endId})
+          WHERE c.autorIds IS NOT NULL
+          SET c.autorIds = [x IN c.autorIds WHERE x <> $startId]
+        `;
+        await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+      }
+    }
+  } catch (error) {
+    // Log error but don't fail the relationship operation
+    // Redundant properties can be fixed later via migration/validation
+    console.warn(`Warning: Failed to update redundant properties for ${relType}:`, error);
+  }
+}
+
 // Schema management endpoints
 router.get('/schema', asyncHandler(async (req, res) => {
   const schemaInfo = await getSchemaInfo();
@@ -174,6 +253,15 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
     end: payload.end, 
     properties 
   }, undefined, true);
+  
+  // Update redundant properties after relationship creation
+  await updateRedundantPropertiesOnRelationshipChange(
+    neo4jRelType,
+    payload.start,
+    payload.end,
+    'create'
+  );
+  
   res.status(201).json(result[0].r);
 }));
 
@@ -200,6 +288,15 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
   if (result[0].deletedCount === 0) {
     throw new NotFoundError('Relationship not found');
   }
+  
+  // Update redundant properties after relationship deletion
+  await updateRedundantPropertiesOnRelationshipChange(
+    neo4jRelType,
+    payload.start,
+    payload.end,
+    'delete'
+  );
+  
   res.json({ message: 'Relationship deleted successfully' });
 }));
 

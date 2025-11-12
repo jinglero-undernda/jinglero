@@ -164,10 +164,10 @@ function getSecondaryText(
       return null;
     }
     case 'jingle': {
-      // Show fabrica.date or "INEDITO"
-      const fabrica = relationshipData?.fabrica as { date?: string } | undefined;
-      if (fabrica?.date) {
-        return formatDate(fabrica.date);
+      // Show fabricaDate (denormalized) or "INEDITO"
+      const jingle = entity as Jingle;
+      if (jingle.fabricaDate) {
+        return formatDate(jingle.fabricaDate);
       }
       return 'INEDITO';
     }
