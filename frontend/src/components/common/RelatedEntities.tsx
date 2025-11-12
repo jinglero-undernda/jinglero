@@ -201,13 +201,15 @@ export function relatedEntitiesReducer(
 /**
  * RelatedEntities Component
  * 
- * Displays related entities in a nested table format with expand/collapse functionality.
- * Uses EntityCard in row variant for each entity.
+ * Displays related entities in a hierarchical container structure with expand/collapse functionality.
+ * Uses EntityCard in contents variant for each entity, with indentation to indicate nesting depth.
  * 
  * ## Features
  * 
- * - **Two-column layout**: Label column (left) and data column (right)
+ * - **Hierarchical navigation structure**: Semantic `<nav>` container with flat row rendering
+ * - **Indentation-based nesting**: EntityCard indentationLevel prop indicates depth (0, 1, 2, etc.)
  * - **Expand/collapse functionality**: User Mode only, relationships can be expanded to show nested entities
+ * - **Flat rendering**: All rows (parent + nested) rendered as siblings with proper indentation
  * - **Cycle prevention**: User Mode prevents entities from appearing multiple times in the same path
  * - **Lazy loading**: User Mode loads relationships only when expanded
  * - **Eager loading**: Admin Mode loads all relationships immediately on mount
@@ -660,170 +662,220 @@ function RelatedEntities({
   // Task 37: Add mode-specific CSS classes
   const modeClass = isAdmin ? 'related-entities--admin' : 'related-entities--user';
 
+  // Helper function to recursively collect all rows into a flat array
+  // This replaces the nested table structure with a flat container structure
+  type FlatRow = {
+    id: string;
+    entity: RelatedEntity;
+    entityType: EntityType;
+    indentLevel: number;
+    relationshipLabel: string;
+  };
+
+  const collectFlatRows = useCallback(
+    (
+      currentEntityRelationships: RelationshipConfig[],
+      currentIndentLevel: number,
+      currentEntityPath: string[]
+    ): FlatRow[] => {
+      const rows: FlatRow[] = [];
+
+      currentEntityRelationships.forEach((rel) => {
+        const key = getRelationshipKey(rel);
+        const isExpanded = isAdmin ? true : state.expandedRelationships.has(key);
+        const entities = state.loadedData[key] || [];
+
+        if (isExpanded && entities.length > 0) {
+          // Add all entities for this relationship at the current indent level
+          entities.forEach((relatedEntity) => {
+            rows.push({
+              id: `${key}-${relatedEntity.id}`,
+              entity: relatedEntity,
+              entityType: rel.entityType,
+              indentLevel: currentIndentLevel,
+              relationshipLabel: rel.label,
+            });
+
+            // Recursively collect nested relationships if:
+            // - Relationship is expandable
+            // - We haven't reached max depth
+            // - Not in Admin Mode (Admin Mode disables nesting)
+            // - No cycle detected
+            const hasNested = !isAdmin && rel.expandable && canExpand;
+            const relatedEntityPath = [...currentEntityPath, relatedEntity.id];
+            const hasCycle = relatedEntityPath.slice(0, -1).includes(relatedEntity.id);
+
+            if (hasNested && !hasCycle) {
+              const nestedRelationships = getRelationshipsForEntityType(rel.entityType);
+              const nestedRows = collectFlatRows(
+                nestedRelationships,
+                currentIndentLevel + 1,
+                relatedEntityPath
+              );
+              rows.push(...nestedRows);
+            }
+          });
+        }
+      });
+
+      return rows;
+    },
+    [isAdmin, state.expandedRelationships, state.loadedData, canExpand, getRelationshipKey, entityPath]
+  );
+
+  // Collect all rows into a flat array
+  const flatRows = useMemo(
+    () => collectFlatRows(visibleRelationships, 0, entityPath),
+    [visibleRelationships, entityPath, collectFlatRows]
+  );
+
   return (
     <div className={`related-entities ${modeClass} ${className}`}>
-      <table className="related-entities__table">
-        <tbody>
-          {visibleRelationships.map((rel) => {
-            const key = getRelationshipKey(rel);
-            // Task 17: In Admin Mode, always show expanded (no collapse/expand UI)
-            const isExpanded = isAdmin ? true : state.expandedRelationships.has(key);
-            const isLoading = state.loadingStates[key] || false;
-            const entities = state.loadedData[key] || [];
-            // Use entities.length if we have loaded data, otherwise use count if available
-            const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
+      <nav className="related-entities__container" aria-label="Related entities">
+        {visibleRelationships.map((rel) => {
+          const key = getRelationshipKey(rel);
+          const isExpanded = isAdmin ? true : state.expandedRelationships.has(key);
+          const isLoading = state.loadingStates[key] || false;
+          const entities = state.loadedData[key] || [];
+          const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
 
-            return (
-              <tr 
-                key={key} 
-                className={`related-entities__row ${isAdmin ? 'related-entities__row--admin' : ''}`}
-                aria-expanded={isExpanded}
-              >
-                <td className="related-entities__label-col" scope="row">{rel.label}:</td>
-                <td className="related-entities__data-col">
-                  {!isExpanded ? (
-                    // Collapsed: show count (only in User Mode)
-                    <div className="related-entities__collapsed">
-                      {count > 0 ? (
-                        <span className="related-entities__count">{count} {rel.label.toLowerCase()}</span>
-                      ) : (
-                        <span className="related-entities__empty">—</span>
-                      )}
-                      {/* Task 17: Hide expand button in Admin Mode */}
-                      {!isAdmin && rel.expandable && canExpand && (
-                        <button
-                          className="related-entities__expand-btn"
-                          onClick={() => handleToggleRelationship(rel)}
-                          onKeyDown={(e) => {
-                            // Task 42: Keyboard navigation support
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              handleToggleRelationship(rel);
-                            }
-                          }}
-                          aria-label={`Expandir ${rel.label.toLowerCase()}`}
-                          aria-expanded={isExpanded}
-                          title="Expandir"
-                        >
-                          {isExpanded ? '▲' : '▼'}
-                        </button>
-                      )}
-                    </div>
+          return (
+            <div key={key} className="related-entities__section">
+              {!isExpanded ? (
+                // Collapsed: show count and expand button (only in User Mode)
+                <div
+                  className="related-entities__collapsed"
+                  role="button"
+                  tabIndex={0}
+                  aria-expanded={isExpanded}
+                  onClick={() => !isAdmin && rel.expandable && canExpand && handleToggleRelationship(rel)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ' ') && !isAdmin && rel.expandable && canExpand) {
+                      e.preventDefault();
+                      handleToggleRelationship(rel);
+                    }
+                  }}
+                >
+                  <span className="related-entities__label">{rel.label}:</span>
+                  {count > 0 ? (
+                    <span className="related-entities__count">{count} {rel.label.toLowerCase()}</span>
                   ) : (
-                    // Expanded: show entity list
-                    <div 
-                      className="related-entities__expanded"
-                      role="region"
-                      aria-label={`${rel.label} relacionadas`}
-                      aria-live="polite"
-                      aria-busy={isLoading}
-                    >
-                      {isLoading && entities.length === 0 ? (
-                        // Task 34: Skeleton loaders for loading states
-                        <div className="related-entities__skeleton-container" aria-label="Cargando">
-                          {Array.from({ length: 3 }).map((_, idx) => (
-                            <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
-                              <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
-                              <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
-                              <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
-                            </div>
-                          ))}
-                        </div>
-                      ) : state.errors[key] ? (
-                        // Task 35: User-friendly error messages with retry
-                        <div 
-                          className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
-                          role="alert"
-                          aria-live="assertive"
-                        >
-                          <span className="related-entities__error-text">
-                            {state.errors[key]?.name === 'AbortError' 
-                              ? 'Carga cancelada'
-                              : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`
-                            }
-                          </span>
-                          {state.errors[key]?.name !== 'AbortError' && (
-                            <button
-                              className="related-entities__error-retry"
-                              onClick={() => {
+                    <span className="related-entities__empty">—</span>
+                  )}
+                  {!isAdmin && rel.expandable && canExpand && (
+                    <span className="related-entities__expand-icon" aria-hidden="true">▼</span>
+                  )}
+                </div>
+              ) : (
+                // Expanded: show section header and entity rows
+                <div className="related-entities__expanded">
+                  {/* Section header with collapse button */}
+                  <div className="related-entities__header">
+                    <span className="related-entities__label">{rel.label}:</span>
+                    {!isAdmin && rel.expandable && (
+                      <button
+                        className="related-entities__collapse-btn"
+                        onClick={() => handleToggleRelationship(rel)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleToggleRelationship(rel);
+                          }
+                        }}
+                        aria-label={`Colapsar ${rel.label.toLowerCase()}`}
+                        aria-expanded={isExpanded}
+                        title="Colapsar"
+                      >
+                        ▲
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Content area */}
+                  <div
+                    className="related-entities__content"
+                    role="region"
+                    aria-label={`${rel.label} relacionadas`}
+                    aria-live="polite"
+                    aria-busy={isLoading}
+                  >
+                    {isLoading && entities.length === 0 ? (
+                      // Task 34: Skeleton loaders for loading states
+                      <div className="related-entities__skeleton-container" aria-label="Cargando">
+                        {Array.from({ length: 3 }).map((_, idx) => (
+                          <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                            <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                            <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                            <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : state.errors[key] ? (
+                      // Task 35: User-friendly error messages with retry
+                      <div
+                        className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                        role="alert"
+                        aria-live="assertive"
+                      >
+                        <span className="related-entities__error-text">
+                          {state.errors[key]?.name === 'AbortError'
+                            ? 'Carga cancelada'
+                            : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`
+                          }
+                        </span>
+                        {state.errors[key]?.name !== 'AbortError' && (
+                          <button
+                            className="related-entities__error-retry"
+                            onClick={() => {
+                              dispatch({ type: 'CLEAR_ERROR', key });
+                              handleToggleRelationship(rel);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
                                 dispatch({ type: 'CLEAR_ERROR', key });
                                 handleToggleRelationship(rel);
-                              }}
-                              onKeyDown={(e) => {
-                                // Task 42: Keyboard navigation support
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  dispatch({ type: 'CLEAR_ERROR', key });
-                                  handleToggleRelationship(rel);
-                                }
-                              }}
-                              aria-label="Reintentar carga"
-                            >
-                              Reintentar
-                            </button>
-                          )}
-                        </div>
-                      ) : entities.length === 0 ? (
-                        <div className="related-entities__empty" aria-live="polite">No hay entidades relacionadas</div>
-                      ) : (
-                        <>
-                          {entities.map((relatedEntity) => {
-                            // Task 20: In Admin Mode, don't show nested relationships (limit nesting depth)
-                            const hasNested = isAdmin ? false : (rel.expandable && canExpand);
-                            const relatedEntityPath = [...entityPath, relatedEntity.id];
+                              }
+                            }}
+                            aria-label="Reintentar carga"
+                          >
+                            Reintentar
+                          </button>
+                        )}
+                      </div>
+                    ) : entities.length === 0 ? (
+                      <div className="related-entities__empty" aria-live="polite">No hay entidades relacionadas</div>
+                    ) : (
+                      // Render all entity rows for this relationship (including nested ones from flatRows)
+                      // flatRows already contains all rows with proper indentation levels
+                      flatRows
+                        .filter(row => row.id.startsWith(key))
+                        .map(row => (
+                          <div key={row.id} className="related-entities__row">
+                            <EntityCard
+                              entity={row.entity}
+                              entityType={row.entityType}
+                              variant="contents"
+                              indentationLevel={row.indentLevel}
+                              relationshipLabel={row.relationshipLabel}
+                            />
+                          </div>
+                        ))
+                    )}
 
-                            return (
-                              <div key={relatedEntity.id} className="related-entities__entity-row">
-                                <EntityCard
-                                  entity={relatedEntity}
-                                  entityType={rel.entityType}
-                                  variant="contents"
-                                  relationshipLabel={rel.label}
-                                  // Task 36: Remove expansion props - expansion is handled by RelatedEntities component
-                                  // hasNestedEntities and onToggleExpand removed as expansion is handled by RelatedEntities
-                                />
-                                {/* Task 20: Recursive nested RelatedEntities - disabled in Admin Mode */}
-                                {hasNested && canExpand && !isAdmin && (
-                                  <RelatedEntities
-                                    entity={relatedEntity}
-                                    entityType={rel.entityType}
-                                    relationships={getRelationshipsForEntityType(rel.entityType)}
-                                    entityPath={relatedEntityPath}
-                                    maxDepth={maxDepth}
-                                    className="related-entities__nested"
-                                    isAdmin={isAdmin}
-                                  />
-                                )}
-                              </div>
-                            );
-                          })}
-                        </>
-                      )}
-                      {/* Task 18: Add blank row for Admin Mode (placeholder for adding new relationships) */}
-                      {isAdmin && (
-                        <div className="related-entities__blank-row" title="Fila en blanco para agregar nueva relación (funcionalidad futura)">
-                          <div className="related-entities__empty">+ Agregar {rel.label.toLowerCase()}</div>
-                        </div>
-                      )}
-                      {/* Task 17: Hide collapse button in Admin Mode */}
-                      {!isAdmin && rel.expandable && (
-                        <button
-                          className="related-entities__collapse-btn"
-                          onClick={() => handleToggleRelationship(rel)}
-                          aria-label="Colapsar"
-                          title="Colapsar"
-                        >
-                          ▲
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                    {/* Task 18: Add blank row for Admin Mode */}
+                    {isAdmin && entities.length > 0 && (
+                      <div className="related-entities__blank-row" title="Fila en blanco para agregar nueva relación (funcionalidad futura)">
+                        <div className="related-entities__empty">+ Agregar {rel.label.toLowerCase()}</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
     </div>
   );
 }

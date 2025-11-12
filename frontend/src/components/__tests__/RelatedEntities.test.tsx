@@ -270,9 +270,9 @@ describe('RelatedEntities', () => {
         />
       );
 
-      // Find and click expand button
-      const expandButton = screen.getByLabelText(/Expandir/i);
-      fireEvent.click(expandButton);
+      // Find and click collapsed relationship area (now the entire area is clickable)
+      const collapsedArea = screen.getByRole('button', { expanded: false });
+      fireEvent.click(collapsedArea);
 
       // Wait for entities to load and display
       await waitFor(() => {
@@ -514,9 +514,9 @@ describe('RelatedEntities', () => {
       // Initially, fetchFn should NOT have been called
       expect(mockFetchFn).not.toHaveBeenCalled();
 
-      // Find and click expand button
-      const expandButton = screen.getByLabelText(/Expandir/i);
-      fireEvent.click(expandButton);
+      // Find and click collapsed relationship area (now the entire area is clickable)
+      const collapsedArea = screen.getByRole('button', { expanded: false });
+      fireEvent.click(collapsedArea);
 
       // Now fetchFn should be called
       await waitFor(() => {
@@ -653,9 +653,9 @@ describe('RelatedEntities', () => {
         />
       );
 
-      // Expand first time
-      const expandButton = screen.getByLabelText(/Expandir/i);
-      fireEvent.click(expandButton);
+      // Expand first time - click collapsed area
+      const collapsedArea = screen.getByRole('button', { expanded: false });
+      fireEvent.click(collapsedArea);
 
       await waitFor(() => {
         expect(mockFetchFn).toHaveBeenCalledTimes(1);
@@ -666,9 +666,9 @@ describe('RelatedEntities', () => {
       const collapseButton = screen.getByLabelText(/Colapsar/i);
       fireEvent.click(collapseButton);
 
-      // Expand again - need to get the button again after collapse
-      const expandButtonAgain = screen.getByLabelText(/Expandir/i);
-      fireEvent.click(expandButtonAgain);
+      // Expand again - need to get the collapsed area again after collapse
+      const collapsedAreaAgain = screen.getByRole('button', { expanded: false });
+      fireEvent.click(collapsedAreaAgain);
 
       // Should NOT call fetchFn again (data already loaded)
       await waitFor(() => {
