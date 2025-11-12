@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 import '../../styles/components/entity-card.css';
@@ -40,19 +40,38 @@ export interface EntityCardProps {
 }
 
 /**
- * Formats date string to readable format (YYYY-MM-DD to DD/MM/YYYY or similar)
+ * Formats date string or Neo4j DateTime object to readable format (YYYY-MM-DD to DD/MM/YYYY or similar)
  */
-function formatDate(dateString: string): string {
+function formatDate(dateInput: string | Date | any): string {
   try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
+    // Handle Neo4j DateTime object
+    if (dateInput && typeof dateInput === 'object' && 'year' in dateInput) {
+      const year = typeof dateInput.year === 'object' ? dateInput.year.low : dateInput.year;
+      const month = typeof dateInput.month === 'object' ? dateInput.month.low : dateInput.month;
+      const day = typeof dateInput.day === 'object' ? dateInput.day.low : dateInput.day;
+      const hour = typeof dateInput.hour === 'object' ? (dateInput.hour?.low || 0) : (dateInput.hour || 0);
+      const minute = typeof dateInput.minute === 'object' ? (dateInput.minute?.low || 0) : (dateInput.minute || 0);
+      const second = typeof dateInput.second === 'object' ? (dateInput.second?.low || 0) : (dateInput.second || 0);
+      
+      const date = new Date(year, month - 1, day, hour, minute, second);
+      if (isNaN(date.getTime())) return String(dateInput);
+      return date.toLocaleDateString('es-AR', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+    }
+    
+    // Handle string or Date object
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(date.getTime())) return String(dateInput);
     return date.toLocaleDateString('es-AR', {
       year: 'numeric',
       month: '2-digit',
       day: '2-digit',
     });
   } catch {
-    return dateString;
+    return String(dateInput);
   }
 }
 
@@ -267,6 +286,7 @@ function EntityCard({
   indentationLevel = 0,
   relationshipData,
 }: EntityCardProps) {
+  const navigate = useNavigate();
   // Handle deprecated variants with warnings
   let actualVariant: 'heading' | 'contents' = variant as 'heading' | 'contents';
   if (variant === 'card' || variant === 'row') {
@@ -291,18 +311,26 @@ function EntityCard({
 
   // Special show button for Fabrica entities (links to /show/{id})
   // For Jingle entities, links to /show/{fabrica-id}?t={timestamp-in-seconds}
+  // Use button with navigate to avoid nested <a> tags when card is a Link
   const showButton = (() => {
+    const handleShowClick = (e: React.MouseEvent, targetPath: string) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigate(targetPath);
+    };
+
     if (entityType === 'fabrica') {
+      const targetPath = `/show/${entity.id}`;
       return (
-        <Link
-          to={`/show/${entity.id}`}
+        <button
+          type="button"
           className="entity-card__show-button"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => handleShowClick(e, targetPath)}
           aria-label={`Ver ${primaryText} en página de visualización`}
           title="Ver en página de visualización"
         >
           🎬
-        </Link>
+        </button>
       );
     }
     
@@ -314,16 +342,17 @@ function EntityCard({
       if (fabrica?.id && jingle.timestamp) {
         const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
         if (timestampSeconds !== null) {
+          const targetPath = `/show/${fabrica.id}?t=${timestampSeconds}`;
           return (
-            <Link
-              to={`/show/${fabrica.id}?t=${timestampSeconds}`}
+            <button
+              type="button"
               className="entity-card__show-button"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => handleShowClick(e, targetPath)}
               aria-label={`Ver ${primaryText} en página de visualización a las ${jingle.timestamp}`}
               title={`Ver en página de visualización a las ${jingle.timestamp}`}
             >
               🎬
-            </Link>
+            </button>
           );
         }
       }

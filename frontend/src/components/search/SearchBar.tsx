@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api/client';
 
 interface SearchBarProps {
@@ -8,6 +9,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ onSearch, placeholder = 'Buscar...', initialValue = '' }: SearchBarProps) {
+  const navigate = useNavigate();
   const [query, setQuery] = useState(initialValue);
   const [suggestions, setSuggestions] = useState<any>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -74,13 +76,28 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...', initialValue = 
     }
   }, [showSuggestions]);
 
-  const handleSuggestionClick = (_type: string, item: any) => {
-    // Build a simple query to submit to parent
-    // For fabricas, use title; for others use their respective fields
-    const text = item.title || item.stageName || item.name || item.songTitle;
-    setQuery(String(text || ''));
+  const handleSuggestionClick = (type: string, item: any) => {
+    // Navigate directly to the entity detail page
     setShowSuggestions(false);
-    onSearch(String(text || ''));
+    
+    // Map entity type to route
+    const routeMap: Record<string, string> = {
+      jingles: `/j/${item.id}`,
+      canciones: `/c/${item.id}`,
+      artistas: `/a/${item.id}`,
+      tematicas: `/t/${item.id}`,
+      fabricas: `/f/${item.id}`,
+    };
+    
+    const route = routeMap[type];
+    if (route && item.id) {
+      navigate(route);
+    } else {
+      // Fallback: if navigation fails, do a search instead
+      const text = item.title || item.stageName || item.name || item.songTitle;
+      setQuery(String(text || ''));
+      onSearch(String(text || ''));
+    }
   };
 
   // Check if we have any suggestions to show

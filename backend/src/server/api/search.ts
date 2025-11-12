@@ -6,6 +6,70 @@ import { asyncHandler, BadRequestError } from './core';
 const router = Router();
 const db = Neo4jClient.getInstance();
 
+// Helper function to convert Neo4j dates to ISO strings
+function convertNeo4jDates(obj: any): any {
+  if (obj === null || obj === undefined) return obj;
+  
+  // Handle strings (including ISO date strings)
+  if (typeof obj === 'string') {
+    // Handle empty strings
+    if (obj.trim() === '') {
+      return null;
+    }
+    
+    // Check if string is a valid ISO 8601 date string
+    const isoDatePattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{3})?Z?$/;
+    if (isoDatePattern.test(obj)) {
+      const date = new Date(obj);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString();
+      }
+    }
+    
+    return obj;
+  }
+  
+  // Handle Date objects
+  if (obj instanceof Date) {
+    if (!isNaN(obj.getTime())) {
+      return obj.toISOString();
+    }
+    return null;
+  }
+  
+  if (typeof obj === 'object') {
+    // Handle Neo4j DateTime objects
+    if (obj.year !== undefined && obj.month !== undefined && obj.day !== undefined) {
+      const year = typeof obj.year === 'object' ? obj.year.low : obj.year;
+      const month = typeof obj.month === 'object' ? obj.month.low : obj.month;
+      const day = typeof obj.day === 'object' ? obj.day.low : obj.day;
+      const hour = typeof obj.hour === 'object' ? (obj.hour?.low || 0) : (obj.hour || 0);
+      const minute = typeof obj.minute === 'object' ? (obj.minute?.low || 0) : (obj.minute || 0);
+      const second = typeof obj.second === 'object' ? (obj.second?.low || 0) : (obj.second || 0);
+      
+      try {
+        return new Date(year, month - 1, day, hour, minute, second).toISOString();
+      } catch {
+        return null;
+      }
+    }
+    
+    // Handle arrays
+    if (Array.isArray(obj)) {
+      return obj.map(convertNeo4jDates);
+    }
+    
+    // Handle objects
+    const converted: any = {};
+    for (const [key, value] of Object.entries(obj)) {
+      converted[key] = convertNeo4jDates(value);
+    }
+    return converted;
+  }
+  
+  return obj;
+}
+
 // Simple global search across Jingle, Cancion, Artista, Tematica
 // Query param: q
 router.get('/', asyncHandler(async (req, res) => {
@@ -92,11 +156,12 @@ router.get('/', asyncHandler(async (req, res) => {
 
       const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queriesFT);
       // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
-      const jingles = jinglesRaw.map((r: any) => r.j || r);
-      const canciones = cancionesRaw.map((r: any) => r.c || r);
-      const artistas = artistasRaw.map((r: any) => r.a || r);
-      const tematicas = tematicasRaw.map((r: any) => r.t || r);
-      const fabricas = fabricasRaw.map((r: any) => r.f || r);
+      // and convert Neo4j dates to ISO strings
+      const jingles = jinglesRaw.map((r: any) => convertNeo4jDates(r.j || r));
+      const canciones = cancionesRaw.map((r: any) => convertNeo4jDates(r.c || r));
+      const artistas = artistasRaw.map((r: any) => convertNeo4jDates(r.a || r));
+      const tematicas = tematicasRaw.map((r: any) => convertNeo4jDates(r.t || r));
+      const fabricas = fabricasRaw.map((r: any) => convertNeo4jDates(r.f || r));
       return res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'fulltext' } });
     } catch (_err) {
       // Fall back to basic mode below
@@ -176,11 +241,12 @@ router.get('/', asyncHandler(async (req, res) => {
 
   const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queries);
   // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
-  const jingles = jinglesRaw.map((r: any) => r.j || r);
-  const canciones = cancionesRaw.map((r: any) => r.c || r);
-  const artistas = artistasRaw.map((r: any) => r.a || r);
-  const tematicas = tematicasRaw.map((r: any) => r.t || r);
-  const fabricas = fabricasRaw.map((r: any) => r.f || r);
+  // and convert Neo4j dates to ISO strings
+  const jingles = jinglesRaw.map((r: any) => convertNeo4jDates(r.j || r));
+  const canciones = cancionesRaw.map((r: any) => convertNeo4jDates(r.c || r));
+  const artistas = artistasRaw.map((r: any) => convertNeo4jDates(r.a || r));
+  const tematicas = tematicasRaw.map((r: any) => convertNeo4jDates(r.t || r));
+  const fabricas = fabricasRaw.map((r: any) => convertNeo4jDates(r.f || r));
   res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'basic' } });
 }));
 

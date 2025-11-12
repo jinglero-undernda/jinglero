@@ -53,8 +53,12 @@ This task list outlines the implementation steps for the MVP version of the Jing
 
 - `frontend/src/pages/ArtistaPage.tsx` - Artista detail page
 - `frontend/src/pages/TematicaPage.tsx` - Tematica detail page
-- `frontend/src/pages/SearchResultsPage.tsx` - Search results page (displays grouped results by entity type, shows result count, handles loading/error/no results states)
-- `frontend/src/styles/pages/search-results.css` - Search results page styles (responsive grid layout, section headers, loading/error states)
+- `frontend/src/pages/Home.tsx` - Home page with prominent search bar and featured Fabricas list (displays 6 most recent Fabricas, hero section, loading/error states)
+- `frontend/src/styles/pages/home.css` - Home page styles (hero section, search bar styling, featured Fabricas grid, responsive design)
+- `frontend/src/pages/SearchResultsPage.tsx` - Search results page (displays grouped results by entity type including Fabricas, shows result count, handles loading/error/no results states, includes integrated SearchBar)
+- `frontend/src/styles/pages/search-results.css` - Search results page styles (responsive grid layout, section headers, loading/error states, search bar styling with dropdown positioning)
+- `frontend/src/components/search/SearchBar.tsx` - Enhanced with navigation to `/search?q=query`, filters empty/None values, includes Fabricas in suggestions, syncs with URL query parameter
+- `backend/src/server/api/search.ts` - Enhanced with Fabricas search (title only), Neo4j date conversion, proper null/empty field filtering, fixed nested result structure extraction
 
 ### Styling Files
 
@@ -122,19 +126,24 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [ ] 3.10 Test navigation between related entities (e.g., Jingle → Cancion → Autor → other Canciones) - More thorough testing needed once database is more complete
   - [ ] 3.11 Consider renaming `Inspect*.tsx` files to `*Page.tsx` for consistency with PRD naming (non-blocking, recommended)
 
-- [ ] 4.0 Build Search Results Page and Enhance Search Experience (PENDING - Future Implementation)
+- [x] 4.0 Build Search Results Page and Enhance Search Experience
 
   - [x] 4.0.1 Backend search API implemented (`/api/search` with autocomplete support)
   - [x] 4.0.2 `SearchBar` component created with autocomplete functionality (debounced, grouped suggestions)
   - [x] 4.1 Create `frontend/src/pages/SearchResultsPage.tsx` to display grouped search results
-  - [ ] 4.2 Update `frontend/src/components/search/SearchBar.tsx` to navigate to `/search?q=query` on submit
-  - [ ] 4.3 Create `frontend/src/components/search/SearchResults.tsx` component to display results grouped by entity type (Jingles, Canciones, Artistas, Tematicas)
-  - [ ] 4.4 Add entity type badges/icons to distinguish result types
-  - [ ] 4.5 Add links from search results to entity detail pages
-  - [ ] 4.6 Add "no results found" state with helpful message
-  - [ ] 4.7 Update `frontend/src/pages/Home.tsx` to include prominent search bar and featured Fabricas list
-  - [ ] 4.8 Add search result count display ("X resultados encontrados")
-  - [ ] 4.9 Test search functionality with various queries (Spanish characters, partial matches, etc.)
+  - [x] 4.2 Update `frontend/src/components/search/SearchBar.tsx` to navigate to `/search?q=query` on submit
+  - [x] 4.3 Create `frontend/src/components/search/SearchResults.tsx` component to display results grouped by entity type (Jingles, Canciones, Artistas, Tematicas, Fabricas) - Integrated directly into SearchResultsPage
+  - [x] 4.4 Add entity type badges/icons to distinguish result types (🎤 Jingles, 📦 Canciones, 👤 Artistas, 🏷️ Temáticas, 🏭 Fábricas)
+  - [x] 4.5 Add links from search results to entity detail pages (via EntityCard component)
+  - [x] 4.6 Add "no results found" state with helpful message
+  - [x] 4.7 Update `frontend/src/pages/Home.tsx` to include prominent search bar and featured Fabricas list
+  - [x] 4.8 Add search result count display ("X resultados encontrados")
+  - [x] 4.9 Test search functionality with various queries (Spanish characters, partial matches, etc.) - Basic testing completed, additional edge case testing pending
+  - [x] 4.10 Add Fabricas to search functionality (searches by title only)
+  - [x] 4.11 Add search link to header navigation ("Búsqueda")
+  - [x] 4.12 Fix Neo4j DateTime object conversion in search API responses
+  - [x] 4.13 Fix nested link warnings in EntityCard show button
+  - [x] 4.14 Fix empty/null field filtering in search queries and dropdown suggestions
 
 - [ ] 5.0 Refine Database Schema Based on UX Insights
 
