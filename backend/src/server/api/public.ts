@@ -889,19 +889,30 @@ router.get('/entities/jingles/:id/related', async (req, res) => {
 router.get('/entities/canciones/:id/related', async (req, res) => {
   try {
     const { id } = req.params;
-    const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100);
+    const limit = neo4j.int(Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100));
+
+    // First verify the Cancion exists and check relationships
+    const verifyQuery = `
+      MATCH (c:Cancion {id: $cId})
+      OPTIONAL MATCH (c)<-[:VERSIONA]-(j:Jingle)
+      RETURN c.id AS cancionId, count(j) AS jingleCount, collect(j.id) AS jingleIds
+    `;
+    const verifyResult = await db.executeQuery<any>(verifyQuery, { cId: id });
+    console.log(`[DEBUG] Verification query for CAN-002:`, verifyResult);
 
     const jinglesUsingCancionQuery = `
       MATCH (c:Cancion {id: $cId})<-[:VERSIONA]-(j:Jingle)
-      RETURN j { .id, .title, .songTitle, .updatedAt } AS jingle
-      ORDER BY jingle.updatedAt DESC
+      OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+      RETURN j { .id, .title, .songTitle, .updatedAt } AS jingle,
+             f { .id, .title, .date, .updatedAt } AS fabrica
+      ORDER BY j.updatedAt DESC
       LIMIT $limit
     `;
     const otherCancionesByAutorQuery = `
       MATCH (c:Cancion {id: $cId})<-[:AUTOR_DE]-(au:Artista)-[:AUTOR_DE]->(other:Cancion)
       WHERE other.id <> c.id
       RETURN other { .id, .title, .updatedAt } AS cancion
-      ORDER BY cancion.updatedAt DESC
+      ORDER BY other.updatedAt DESC
       LIMIT $limit
     `;
     const jinglesByAutorIfJingleroQuery = `
@@ -917,14 +928,47 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
       db.executeQuery<any>(jinglesByAutorIfJingleroQuery, { cId: id, limit })
     ]);
 
+    // Debug logging
+    console.log(`[DEBUG] /entities/canciones/${id}/related - Query results:`, {
+      cancionId: id,
+      jinglesUsingCancionCount: jinglesUsingCancion.length,
+      jinglesUsingCancionRaw: jinglesUsingCancion,
+      jinglesUsingCancionFirst: jinglesUsingCancion[0],
+      jinglesUsingCancionFirstJingle: jinglesUsingCancion[0]?.jingle,
+      otherCancionesByAutorCount: otherCancionesByAutor.length,
+      jinglesByAutorIfJingleroCount: jinglesByAutorIfJinglero.length,
+    });
+
+    const filteredJingles = jinglesUsingCancion.filter((r: any) => r && r.jingle);
+    console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
+    // Include fabrica data with each jingle for EntityCard display
+    const convertedJingles = filteredJingles.map((r: any) => {
+      const jingle = convertNeo4jDates(r.jingle);
+      const fabrica = r.fabrica ? convertNeo4jDates(r.fabrica) : null;
+      return {
+        ...jingle,
+        fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
+      };
+    });
+    console.log(`[DEBUG] Converted jingles with fabrica:`, convertedJingles);
+
     res.json({
-      jinglesUsingCancion: jinglesUsingCancion.map(r => convertNeo4jDates(r.jingle)),
-      otherCancionesByAutor: otherCancionesByAutor.map(r => convertNeo4jDates(r.cancion)),
-      jinglesByAutorIfJinglero: jinglesByAutorIfJinglero.map(r => convertNeo4jDates(r.jingle)),
+      jinglesUsingCancion: convertedJingles,
+      otherCancionesByAutor: otherCancionesByAutor
+        .filter((r: any) => r && r.cancion)
+        .map((r: any) => convertNeo4jDates(r.cancion)),
+      jinglesByAutorIfJinglero: jinglesByAutorIfJinglero
+        .filter((r: any) => r && r.jingle)
+        .map((r: any) => convertNeo4jDates(r.jingle)),
       meta: { limit }
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    console.error('Error in /entities/canciones/:id/related:', error);
+    console.error('Error stack:', error?.stack);
+    res.status(500).json({ 
+      error: error?.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    });
   }
 });
 
