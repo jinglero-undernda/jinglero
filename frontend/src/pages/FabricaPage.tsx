@@ -20,6 +20,8 @@ export default function FabricaPage() {
   const navigate = useNavigate();
   const playerRef = useRef<YouTubePlayerRef>(null);
   const currentJingleRowRef = useRef<HTMLDivElement>(null);
+  const initialTimestampAppliedRef = useRef<boolean>(false);
+  const initialTimestampRef = useRef<number | null>(null);
 
   // State
   const [fabrica, setFabrica] = useState<Fabrica | null>(null);
@@ -149,7 +151,11 @@ export default function FabricaPage() {
           const timestamp = parseFloat(timestampParam);
           if (!isNaN(timestamp) && timestamp >= 0) {
             setInitialTimestamp(timestamp);
+            initialTimestampRef.current = timestamp; // Store in ref for stable prop
+            initialTimestampAppliedRef.current = false; // Reset flag when new timestamp is set
           }
+        } else {
+          initialTimestampRef.current = null;
         }
 
         // Fetch Jingles for this Fabrica
@@ -220,10 +226,15 @@ export default function FabricaPage() {
 
   // Handle seek to timestamp when initialTimestamp is set
   useEffect(() => {
-    // Only perform seek when both initialTimestamp is not null AND player is ready
-    if (initialTimestamp !== null && playerState.isReady && playerRef.current) {
+    // Only perform seek when both initialTimestamp is not null AND player is ready AND we haven't applied it yet
+    if (
+      initialTimestamp !== null && 
+      playerState.isReady && 
+      playerRef.current && 
+      !initialTimestampAppliedRef.current
+    ) {
       skipToTimestamp(initialTimestamp, false); // No URL change needed, already in URL
-      setInitialTimestamp(null); // Only clear after actual seek
+      initialTimestampAppliedRef.current = true; // Mark as applied
       setTimeout(() => {
         if (currentJingleRowRef.current) {
           currentJingleRowRef.current.scrollIntoView({
@@ -233,7 +244,7 @@ export default function FabricaPage() {
         }
       }, 500);
     }
-    // If player not ready, do not clear initialTimestamp -- effect will retry on next render!
+    // If player not ready, do not mark as applied -- effect will retry on next render!
   }, [initialTimestamp, playerState.isReady, seekTo]);
 
   // Auto-scroll to keep current jingle (player) in view when active jingle changes
@@ -623,7 +634,7 @@ export default function FabricaPage() {
               ref={playerRef}
               videoIdOrUrl={videoId}
               autoplay={false}
-              startSeconds={initialTimestamp || undefined}
+              startSeconds={initialTimestampRef.current ?? undefined}
               className="fabrica-player"
             />
           </div>
