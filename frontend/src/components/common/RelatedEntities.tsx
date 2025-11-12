@@ -847,8 +847,19 @@ function RelatedEntities({
           const isExpanded = isAdmin ? true : state.expandedRelationships.has(key);
           const isLoading = state.loadingStates[key] || false;
           const entities = state.loadedData[key] || [];
+          const hasError = state.errors[key] !== null && state.errors[key] !== undefined;
           // Use entities.length if we have loaded entities, otherwise use stored count
           const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
+          
+          // Hide the section if: not loading, no error, no entities, and data has been loaded
+          // We check if key exists in loadedData to confirm data has been loaded (even if empty)
+          const hasLoadedData = key in state.loadedData;
+          const shouldHide = !isLoading && !hasError && entities.length === 0 && hasLoadedData;
+          
+          // Don't render the section if we should hide it
+          if (shouldHide) {
+            return null;
+          }
 
           return (
             <div key={key} className="related-entities__section">
@@ -921,7 +932,9 @@ function RelatedEntities({
                         )}
                       </div>
                     ) : entities.length === 0 ? (
-                      <div className="related-entities__empty" aria-live="polite">No hay entidades relacionadas</div>
+                      // This case should not be reached due to shouldHide check above,
+                      // but kept as a fallback for edge cases
+                      null
                     ) : (
                       // Render direct entities for this relationship first
                       <>
@@ -1097,19 +1110,314 @@ function RelatedEntities({
                                       });
                                     }
                                     
-                                    // Show nested rows
+                                    // Show nested rows recursively
                                     if (nestedRows.length > 0) {
-                                      return nestedRows.map(row => (
-                                        <div key={row.id} className="related-entities__row">
-                                          <EntityCard
-                                            entity={row.entity}
-                                            entityType={row.entityType}
-                                            variant="contents"
-                                            indentationLevel={row.indentLevel}
-                                            relationshipLabel={row.relationshipLabel}
-                                          />
-                                        </div>
-                                      ));
+                                      return nestedRows.map(row => {
+                                        // Check if this nested entity has its own nested relationships
+                                        const nestedEntityRelationships = getRelationshipsForEntityType(row.entityType);
+                                        const nestedEntityPath = [...entityPath, entity.id];
+                                        const nestedEntityCanExpand = nestedEntityPath.length < maxDepth;
+                                        // Filter to only expandable relationships
+                                        const expandableNestedRelationships = nestedEntityRelationships.filter(rel => rel.expandable);
+                                        // Check if nested entity has expandable relationships
+                                        const nestedEntityHasNested = !isAdmin && expandableNestedRelationships.length > 0 && nestedEntityCanExpand;
+                                        const nestedEntityIsExpanded = state.expandedEntities.has(row.entity.id);
+                                        
+                                        console.log(`[DEBUG] Nested entity ${row.entity.id} (${row.entityType}):`, {
+                                          hasRelationships: nestedEntityRelationships.length > 0,
+                                          expandableRelationships: expandableNestedRelationships.length,
+                                          canExpand: nestedEntityCanExpand,
+                                          pathLength: nestedEntityPath.length,
+                                          maxDepth,
+                                          hasNested: nestedEntityHasNested,
+                                          isExpanded: nestedEntityIsExpanded,
+                                          willShowExpandButton: nestedEntityHasNested && nestedEntityCanExpand,
+                                          relationships: expandableNestedRelationships.map(r => r.label),
+                                        });
+                                        
+                                        // Get nested-nested rows if this nested entity is expanded
+                                        const nestedNestedRows = nestedEntityIsExpanded && nestedEntityCanExpand
+                                          ? (() => {
+                                              const rows: Array<{ id: string; entity: RelatedEntity; entityType: EntityType; indentLevel: number; relationshipLabel: string }> = [];
+                                              expandableNestedRelationships.forEach((nestedNestedRel) => {
+                                                const nestedNestedKey = `${getRelationshipKey(nestedNestedRel)}-${row.entity.id}`;
+                                                const nestedNestedEntities = state.loadedData[nestedNestedKey] || [];
+                                                console.log(`[DEBUG] Nested entity ${row.entity.id} - relationship ${nestedNestedRel.label}: key=${nestedNestedKey}, entities=${nestedNestedEntities.length}`, nestedNestedEntities);
+                                                nestedNestedEntities.forEach((nestedNestedEntity) => {
+                                                  rows.push({
+                                                    id: `${nestedNestedKey}-${nestedNestedEntity.id}`,
+                                                    entity: nestedNestedEntity,
+                                                    entityType: nestedNestedRel.entityType,
+                                                    indentLevel: row.indentLevel + 1,
+                                                    relationshipLabel: nestedNestedRel.label,
+                                                  });
+                                                });
+                                              });
+                                              console.log(`[DEBUG] Total nested-nested rows for ${row.entity.id}:`, rows.length);
+                                              return rows;
+                                            })()
+                                          : [];
+                                        
+                                        // Extract relationship data for nested entity
+                                        const nestedRelationshipData: Record<string, unknown> | undefined = 
+                                          row.entityType === 'jingle' && (row.entity as any).fabrica
+                                            ? { fabrica: (row.entity as any).fabrica }
+                                            : undefined;
+                                        
+                                        return (
+                                          <React.Fragment key={row.id}>
+                                            <div className="related-entities__row">
+                                              <EntityCard
+                                                entity={row.entity}
+                                                entityType={row.entityType}
+                                                variant="contents"
+                                                indentationLevel={row.indentLevel}
+                                                relationshipLabel={row.relationshipLabel}
+                                                relationshipData={nestedRelationshipData}
+                                                hasNestedEntities={nestedEntityHasNested && nestedEntityCanExpand}
+                                                isExpanded={nestedEntityIsExpanded}
+                                                onToggleExpand={async () => {
+                                                  console.log(`[DEBUG] onToggleExpand called for nested entity ${row.entity.id} (${row.entityType})`);
+                                                  const currentState = stateRef.current;
+                                                  const wasExpanded = currentState.expandedEntities.has(row.entity.id);
+                                                  console.log(`[DEBUG] wasExpanded: ${wasExpanded}, hasNested: ${nestedEntityHasNested}, canExpand: ${nestedEntityCanExpand}`);
+                                                  dispatch({ type: 'TOGGLE_ENTITY', entityId: row.entity.id });
+                                                  
+                                                  // If expanding, load nested relationships for this nested entity
+                                                  if (!wasExpanded && nestedEntityHasNested && nestedEntityCanExpand) {
+                                                    console.log(`[DEBUG] Expanding nested entity ${row.entity.id}, loading relationships:`, expandableNestedRelationships.map(r => r.label));
+                                                    for (const nestedNestedRel of expandableNestedRelationships) {
+                                                      const nestedNestedKey = `${getRelationshipKey(nestedNestedRel)}-${row.entity.id}`;
+                                                      
+                                                      const latestState = stateRef.current;
+                                                      if (nestedNestedKey in latestState.loadedData) {
+                                                        continue;
+                                                      }
+                                                      
+                                                      // Check cache
+                                                      const cacheKey = `${row.entity.id}-${row.entityType}-${getRelationshipKey(nestedNestedRel)}`;
+                                                      const cachedData = requestCacheRef.current[cacheKey];
+                                                      if (cachedData !== undefined) {
+                                                        dispatch({
+                                                          type: 'LOAD_SUCCESS',
+                                                          key: nestedNestedKey,
+                                                          data: cachedData,
+                                                          count: cachedData.length,
+                                                        });
+                                                        continue;
+                                                      }
+                                                      
+                                                      // Load nested relationships
+                                                      try {
+                                                        const abortController = new AbortController();
+                                                        dispatch({ type: 'LOAD_START', key: nestedNestedKey, abortController });
+                                                        
+                                                        const nestedNestedEntities = await nestedNestedRel.fetchFn(row.entity.id, row.entityType);
+                                                        const sorted = sortEntities(nestedNestedEntities, nestedNestedRel.sortKey, nestedNestedRel.entityType);
+                                                        const filtered = sorted.filter((e) => !nestedEntityPath.includes(e.id));
+                                                        
+                                                        // Cache the data
+                                                        requestCacheRef.current[cacheKey] = filtered;
+                                                        
+                                                        dispatch({
+                                                          type: 'LOAD_SUCCESS',
+                                                          key: nestedNestedKey,
+                                                          data: filtered,
+                                                          count: filtered.length,
+                                                        });
+                                                      } catch (error) {
+                                                        console.error('Error loading nested-nested relationships:', error);
+                                                        if (error instanceof Error && error.name !== 'AbortError') {
+                                                          dispatch({
+                                                            type: 'LOAD_ERROR',
+                                                            key: nestedNestedKey,
+                                                            error: error instanceof Error ? error : new Error(String(error)),
+                                                          });
+                                                        }
+                                                      }
+                                                    }
+                                                  }
+                                                }}
+                                                nestedCount={nestedNestedRows.length}
+                                              />
+                                            </div>
+                                            {/* Show loading state for nested relationships */}
+                                            {nestedEntityIsExpanded && (() => {
+                                              const isLoading = expandableNestedRelationships.some(nestedNestedRel => {
+                                                const nestedNestedKey = `${getRelationshipKey(nestedNestedRel)}-${row.entity.id}`;
+                                                return state.loadingStates[nestedNestedKey] === true;
+                                              });
+                                              
+                                              if (isLoading) {
+                                                return (
+                                                  <div className="related-entities__skeleton-container" aria-label="Cargando">
+                                                    <div className="related-entities__skeleton" aria-hidden="true">
+                                                      <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                                                      <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                                                      <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                                                    </div>
+                                                  </div>
+                                                );
+                                              }
+                                              
+                                              // Check for errors
+                                              const hasError = expandableNestedRelationships.some(nestedNestedRel => {
+                                                const nestedNestedKey = `${getRelationshipKey(nestedNestedRel)}-${row.entity.id}`;
+                                                return state.errors[nestedNestedKey] !== null && state.errors[nestedNestedKey] !== undefined;
+                                              });
+                                              
+                                              if (hasError) {
+                                                return expandableNestedRelationships.map(nestedNestedRel => {
+                                                  const nestedNestedKey = `${getRelationshipKey(nestedNestedRel)}-${row.entity.id}`;
+                                                  const error = state.errors[nestedNestedKey];
+                                                  if (!error) return null;
+                                                  return (
+                                                    <div key={nestedNestedKey} className="related-entities__error-message" role="alert">
+                                                      <span className="related-entities__error-text">
+                                                        Error al cargar {nestedNestedRel.label.toLowerCase()}: {error.message}
+                                                      </span>
+                                                    </div>
+                                                  );
+                                                });
+                                              }
+                                              
+                                              return null;
+                                            })()}
+                                            {/* Recursively render nested-nested rows with full expansion capability */}
+                                            {nestedEntityIsExpanded && nestedNestedRows.length > 0 && (
+                                              nestedNestedRows.map(nestedNestedRow => {
+                                                // Recursively check for deeper nesting
+                                                const deeperRelationships = getRelationshipsForEntityType(nestedNestedRow.entityType);
+                                                // Calculate the correct path: entityPath + parent entity + nested entity
+                                                const deeperPath = [...nestedEntityPath, row.entity.id, nestedNestedRow.entity.id];
+                                                const deeperCanExpand = deeperPath.length < maxDepth;
+                                                const deeperHasNested = !isAdmin && deeperRelationships.length > 0 && deeperCanExpand;
+                                                const deeperIsExpanded = state.expandedEntities.has(nestedNestedRow.entity.id);
+                                                
+                                                console.log(`[DEBUG] Deeper entity ${nestedNestedRow.entity.id} (${nestedNestedRow.entityType}):`, {
+                                                  hasRelationships: deeperRelationships.length > 0,
+                                                  canExpand: deeperCanExpand,
+                                                  pathLength: deeperPath.length,
+                                                  maxDepth,
+                                                  hasNested: deeperHasNested,
+                                                  isExpanded: deeperIsExpanded,
+                                                  relationships: deeperRelationships.map(r => r.label),
+                                                });
+                                                
+                                                // Get deeper nested rows
+                                                const deeperRows = deeperIsExpanded && deeperCanExpand
+                                                  ? (() => {
+                                                      const rows: Array<{ id: string; entity: RelatedEntity; entityType: EntityType; indentLevel: number; relationshipLabel: string }> = [];
+                                                      deeperRelationships.forEach((deeperRel) => {
+                                                        const deeperKey = `${getRelationshipKey(deeperRel)}-${nestedNestedRow.entity.id}`;
+                                                        const deeperEntities = state.loadedData[deeperKey] || [];
+                                                        deeperEntities.forEach((deeperEntity) => {
+                                                          rows.push({
+                                                            id: `${deeperKey}-${deeperEntity.id}`,
+                                                            entity: deeperEntity,
+                                                            entityType: deeperRel.entityType,
+                                                            indentLevel: nestedNestedRow.indentLevel + 1,
+                                                            relationshipLabel: deeperRel.label,
+                                                          });
+                                                        });
+                                                      });
+                                                      return rows;
+                                                    })()
+                                                  : [];
+                                                
+                                                const deeperRelationshipData: Record<string, unknown> | undefined = 
+                                                  nestedNestedRow.entityType === 'jingle' && (nestedNestedRow.entity as any).fabrica
+                                                    ? { fabrica: (nestedNestedRow.entity as any).fabrica }
+                                                    : undefined;
+                                                
+                                                return (
+                                                  <React.Fragment key={nestedNestedRow.id}>
+                                                    <div className="related-entities__row">
+                                                      <EntityCard
+                                                        entity={nestedNestedRow.entity}
+                                                        entityType={nestedNestedRow.entityType}
+                                                        variant="contents"
+                                                        indentationLevel={nestedNestedRow.indentLevel}
+                                                        relationshipLabel={nestedNestedRow.relationshipLabel}
+                                                        relationshipData={deeperRelationshipData}
+                                                        hasNestedEntities={deeperHasNested && deeperCanExpand}
+                                                        isExpanded={deeperIsExpanded}
+                                                        onToggleExpand={async () => {
+                                                          const currentState = stateRef.current;
+                                                          const wasExpanded = currentState.expandedEntities.has(nestedNestedRow.entity.id);
+                                                          dispatch({ type: 'TOGGLE_ENTITY', entityId: nestedNestedRow.entity.id });
+                                                          
+                                                          if (!wasExpanded && deeperHasNested && deeperCanExpand) {
+                                                            for (const deeperRel of deeperRelationships) {
+                                                              const deeperKey = `${getRelationshipKey(deeperRel)}-${nestedNestedRow.entity.id}`;
+                                                              
+                                                              const latestState = stateRef.current;
+                                                              if (deeperKey in latestState.loadedData) continue;
+                                                              
+                                                              const cacheKey = `${nestedNestedRow.entity.id}-${nestedNestedRow.entityType}-${getRelationshipKey(deeperRel)}`;
+                                                              const cachedData = requestCacheRef.current[cacheKey];
+                                                              if (cachedData !== undefined) {
+                                                                dispatch({
+                                                                  type: 'LOAD_SUCCESS',
+                                                                  key: deeperKey,
+                                                                  data: cachedData,
+                                                                  count: cachedData.length,
+                                                                });
+                                                                continue;
+                                                              }
+                                                              
+                                                              try {
+                                                                const abortController = new AbortController();
+                                                                dispatch({ type: 'LOAD_START', key: deeperKey, abortController });
+                                                                
+                                                                const deeperEntities = await deeperRel.fetchFn(nestedNestedRow.entity.id, nestedNestedRow.entityType);
+                                                                const sorted = sortEntities(deeperEntities, deeperRel.sortKey, deeperRel.entityType);
+                                                                const filtered = sorted.filter((e) => !deeperPath.includes(e.id));
+                                                                
+                                                                requestCacheRef.current[cacheKey] = filtered;
+                                                                
+                                                                dispatch({
+                                                                  type: 'LOAD_SUCCESS',
+                                                                  key: deeperKey,
+                                                                  data: filtered,
+                                                                  count: filtered.length,
+                                                                });
+                                                              } catch (error) {
+                                                                if (error instanceof Error && error.name !== 'AbortError') {
+                                                                  dispatch({
+                                                                    type: 'LOAD_ERROR',
+                                                                    key: deeperKey,
+                                                                    error: error instanceof Error ? error : new Error(String(error)),
+                                                                  });
+                                                                }
+                                                              }
+                                                            }
+                                                          }
+                                                        }}
+                                                        nestedCount={deeperRows.length}
+                                                      />
+                                                    </div>
+                                                    {/* Render deeper nested rows (level 4+) */}
+                                                    {deeperIsExpanded && deeperRows.length > 0 && (
+                                                      deeperRows.map(deeperRow => (
+                                                        <div key={deeperRow.id} className="related-entities__row">
+                                                          <EntityCard
+                                                            entity={deeperRow.entity}
+                                                            entityType={deeperRow.entityType}
+                                                            variant="contents"
+                                                            indentationLevel={deeperRow.indentLevel}
+                                                            relationshipLabel={deeperRow.relationshipLabel}
+                                                          />
+                                                        </div>
+                                                      ))
+                                                    )}
+                                                  </React.Fragment>
+                                                );
+                                              })
+                                            )}
+                                          </React.Fragment>
+                                        );
+                                      });
                                     }
                                     
                                     return null;

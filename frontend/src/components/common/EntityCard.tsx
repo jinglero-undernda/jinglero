@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
+import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 import '../../styles/components/entity-card.css';
 
 export type EntityType = 'artista' | 'cancion' | 'fabrica' | 'jingle' | 'tematica';
@@ -57,10 +58,11 @@ function formatDate(dateString: string): string {
 
 /**
  * Gets the route path for an entity based on type and id
+ * For Fabrica, content rows use /f/{id}, heading rows use /show/{id}
  */
-function getEntityRoute(entityType: EntityType, entityId: string): string {
+function getEntityRoute(entityType: EntityType, entityId: string, variant: 'heading' | 'contents' = 'contents'): string {
   const routeMap: Record<EntityType, string> = {
-    fabrica: `/show/${entityId}`,
+    fabrica: variant === 'contents' ? `/f/${entityId}` : `/show/${entityId}`,
     jingle: `/j/${entityId}`,
     cancion: `/c/${entityId}`,
     artista: `/a/${entityId}`,
@@ -115,7 +117,8 @@ function getPrimaryText(
     }
     case 'jingle': {
       const jingle = entity as Jingle;
-      return jingle.title || jingle.id;
+      // If title is null/undefined, fall back to songTitle, then id
+      return jingle.title || jingle.songTitle || jingle.id;
     }
     case 'cancion': {
       const cancion = entity as Cancion;
@@ -275,7 +278,7 @@ function EntityCard({
   const secondaryText = getSecondaryText(entity, entityType, relationshipData);
   const icon = getEntityIcon(entityType, actualVariant, relationshipLabel);
   const defaultBadges = getEntityBadges(entity, entityType);
-  const route = to || (onClick ? undefined : getEntityRoute(entityType, entity.id));
+  const route = to || (onClick ? undefined : getEntityRoute(entityType, entity.id, actualVariant));
 
   // Handle expand/collapse icon click
   const handleExpandClick = (e: React.MouseEvent) => {
@@ -285,6 +288,49 @@ function EntityCard({
       onToggleExpand();
     }
   };
+
+  // Special show button for Fabrica entities (links to /show/{id})
+  // For Jingle entities, links to /show/{fabrica-id}?t={timestamp-in-seconds}
+  const showButton = (() => {
+    if (entityType === 'fabrica') {
+      return (
+        <Link
+          to={`/show/${entity.id}`}
+          className="entity-card__show-button"
+          onClick={(e) => e.stopPropagation()}
+          aria-label={`Ver ${primaryText} en página de visualización`}
+          title="Ver en página de visualización"
+        >
+          🎬
+        </Link>
+      );
+    }
+    
+    if (entityType === 'jingle') {
+      const jingle = entity as Jingle;
+      const fabrica = relationshipData?.fabrica as { id?: string } | undefined;
+      
+      // Only show button if we have fabrica ID and timestamp
+      if (fabrica?.id && jingle.timestamp) {
+        const timestampSeconds = normalizeTimestampToSeconds(jingle.timestamp);
+        if (timestampSeconds !== null) {
+          return (
+            <Link
+              to={`/show/${fabrica.id}?t=${timestampSeconds}`}
+              className="entity-card__show-button"
+              onClick={(e) => e.stopPropagation()}
+              aria-label={`Ver ${primaryText} en página de visualización a las ${jingle.timestamp}`}
+              title={`Ver en página de visualización a las ${jingle.timestamp}`}
+            >
+              🎬
+            </Link>
+          );
+        }
+      }
+    }
+    
+    return null;
+  })();
 
   // Expand/collapse icon
   const expandIcon = hasNestedEntities ? (
@@ -317,8 +363,9 @@ function EntityCard({
           )}
         </div>
       </div>
-      {expandIcon && (
-        <div className="entity-card__expand-container">
+      {(showButton || expandIcon) && (
+        <div className="entity-card__actions-container">
+          {showButton}
           {expandIcon}
         </div>
       )}

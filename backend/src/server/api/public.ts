@@ -976,21 +976,67 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
 router.get('/entities/artistas/:id/related', async (req, res) => {
   try {
     const { id } = req.params;
-    const limit = Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100);
+    const limit = neo4j.int(Math.min(Math.max(parseInt((req.query.limit as string) || '10', 10), 1), 100));
 
-    const jinglerosWhoUsedSongsQuery = `
-      MATCH (a:Artista {id: $aId})-[:AUTOR_DE]->(c:Cancion)<-[:VERSIONA]-(j:Jingle)<-[:JINGLERO_DE]-(jinglero:Artista)
-      RETURN DISTINCT jinglero { .id, .name, .stageName } AS artista
-      ORDER BY coalesce(artista.stageName, artista.name)
+    // Get Canciones authored by this Artista
+    const cancionesByAutorQuery = `
+      MATCH (a:Artista {id: $aId})-[:AUTOR_DE]->(c:Cancion)
+      RETURN c { .id, .title, .album, .year, .createdAt, .updatedAt } AS cancion
+      ORDER BY c.updatedAt DESC
       LIMIT $limit
     `;
-    const result = await db.executeQuery<any>(jinglerosWhoUsedSongsQuery, { aId: id, limit });
+    
+    // Get Jingles performed by this Artista (as Jinglero) with Fabrica data
+    const jinglesByJingleroQuery = `
+      MATCH (a:Artista {id: $aId})-[:JINGLERO_DE]->(j:Jingle)
+      OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+      RETURN j { .id, .title, .songTitle, .updatedAt, .isJinglazo, .isJinglazoDelDia, .isPrecario } AS jingle,
+             f { .id, .title, .date, .updatedAt } AS fabrica
+      ORDER BY j.updatedAt DESC
+      LIMIT $limit
+    `;
+
+    const [cancionesByAutor, jinglesByJinglero] = await Promise.all([
+      db.executeQuery<any>(cancionesByAutorQuery, { aId: id, limit }),
+      db.executeQuery<any>(jinglesByJingleroQuery, { aId: id, limit })
+    ]);
+
+    // Debug logging
+    console.log(`[DEBUG] /entities/artistas/${id}/related - Query results:`, {
+      artistaId: id,
+      jinglesByJingleroCount: jinglesByJinglero.length,
+      jinglesByJingleroRaw: jinglesByJinglero,
+      jinglesByJingleroFirst: jinglesByJinglero[0],
+      cancionesByAutorCount: cancionesByAutor.length,
+    });
+
+    // Include fabrica data with each jingle for EntityCard display
+    const filteredJingles = jinglesByJinglero.filter((r: any) => r && r.jingle);
+    console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
+    const convertedJingles = filteredJingles.map((r: any) => {
+      const jingle = convertNeo4jDates(r.jingle);
+      const fabrica = r.fabrica ? convertNeo4jDates(r.fabrica) : null;
+      return {
+        ...jingle,
+        fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
+      };
+    });
+    console.log(`[DEBUG] Converted jingles with fabrica:`, convertedJingles);
+
     res.json({
-      jinglerosWhoUsedSongs: result.map(r => convertNeo4jDates(r.artista)),
+      cancionesByAutor: cancionesByAutor
+        .filter((r: any) => r && r.cancion)
+        .map((r: any) => convertNeo4jDates(r.cancion)),
+      jinglesByJinglero: convertedJingles,
       meta: { limit }
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    console.error('Error in /entities/artistas/:id/related:', error);
+    console.error('Error stack:', error?.stack);
+    res.status(500).json({ 
+      error: error?.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    });
   }
 });
 
