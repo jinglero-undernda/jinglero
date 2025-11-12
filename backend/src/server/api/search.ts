@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import neo4j from 'neo4j-driver';
 import { Neo4jClient } from '../db';
 import { asyncHandler, BadRequestError } from './core';
 
@@ -15,14 +16,16 @@ router.get('/', asyncHandler(async (req, res) => {
   const mode = ((req.query.mode as string) || 'basic').toLowerCase(); // 'basic' | 'fulltext'
 
   if (!q.trim()) {
-    return res.json({ jingles: [], canciones: [], artistas: [], tematicas: [] });
+    return res.json({ jingles: [], canciones: [], artistas: [], tematicas: [], fabricas: [] });
   }
 
-  const limit = Math.min(Math.max(parseInt(limitParam || '10', 10), 1), 100);
-  const offset = Math.max(parseInt(offsetParam || '0', 10), 0);
+  const limitInt = Math.floor(Math.min(Math.max(parseInt(limitParam || '10', 10), 1), 100));
+  const offsetInt = Math.floor(Math.max(parseInt(offsetParam || '0', 10), 0));
+  const limit = neo4j.int(limitInt);
+  const offset = neo4j.int(offsetInt);
 
-  // allowed types filter: comma-separated among jingles,canciones,artistas,tematicas
-  const allowed = ['jingles', 'canciones', 'artistas', 'tematicas'] as const;
+  // allowed types filter: comma-separated among jingles,canciones,artistas,tematicas,fabricas
+  const allowed = ['jingles', 'canciones', 'artistas', 'tematicas', 'fabricas'] as const;
   const selected = typesParam
     .split(',')
     .map(s => s.trim())
@@ -82,8 +85,19 @@ router.get('/', asyncHandler(async (req, res) => {
         queriesFT.push(db.executeQuery<any>(qT, { q, limit, offset }));
       } else { queriesFT.push(Promise.resolve([])); }
 
-      const [jingles, canciones, artistas, tematicas] = await Promise.all(queriesFT);
-      return res.json({ jingles, canciones, artistas, tematicas, meta: { limit, offset, types: active, mode: 'fulltext' } });
+      // Fabricas don't have a fulltext index, so use basic mode (will be handled below)
+      if (active.includes('fabricas')) {
+        queriesFT.push(Promise.resolve([]));
+      }
+
+      const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queriesFT);
+      // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
+      const jingles = jinglesRaw.map((r: any) => r.j || r);
+      const canciones = cancionesRaw.map((r: any) => r.c || r);
+      const artistas = artistasRaw.map((r: any) => r.a || r);
+      const tematicas = tematicasRaw.map((r: any) => r.t || r);
+      const fabricas = fabricasRaw.map((r: any) => r.f || r);
+      return res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'fulltext' } });
     } catch (_err) {
       // Fall back to basic mode below
     }
@@ -95,8 +109,8 @@ router.get('/', asyncHandler(async (req, res) => {
   if (active.includes('jingles')) {
     const jinglesQuery = `
       MATCH (j:Jingle)
-      WHERE toLower(coalesce(j.title, '')) CONTAINS $text
-         OR toLower(coalesce(j.songTitle, '')) CONTAINS $text
+      WHERE (j.title IS NOT NULL AND j.title <> '' AND toLower(j.title) CONTAINS $text)
+         OR (j.songTitle IS NOT NULL AND j.songTitle <> '' AND toLower(j.songTitle) CONTAINS $text)
       RETURN j { .id, .title, .timestamp, .songTitle } AS j
       ORDER BY j.title
       SKIP $offset
@@ -108,8 +122,14 @@ router.get('/', asyncHandler(async (req, res) => {
   if (active.includes('canciones')) {
     const cancionesQuery = `
       MATCH (c:Cancion)
-      WHERE toLower(coalesce(c.title, '')) CONTAINS $text
-      RETURN c { .id, .title } AS c
+      OPTIONAL MATCH (a:Artista)-[:AUTOR_DE]->(c)
+      WITH c, collect(DISTINCT a) AS artistas
+      WHERE (c.title IS NOT NULL AND c.title <> '' AND toLower(c.title) CONTAINS $text)
+         OR ANY(artista IN artistas WHERE 
+                artista IS NOT NULL AND 
+                ((artista.stageName IS NOT NULL AND artista.stageName <> '' AND artista.stageName <> 'None' AND toLower(artista.stageName) CONTAINS $text)
+                 OR (artista.name IS NOT NULL AND artista.name <> '' AND artista.name <> 'None' AND toLower(artista.name) CONTAINS $text)))
+      RETURN DISTINCT c { .id, .title } AS c
       ORDER BY c.title
       SKIP $offset
       LIMIT $limit
@@ -120,9 +140,9 @@ router.get('/', asyncHandler(async (req, res) => {
   if (active.includes('artistas')) {
     const artistasQuery = `
       MATCH (a:Artista)
-      WHERE toLower(coalesce(a.stageName, '')) CONTAINS $text
-         OR toLower(coalesce(a.name, '')) CONTAINS $text
-      RETURN a { .id, .stageName } AS a
+      WHERE (a.stageName IS NOT NULL AND a.stageName <> '' AND a.stageName <> 'None' AND toLower(a.stageName) CONTAINS $text)
+         OR (a.name IS NOT NULL AND a.name <> '' AND a.name <> 'None' AND toLower(a.name) CONTAINS $text)
+      RETURN a { .id, .stageName, .name } AS a
       ORDER BY a.stageName
       SKIP $offset
       LIMIT $limit
@@ -133,7 +153,7 @@ router.get('/', asyncHandler(async (req, res) => {
   if (active.includes('tematicas')) {
     const tematicasQuery = `
       MATCH (t:Tematica)
-      WHERE toLower(coalesce(t.name, '')) CONTAINS $text
+      WHERE t.name IS NOT NULL AND t.name <> '' AND toLower(t.name) CONTAINS $text
       RETURN t { .id, .name } AS t
       ORDER BY t.name
       SKIP $offset
@@ -142,8 +162,26 @@ router.get('/', asyncHandler(async (req, res) => {
     queries.push(db.executeQuery<any>(tematicasQuery, { text, limit, offset }));
   } else { queries.push(Promise.resolve([])); }
 
-  const [jingles, canciones, artistas, tematicas] = await Promise.all(queries);
-  res.json({ jingles, canciones, artistas, tematicas, meta: { limit, offset, types: active, mode: 'basic' } });
+  if (active.includes('fabricas')) {
+    const fabricasQuery = `
+      MATCH (f:Fabrica)
+      WHERE f.title IS NOT NULL AND f.title <> '' AND toLower(f.title) CONTAINS $text
+      RETURN f { .id, .title, .date } AS f
+      ORDER BY f.date DESC
+      SKIP $offset
+      LIMIT $limit
+    `;
+    queries.push(db.executeQuery<any>(fabricasQuery, { text, limit, offset }));
+  } else { queries.push(Promise.resolve([])); }
+
+  const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queries);
+  // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
+  const jingles = jinglesRaw.map((r: any) => r.j || r);
+  const canciones = cancionesRaw.map((r: any) => r.c || r);
+  const artistas = artistasRaw.map((r: any) => r.a || r);
+  const tematicas = tematicasRaw.map((r: any) => r.t || r);
+  const fabricas = fabricasRaw.map((r: any) => r.f || r);
+  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'basic' } });
 }));
 
 export default router;

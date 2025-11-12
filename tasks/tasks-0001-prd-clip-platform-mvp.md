@@ -53,7 +53,8 @@ This task list outlines the implementation steps for the MVP version of the Jing
 
 - `frontend/src/pages/ArtistaPage.tsx` - Artista detail page
 - `frontend/src/pages/TematicaPage.tsx` - Tematica detail page
-- `frontend/src/pages/SearchResultsPage.tsx` - Search results page
+- `frontend/src/pages/SearchResultsPage.tsx` - Search results page (displays grouped results by entity type, shows result count, handles loading/error/no results states)
+- `frontend/src/styles/pages/search-results.css` - Search results page styles (responsive grid layout, section headers, loading/error states)
 
 ### Styling Files
 
@@ -125,7 +126,7 @@ This task list outlines the implementation steps for the MVP version of the Jing
 
   - [x] 4.0.1 Backend search API implemented (`/api/search` with autocomplete support)
   - [x] 4.0.2 `SearchBar` component created with autocomplete functionality (debounced, grouped suggestions)
-  - [ ] 4.1 Create `frontend/src/pages/SearchResultsPage.tsx` to display grouped search results
+  - [x] 4.1 Create `frontend/src/pages/SearchResultsPage.tsx` to display grouped search results
   - [ ] 4.2 Update `frontend/src/components/search/SearchBar.tsx` to navigate to `/search?q=query` on submit
   - [ ] 4.3 Create `frontend/src/components/search/SearchResults.tsx` component to display results grouped by entity type (Jingles, Canciones, Artistas, Tematicas)
   - [ ] 4.4 Add entity type badges/icons to distinguish result types

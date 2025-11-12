@@ -50,6 +50,7 @@ export class Neo4jClient {
 
   /**
    * Executes an operation with retry logic and automatic pause detection/resume
+   * Only retries on pause-related errors (with resume attempt). Other errors fail fast.
    */
   private async executeWithRetry<T>(
     operation: () => Promise<T>,
@@ -57,6 +58,8 @@ export class Neo4jClient {
     initialDelay: number = this.initialDelay
   ): Promise<T> {
     let lastError: any;
+    let isPauseError = false;
+    let resumeAttempted = false;
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
       try {
@@ -64,33 +67,51 @@ export class Neo4jClient {
       } catch (error: any) {
         lastError = error;
 
-        // Check if this is a pause-related error
-        if (auraManager.isPausedError(error) && attempt === 0) {
+        // Check if this is a pause-related error (only on first attempt)
+        if (attempt === 0 && auraManager.isPausedError(error)) {
+          isPauseError = true;
           console.log(
             "Detected paused Neo4j instance. Attempting to resume..."
           );
 
           const resumed = await auraManager.resumeInstance();
+          resumeAttempted = true;
 
           if (resumed) {
             // Wait longer on first retry to allow instance to start
-            const delay =
-              attempt === 0 ? initialDelay : initialDelay * Math.pow(2, attempt);
+            const delay = initialDelay;
             console.log(`Waiting ${delay}ms before retry...`);
             await new Promise((resolve) => setTimeout(resolve, delay));
             continue;
+          } else {
+            // Resume failed, but we'll still retry a few times in case instance is starting
+            console.log("Resume request failed or instance may already be starting. Will retry...");
           }
         }
 
-        // For non-pause errors or if resume failed, use normal retry logic
-        if (attempt < maxRetries - 1) {
+        // Only retry if this is a pause-related error (with resume attempt)
+        // For all other errors, fail fast to avoid constant retries
+        if (isPauseError && resumeAttempted && attempt < maxRetries - 1) {
           const delay = initialDelay * Math.pow(2, attempt);
           console.log(
             `Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms...`
           );
           await new Promise((resolve) => setTimeout(resolve, delay));
+        } else if (!isPauseError) {
+          // Not a pause error - fail fast
+          console.error(
+            `Database operation failed (non-pause error): ${error?.message || error}`
+          );
+          throw error;
         }
       }
+    }
+
+    // If we exhausted retries for a pause error, log it
+    if (isPauseError) {
+      console.error(
+        `Database operation failed after ${maxRetries} retries. Instance may still be starting or there may be a connection issue.`
+      );
     }
 
     throw lastError;
