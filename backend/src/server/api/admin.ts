@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import jwt from 'jsonwebtoken';
 import { Neo4jClient } from '../db';
 import { 
   getSchemaInfo, 
@@ -7,7 +8,16 @@ import {
   createConstraint, 
   dropConstraint 
 } from '../db/schema/setup';
-import { asyncHandler, BadRequestError, NotFoundError, ConflictError } from './core';
+import { asyncHandler, BadRequestError, NotFoundError, ConflictError, UnauthorizedError } from './core';
+import { optionalAdminAuth, requireAdminAuth } from '../middleware/auth';
+import {
+  validateEntity,
+  validateRelationship,
+  validateAllEntities,
+  fixValidationIssue,
+  ValidationResult,
+  RelationshipValidationResult,
+} from '../utils/validation';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -70,6 +80,79 @@ function generateId(type: string): string {
   // Use Neo4j's randomUUID() function
   return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
+
+// ============================================================================
+// Authentication Routes (no auth required - these are used to authenticate)
+// ============================================================================
+
+/**
+ * POST /api/admin/login
+ * Authenticate admin user with password
+ * Returns JWT token on success
+ */
+router.post('/login', asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  
+  if (!password || typeof password !== 'string') {
+    throw new BadRequestError('La contraseña es requerida');
+  }
+  
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  
+  if (!adminPassword) {
+    throw new UnauthorizedError('La autenticación de administrador no está configurada');
+  }
+  
+  // Compare password (don't reveal if password is wrong vs not configured)
+  if (password !== adminPassword) {
+    throw new UnauthorizedError('Contraseña incorrecta');
+  }
+  
+  // Generate JWT token
+  const secret = process.env.JWT_SECRET || adminPassword;
+  const token = jwt.sign(
+    { admin: true },
+    secret,
+    { expiresIn: '7d' } // Token expires in 7 days
+  );
+  
+  res.json({
+    success: true,
+    token,
+    expiresIn: '7d'
+  });
+}));
+
+/**
+ * POST /api/admin/logout
+ * Logout endpoint (client-side token removal)
+ * For JWT, logout is handled client-side by removing the token
+ * This endpoint exists for consistency and future session-based auth
+ */
+router.post('/logout', asyncHandler(async (req, res) => {
+  // For JWT-based auth, logout is handled client-side
+  // This endpoint is here for consistency and future session-based auth
+  res.json({ success: true, message: 'Logged out successfully' });
+}));
+
+/**
+ * GET /api/admin/status
+ * Check current authentication status
+ * Uses optionalAdminAuth to check token without requiring it
+ */
+router.get('/status', optionalAdminAuth, asyncHandler(async (req, res) => {
+  const admin = (req as any).admin;
+  
+  res.json({
+    authenticated: admin?.authenticated === true
+  });
+}));
+
+// ============================================================================
+// Protected Routes (require authentication)
+// ============================================================================
+// Apply authentication middleware to all routes below this point
+router.use(requireAdminAuth);
 
 /**
  * Update redundant properties when relationships are created/updated/deleted
@@ -300,6 +383,86 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
   res.json({ message: 'Relationship deleted successfully' });
 }));
 
+// ============================================================================
+// Validation endpoints
+// ============================================================================
+
+/**
+ * POST /api/admin/validate/entity/:type/:id
+ * Validate a specific entity for all validation issues
+ */
+router.post('/validate/entity/:type/:id', asyncHandler(async (req, res) => {
+  const { type, id } = req.params;
+  const result = await validateEntity(db, type, id);
+  res.json(result);
+}));
+
+/**
+ * GET /api/admin/validate/entity/:type/:id
+ * Get validation results for a specific entity (same as POST, but GET for convenience)
+ */
+router.get('/validate/entity/:type/:id', asyncHandler(async (req, res) => {
+  const { type, id } = req.params;
+  const result = await validateEntity(db, type, id);
+  res.json(result);
+}));
+
+/**
+ * POST /api/admin/validate/entity/:type
+ * Validate all entities of a specific type
+ */
+router.post('/validate/entity/:type', asyncHandler(async (req, res) => {
+  const { type } = req.params;
+  const results = await validateAllEntities(db, type);
+  res.json({
+    entityType: type,
+    results,
+    totalEntities: results.length,
+    entitiesWithIssues: results.filter(r => !r.isValid).length,
+    totalIssues: results.reduce((sum, r) => sum + r.issues.length, 0),
+  });
+}));
+
+/**
+ * POST /api/admin/validate/relationship/:relType
+ * Validate a specific relationship
+ * Body: { start: string, end: string }
+ */
+router.post('/validate/relationship/:relType', asyncHandler(async (req, res) => {
+  const { relType } = req.params;
+  const { start, end } = req.body;
+  
+  if (!start || !end) {
+    throw new BadRequestError('start and end entity IDs are required');
+  }
+  
+  const result = await validateRelationship(db, relType, start, end);
+  res.json(result);
+}));
+
+/**
+ * POST /api/admin/validate/fix
+ * Fix a validation issue
+ * Body: { issue: ValidationIssue }
+ */
+router.post('/validate/fix', asyncHandler(async (req, res) => {
+  const { issue } = req.body;
+  
+  if (!issue) {
+    throw new BadRequestError('issue is required');
+  }
+  
+  if (!issue.fixable) {
+    throw new BadRequestError('Issue is not fixable');
+  }
+  
+  await fixValidationIssue(db, issue);
+  res.json({ 
+    success: true, 
+    message: 'Issue fixed successfully',
+    issue,
+  });
+}));
 
 // Entity endpoints
 router.get('/:type', asyncHandler(async (req, res) => {

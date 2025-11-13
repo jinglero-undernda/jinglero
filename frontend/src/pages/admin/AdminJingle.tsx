@@ -1,5 +1,4 @@
-import { useParams } from 'react-router-dom';
-import EntityEdit from '../../components/admin/EntityEdit';
+import { useParams, Navigate } from 'react-router-dom';
 
 export default function AdminJingle() {
   const { id } = useParams<{ id: string }>();
@@ -8,6 +7,7 @@ export default function AdminJingle() {
     return <div>ID requerido</div>;
   }
 
-  return <EntityEdit type="jingles" id={id} />;
+  // Redirect to unified route format
+  return <Navigate to={`/admin/j/${id}`} replace />;
 }
 

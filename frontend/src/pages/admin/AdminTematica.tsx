@@ -1,5 +1,4 @@
-import { useParams } from 'react-router-dom';
-import EntityEdit from '../../components/admin/EntityEdit';
+import { useParams, Navigate } from 'react-router-dom';
 
 export default function AdminTematica() {
   const { id } = useParams<{ id: string }>();
@@ -8,6 +7,7 @@ export default function AdminTematica() {
     return <div>ID requerido</div>;
   }
 
-  return <EntityEdit type="tematicas" id={id} />;
+  // Redirect to unified route format
+  return <Navigate to={`/admin/t/${id}`} replace />;
 }
 
