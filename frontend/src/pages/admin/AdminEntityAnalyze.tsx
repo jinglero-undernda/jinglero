@@ -42,6 +42,7 @@ export default function AdminEntityAnalyze() {
   const [entity, setEntity] = useState<Artista | Cancion | Fabrica | Jingle | Tematica | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     // Load root entity from admin API
@@ -121,17 +122,34 @@ export default function AdminEntityAnalyze() {
     return (
       <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <Link to="/admin" style={{ color: '#1976d2', textDecoration: 'none' }}>
-            ← Volver a Admin
+          <Link 
+            to="/admin" 
+            style={{ 
+              color: '#1976d2', 
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+              display: 'inline-block',
+              marginBottom: '1rem'
+            }}
+          >
+            ← Volver al Dashboard
           </Link>
         </div>
-        <h1>Admin - Analizar Entidad</h1>
-        <div style={{ padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ margin: 0, marginBottom: '0.5rem' }}>Admin - Analizar Entidad</h1>
+          <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
+            Modo Administración
+          </p>
+        </div>
+        <div style={{ 
+          padding: '1rem', 
+          backgroundColor: '#fee', 
+          borderRadius: '8px', 
+          color: '#c00',
+          border: '1px solid #fcc'
+        }}>
           <strong>Error:</strong> Tipo de entidad no válido: {rawEntityType || '(undefined)'}
         </div>
-        <p style={{ marginTop: '1rem' }}>
-          Parámetros de ruta: entityType={rawEntityType}, entityId={entityId}
-        </p>
       </main>
     );
   }
@@ -145,15 +163,37 @@ export default function AdminEntityAnalyze() {
     return (
       <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <Link to="/admin" style={{ color: '#1976d2', textDecoration: 'none' }}>
-            ← Volver a Admin
+          <Link 
+            to="/admin" 
+            style={{ 
+              color: '#1976d2', 
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+              display: 'inline-block',
+              marginBottom: '1rem'
+            }}
+          >
+            ← Volver al Dashboard
           </Link>
         </div>
-        <h1>Admin - Analizar Entidad</h1>
-        <p>Cargando entidad...</p>
-        <p style={{ fontSize: '0.875rem', color: '#666' }}>
-          Tipo: {entityType}, ID: {entityId}
-        </p>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ margin: 0, marginBottom: '0.5rem' }}>Admin - Analizar Entidad</h1>
+          <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
+            Modo Administración
+          </p>
+        </div>
+        <div style={{ 
+          padding: '2rem', 
+          textAlign: 'center',
+          backgroundColor: '#f5f5f5',
+          borderRadius: '8px',
+          border: '1px solid #ddd'
+        }}>
+          <p style={{ margin: 0, color: '#666' }}>Cargando entidad...</p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: '#999' }}>
+            Tipo: {entityType}, ID: {entityId}
+          </p>
+        </div>
       </main>
     );
   }
@@ -162,23 +202,44 @@ export default function AdminEntityAnalyze() {
     return (
       <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ marginBottom: '2rem' }}>
-          <Link to="/admin" style={{ color: '#1976d2', textDecoration: 'none' }}>
-            ← Volver a Admin
+          <Link 
+            to="/admin" 
+            style={{ 
+              color: '#1976d2', 
+              textDecoration: 'none',
+              fontSize: '0.875rem',
+              display: 'inline-block',
+              marginBottom: '1rem'
+            }}
+          >
+            ← Volver al Dashboard
           </Link>
         </div>
-        <h1>Admin - Analizar Entidad</h1>
-        <div style={{ padding: '1rem', backgroundColor: '#fee', borderRadius: '8px', color: '#c00' }}>
+        <div style={{ marginBottom: '1.5rem' }}>
+          <h1 style={{ margin: 0, marginBottom: '0.5rem' }}>Admin - Analizar Entidad</h1>
+          <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
+            Modo Administración
+          </p>
+        </div>
+        <div style={{ 
+          padding: '1rem', 
+          backgroundColor: '#fee', 
+          borderRadius: '8px', 
+          color: '#c00',
+          border: '1px solid #fcc',
+          marginBottom: '1rem'
+        }}>
           <strong>Error:</strong> {error || 'Entidad no encontrada'}
         </div>
-        <p style={{ marginTop: '1rem' }}>
-          Tipo: {entityType}, ID: {entityId}
-        </p>
-        <details style={{ marginTop: '1rem' }}>
-          <summary>Debug Info</summary>
-          <pre style={{ fontSize: '0.75rem', overflow: 'auto' }}>
-            {JSON.stringify({ loading, error, entity: entity ? 'exists' : 'null', entityType, entityId }, null, 2)}
-          </pre>
-        </details>
+        <div style={{ 
+          padding: '0.75rem', 
+          backgroundColor: '#f5f5f5', 
+          borderRadius: '4px',
+          fontSize: '0.875rem',
+          color: '#666'
+        }}>
+          <strong>Tipo:</strong> {entityType} | <strong>ID:</strong> {entityId}
+        </div>
       </main>
     );
   }
@@ -197,50 +258,99 @@ export default function AdminEntityAnalyze() {
 
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
+      {/* Header Section */}
       <div style={{ marginBottom: '2rem' }}>
-        <Link to="/admin" style={{ color: '#1976d2', textDecoration: 'none' }}>
-          ← Volver a Admin
+        <Link 
+          to="/admin" 
+          style={{ 
+            color: '#1976d2', 
+            textDecoration: 'none',
+            fontSize: '0.875rem',
+            display: 'inline-block',
+            marginBottom: '1rem',
+            transition: 'color 0.2s'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.color = '#1565c0'}
+          onMouseLeave={(e) => e.currentTarget.style.color = '#1976d2'}
+        >
+          ← Volver al Dashboard
         </Link>
-      </div>
-
-      {/* Debug info */}
-      <div style={{ padding: '0.5rem', backgroundColor: '#f0f0f0', borderRadius: '4px', marginBottom: '1rem', fontSize: '0.875rem' }}>
-        Debug: Entity loaded - {entity ? `ID: ${entity.id}` : 'null'} | Type: {entityType}
+        <div style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between',
+          marginBottom: '0.5rem'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem'
+          }}>
+            <h1 style={{ margin: 0 }}>Admin - Analizar Entidad</h1>
+            <span style={{
+              padding: '0.25rem 0.5rem',
+              backgroundColor: '#1976d2',
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Modo Admin
+            </span>
+          </div>
+        </div>
+        <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
+          Visualización y edición de entidad con todas sus relaciones
+        </p>
       </div>
 
       {/* Entity Heading Row - matches inspection pages */}
-      <EntityCard
-        entity={entity}
-        entityType={entityType}
-        variant="heading"
-        indentationLevel={0}
-        relationshipData={relationshipData}
-      />
+      <div style={{ marginBottom: '2rem' }}>
+        <EntityCard
+          entity={entity}
+          entityType={entityType}
+          variant="heading"
+          indentationLevel={0}
+          relationshipData={relationshipData}
+          showAdminEditButton={true}
+          isEditing={isEditing}
+          onEditClick={() => setIsEditing(!isEditing)}
+        />
+      </div>
 
       {/* Entity Metadata Editor */}
-      <EntityMetadataEditor
-        entity={entity}
-        entityType={entityType}
-        onSave={(updatedEntity) => {
-          setEntity(updatedEntity);
-        }}
-      />
+      <div style={{ marginBottom: '2rem' }}>
+        <EntityMetadataEditor
+          entity={entity}
+          entityType={entityType}
+          isEditing={isEditing}
+          onEditToggle={setIsEditing}
+          onSave={(updatedEntity) => {
+            setEntity(updatedEntity);
+            setIsEditing(false);
+          }}
+        />
+      </div>
 
       {/* Related Entities - Admin Mode */}
-      <RelatedEntities
-        entity={entity}
-        entityType={entityType}
-        relationships={relationships}
-        entityPath={[entity.id]}
-        isAdmin={true}
-        initialRelationshipData={relationshipData ? {
-          'Fabrica-fabrica': relationshipData.fabrica ? [relationshipData.fabrica] : [],
-          'Cancion-cancion': relationshipData.cancion ? [relationshipData.cancion] : [],
-          'Autor-artista': relationshipData.autores || [],
-          'Jinglero-artista': relationshipData.jingleros || [],
-          'Tematicas-tematica': relationshipData.tematicas || [],
-        } : undefined}
-      />
+      <div>
+        <RelatedEntities
+          entity={entity}
+          entityType={entityType}
+          relationships={relationships}
+          entityPath={[entity.id]}
+          isAdmin={true}
+          initialRelationshipData={relationshipData ? {
+            'Fabrica-fabrica': relationshipData.fabrica ? [relationshipData.fabrica] : [],
+            'Cancion-cancion': relationshipData.cancion ? [relationshipData.cancion] : [],
+            'Autor-artista': relationshipData.autores || [],
+            'Jinglero-artista': relationshipData.jingleros || [],
+            'Tematicas-tematica': relationshipData.tematicas || [],
+          } : undefined}
+        />
+      </div>
     </main>
   );
 }

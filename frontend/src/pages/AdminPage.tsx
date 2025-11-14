@@ -1,9 +1,4 @@
 import { Routes, Route } from 'react-router-dom';
-import AdminJingle from './admin/AdminJingle';
-import AdminFabrica from './admin/AdminFabrica';
-import AdminArtista from './admin/AdminArtista';
-import AdminTematica from './admin/AdminTematica';
-import AdminCancion from './admin/AdminCancion';
 import AdminHome from './admin/AdminHome';
 import AdminDashboard from './admin/AdminDashboard';
 import AdminEntityAnalyze from './admin/AdminEntityAnalyze';
@@ -45,46 +40,6 @@ export default function AdminPage() {
         <Route path="login" element={<AdminLogin />} />
         
         {/* All other routes require authentication */}
-        <Route
-          path="j/:id"
-          element={
-            <ProtectedRoute>
-              <AdminJingle />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="f/:id"
-          element={
-            <ProtectedRoute>
-              <AdminFabrica />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="a/:id"
-          element={
-            <ProtectedRoute>
-              <AdminArtista />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="t/:id"
-          element={
-            <ProtectedRoute>
-              <AdminTematica />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="c/:id"
-          element={
-            <ProtectedRoute>
-              <AdminCancion />
-            </ProtectedRoute>
-          }
-        />
         {/* Dashboard route */}
         <Route
           path="dashboard"
@@ -108,18 +63,7 @@ export default function AdminPage() {
           path=":entityType/:entityId"
           element={
             <ProtectedRoute>
-              {(() => {
-                console.log('=== ROUTE MATCHED: :entityType/:entityId ===');
-                try {
-                  console.log('About to render AdminEntityAnalyze...');
-                  const component = <AdminEntityAnalyze />;
-                  console.log('AdminEntityAnalyze component created:', component);
-                  return component;
-                } catch (error) {
-                  console.error('Error creating AdminEntityAnalyze:', error);
-                  return <div>Error: {String(error)}</div>;
-                }
-              })()}
+              <AdminEntityAnalyze />
             </ProtectedRoute>
           }
         />

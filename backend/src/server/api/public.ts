@@ -1040,6 +1040,49 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
   }
 });
 
+// Related entities for Tematica
+router.get('/entities/tematicas/:id/related', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const limitInt = Math.min(Math.max(parseInt((req.query.limit as string) || '50', 10), 1), 200);
+    const limit = neo4j.int(limitInt);
+
+    // Get Jingles tagged with this Tematica, including Fabrica data
+    const jinglesByTematicaQuery = `
+      MATCH (t:Tematica {id: $tId})<-[:TAGGED_WITH]-(j:Jingle)
+      OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+      RETURN j { .id, .title, .songTitle, .comment, .timestamp, .createdAt, .updatedAt, .isJinglazo, .isJinglazoDelDia, .isPrecario, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle,
+             f { .id, .title, .date, .updatedAt } AS fabrica
+      ORDER BY j.updatedAt DESC
+      LIMIT $limit
+    `;
+
+    const jinglesByTematica = await db.executeQuery<any>(jinglesByTematicaQuery, { tId: id, limit });
+
+    // Include fabrica data with each jingle for EntityCard display
+    const filteredJingles = jinglesByTematica.filter((r: any) => r && r.jingle);
+    const convertedJingles = filteredJingles.map((r: any) => {
+      const jingle = convertNeo4jDates(r.jingle);
+      const fabrica = r.fabrica ? convertNeo4jDates(r.fabrica) : null;
+      return {
+        ...jingle,
+        fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
+      };
+    });
+
+    res.json({
+      jingles: convertedJingles,
+      meta: { limit: limitInt }
+    });
+  } catch (error: any) {
+    console.error('Error in /entities/tematicas/:id/related:', error);
+    res.status(500).json({ 
+      error: error?.message || 'Internal server error',
+      details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+    });
+  }
+});
+
 // Search endpoint (reuse existing search logic)
 router.get('/search', async (req, res) => {
   try {

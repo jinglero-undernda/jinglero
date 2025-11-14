@@ -853,8 +853,9 @@ function RelatedEntities({
           
           // Hide the section if: not loading, no error, no entities, and data has been loaded
           // We check if key exists in loadedData to confirm data has been loaded (even if empty)
+          // BUT: In admin mode, always show the section (even if empty) so blank rows can be displayed
           const hasLoadedData = key in state.loadedData;
-          const shouldHide = !isLoading && !hasError && entities.length === 0 && hasLoadedData;
+          const shouldHide = !isAdmin && !isLoading && !hasError && entities.length === 0 && hasLoadedData;
           
           // Don't render the section if we should hide it
           if (shouldHide) {
@@ -973,18 +974,22 @@ function RelatedEntities({
                           
                           // Extract relationship data from entity if it exists (e.g., fabrica for Jingle)
                           // The backend may include relationship data directly in the entity object
-                          // If Jingle is nested under a Fabrica, use the parent Fabrica's ID
+                          // If Jingle is nested under a Fabrica, pass the full Fabrica object (with date)
                           const relationshipData: Record<string, unknown> | undefined = (() => {
                             if (rel.entityType === 'jingle') {
-                              // Check if fabrica data is in the entity object
-                              if ((entity as any).fabrica) {
-                                return { fabrica: (entity as any).fabrica };
+                              const jingle = entity as any;
+                              // Check if fabrica data is embedded in the entity object
+                              if (jingle.fabrica) {
+                                return { fabrica: jingle.fabrica };
                               }
-                              // If the parent entity (root entity) is a Fabrica, use its ID
-                              // This handles the case where Jingles are nested under a Fabrica
+                              // If the parent entity (root entity) is a Fabrica, pass the full Fabrica object
+                              // This allows EntityCard to use the Fabrica's date when Jingle doesn't have fabricaDate
                               if (entityType === 'fabrica') {
-                                return { fabrica: { id: entity.id } };
+                                return { fabrica: entity };
                               }
+                              // If Jingle has fabricaId but no fabricaDate, we can't fetch the Fabrica here
+                              // (would require async operation). The backend should populate fabricaDate.
+                              // For now, we rely on fabricaDate being populated in the Jingle entity.
                             }
                             return undefined;
                           })();
@@ -1483,8 +1488,8 @@ function RelatedEntities({
                       </>
                     )}
 
-                    {/* Task 18: Add blank row for Admin Mode */}
-                    {isAdmin && entities.length > 0 && (
+                    {/* Task 18: Add blank row for Admin Mode - show even when no entities exist */}
+                    {isAdmin && (
                       <div className="related-entities__blank-row" title="Fila en blanco para agregar nueva relación (funcionalidad futura)">
                         <div className="related-entities__empty">+ Agregar {rel.label.toLowerCase()}</div>
                       </div>

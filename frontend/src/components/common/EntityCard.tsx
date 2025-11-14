@@ -37,6 +37,12 @@ export interface EntityCardProps {
   indentationLevel?: number;
   /** Optional relationship data for enhanced field display (e.g., autores for Cancion, fabrica for Jingle) */
   relationshipData?: Record<string, unknown>;
+  /** Whether to show admin edit button (only for heading variant in admin mode) */
+  showAdminEditButton?: boolean;
+  /** Whether currently in editing mode */
+  isEditing?: boolean;
+  /** Callback when edit button is clicked */
+  onEditClick?: () => void;
 }
 
 /**
@@ -183,10 +189,17 @@ function getSecondaryText(
       return null;
     }
     case 'jingle': {
-      // Show fabricaDate (denormalized) or "INEDITO"
+      // Show fabricaDate (denormalized) or use parent Fabrica's date if available
       const jingle = entity as Jingle;
       if (jingle.fabricaDate) {
         return formatDate(jingle.fabricaDate);
+      }
+      // If no fabricaDate but we have a parent Fabrica in relationshipData, use its date
+      if (relationshipData?.fabrica) {
+        const fabrica = relationshipData.fabrica as Fabrica;
+        if (fabrica.date) {
+          return formatDate(fabrica.date);
+        }
       }
       return 'INEDITO';
     }
@@ -285,6 +298,9 @@ function EntityCard({
   relationshipLabel,
   indentationLevel = 0,
   relationshipData,
+  showAdminEditButton = false,
+  isEditing = false,
+  onEditClick,
 }: EntityCardProps) {
   const navigate = useNavigate();
   // Handle deprecated variants with warnings
@@ -298,7 +314,8 @@ function EntityCard({
   const secondaryText = getSecondaryText(entity, entityType, relationshipData);
   const icon = getEntityIcon(entityType, actualVariant, relationshipLabel);
   const defaultBadges = getEntityBadges(entity, entityType);
-  const route = to || (onClick ? undefined : getEntityRoute(entityType, entity.id, actualVariant));
+  // Don't make it a link if admin edit button is shown (we're already on the entity page)
+  const route = showAdminEditButton ? undefined : (to || (onClick ? undefined : getEntityRoute(entityType, entity.id, actualVariant)));
 
   // Handle expand/collapse icon click
   const handleExpandClick = (e: React.MouseEvent) => {
@@ -374,6 +391,41 @@ function EntityCard({
     </button>
   ) : null;
 
+  // Admin edit button (only for heading variant in admin mode)
+  const adminEditButton = showAdminEditButton && actualVariant === 'heading' && onEditClick ? (
+    <button
+      type="button"
+      className="entity-card__edit-button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onEditClick();
+      }}
+      aria-label={isEditing ? 'Cancelar edición' : 'Editar'}
+      title={isEditing ? 'Cancelar edición' : 'Editar'}
+      style={{
+        padding: '0.5rem 1rem',
+        backgroundColor: isEditing ? '#666' : '#1976d2',
+        color: 'white',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '0.875rem',
+        fontWeight: '500',
+        transition: 'background-color 0.2s',
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = isEditing ? '#555' : '#1565c0';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = isEditing ? '#666' : '#1976d2';
+      }}
+    >
+      {isEditing ? 'Cancelar' : 'Editar'}
+    </button>
+  ) : null;
+
   // Both heading and contents use the same horizontal compact layout
   const cardContent = (
     <>
@@ -392,10 +444,11 @@ function EntityCard({
           )}
         </div>
       </div>
-      {(showButton || expandIcon) && (
+      {(showButton || expandIcon || adminEditButton) && (
         <div className="entity-card__actions-container">
           {showButton}
           {expandIcon}
+          {adminEditButton}
         </div>
       )}
     </>
