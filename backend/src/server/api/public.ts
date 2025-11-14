@@ -1008,6 +1008,21 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
       jinglesByJingleroRaw: jinglesByJinglero,
       jinglesByJingleroFirst: jinglesByJinglero[0],
       cancionesByAutorCount: cancionesByAutor.length,
+      cancionesByAutorRaw: cancionesByAutor,
+      cancionesByAutorFirst: cancionesByAutor[0],
+    });
+    
+    // Additional debug: Check if relationships exist
+    const debugQuery = `
+      MATCH (a:Artista {id: $aId})-[r:AUTOR_DE]->(c:Cancion)
+      RETURN a.id AS artistaId, c.id AS cancionId, c.title AS cancionTitle, r
+      ORDER BY c.updatedAt DESC
+    `;
+    const debugResults = await db.executeQuery<any>(debugQuery, { aId: id });
+    console.log(`[DEBUG] /entities/artistas/${id}/related - Direct relationship check:`, {
+      artistaId: id,
+      relationshipCount: debugResults.length,
+      relationships: debugResults,
     });
 
     // Include fabrica data with each jingle for EntityCard display

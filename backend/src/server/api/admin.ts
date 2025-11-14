@@ -571,6 +571,7 @@ router.post('/:type', asyncHandler(async (req, res) => {
   if (existing.length > 0) {
     throw new ConflictError(`Entity with id already exists: ${id}`);
   }
+  // Always use current timestamp for creation, ignore any timestamps in payload
   const now = new Date().toISOString();
   const createQuery = `
     CREATE (n:${label} {
@@ -582,12 +583,13 @@ router.post('/:type', asyncHandler(async (req, res) => {
     RETURN n
   `;
   const properties = { ...payload, id } as any;
+  // Remove timestamp fields from properties to ensure they're always set to current time
   delete properties.createdAt;
   delete properties.updatedAt;
   const result = await db.executeQuery<{ n: { properties: any } }>(createQuery, {
     id,
-    createdAt: payload.createdAt || now,
-    updatedAt: payload.updatedAt || now,
+    createdAt: now, // Always use current timestamp for creation
+    updatedAt: now, // Always use current timestamp for creation
     properties
   }, undefined, true);
   res.status(201).json(convertNeo4jDates(result[0].n.properties));
@@ -600,6 +602,10 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   if (!label) {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
+  // Remove timestamp fields from payload to ensure updatedAt is always set to current time
+  const properties = { ...payload } as any;
+  delete properties.createdAt; // Don't allow updating createdAt
+  delete properties.updatedAt; // Always use current timestamp for updatedAt
   const updateQuery = `
     MATCH (n:${label} { id: $id })
     SET n += $properties,
@@ -608,7 +614,7 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   `;
   const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, { 
     id, 
-    properties: payload 
+    properties 
   }, undefined, true);
   if (result.length === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
@@ -629,7 +635,11 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }
   const existingProps = existing[0].n;
-  const mergedProps = { ...existingProps, ...payload, id };
+  // Remove timestamp fields from payload to ensure updatedAt is always set to current time
+  const cleanPayload = { ...payload } as any;
+  delete cleanPayload.createdAt; // Don't allow updating createdAt
+  delete cleanPayload.updatedAt; // Always use current timestamp for updatedAt
+  const mergedProps = { ...existingProps, ...cleanPayload, id };
   const updateQuery = `
     MATCH (n:${label} { id: $id })
     SET n = $properties,

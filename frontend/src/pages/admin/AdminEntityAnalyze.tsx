@@ -8,7 +8,7 @@
  */
 
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { adminApi } from '../../lib/api/client';
@@ -154,7 +154,10 @@ export default function AdminEntityAnalyze() {
     );
   }
 
-  const relationships = getRelationshipsForEntityType(entityType);
+  // Memoize relationships to prevent infinite loops in RelatedEntities useEffect
+  // The relationships array is recreated on every render, which causes the useEffect
+  // in RelatedEntities to run repeatedly, creating an infinite loop
+  const relationships = useMemo(() => getRelationshipsForEntityType(entityType), [entityType]);
 
   // Debug logging for state
   console.log('AdminEntityAnalyze render - loading:', loading, 'error:', error, 'entity:', entity);

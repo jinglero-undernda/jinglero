@@ -222,9 +222,8 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          data[key] = (entity as any)[key] ?? undefined;
         });
       } else {
         // For other entity types, use the original logic but include 'id'
@@ -285,9 +284,8 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          data[key] = (entity as any)[key] ?? undefined;
         });
       } else {
         // For other entity types, use the original logic but include 'id'
@@ -439,9 +437,8 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          data[key] = (entity as any)[key] ?? undefined;
         });
       } else {
       // For other entity types, use the original logic but include 'id'
@@ -540,11 +537,10 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     });
   } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
     editableFields = FIELD_ORDER.tematica.filter((key) => {
-      // Only include fields that exist in the entity
-      if (!(key in entity)) return false;
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
-      const value = (entity as any)[key];
+      // Use formData value if available, otherwise entity value, otherwise undefined
+      const value = formData[key] ?? (entity as any)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -873,7 +869,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </label>
                       <select
                         value={value || ''}
-                        onChange={(e) => handleFieldChange(fieldName, e.target.value)}
+                        onChange={(e) => handleFieldChange(fieldName, e.target.value || null)}
                         style={{
                           flex: 1,
                           padding: '4px 8px',
@@ -886,6 +882,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                           cursor: 'pointer',
                         }}
                       >
+                        <option value="">-- Seleccionar --</option>
                         {FIELD_OPTIONS.tematica.category.map((option) => (
                           <option key={option} value={option}>
                             {option}

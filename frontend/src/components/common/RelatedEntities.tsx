@@ -601,6 +601,14 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
         // Artista -> Jingle/Cancion
         startId = rel.entityType === 'artista' ? selectedEntity.id : entity.id;
         endId = rel.entityType === 'artista' ? entity.id : selectedEntity.id;
+        console.log(`[DEBUG] Creating ${relType} relationship:`, {
+          entityType,
+          relEntityType: rel.entityType,
+          startId,
+          endId,
+          startIsArtista: rel.entityType === 'artista' ? selectedEntity.id : entity.id,
+          endIsCancionOrJingle: rel.entityType === 'artista' ? entity.id : selectedEntity.id,
+        });
       } else if (relType === 'tagged_with') {
         // Jingle -> Tematica
         startId = rel.entityType === 'tematica' ? selectedEntity.id : entity.id;
@@ -840,26 +848,52 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
           // No need to check expansion state since we're already in the top level condition
           // All relationships should be loaded at top level
           
-          // Skip if already loaded (check both loadedData and initial data)
+          // In admin mode, always fetch fresh data to ensure we have the latest relationships
+          // In user mode, skip if already loaded (check both loadedData and initial data)
           const currentState = stateRef.current;
-          if (key in currentState.loadedData || (processedInitialData.loadedData[key] && processedInitialData.loadedData[key].length > 0)) {
-            continue;
-          }
           
-          // Task 26: Check cache before making API request
+          // Define cacheKey here so it's available in both branches
           const cacheKey = getCacheKey(entity.id, entityType, key);
-          const cachedData = requestCacheRef.current[cacheKey];
           
-          if (cachedData !== undefined) {
-            // Use cached data
-            const finalCount = cachedData.length;
-            dispatch({
-              type: 'LOAD_SUCCESS',
-              key,
-              data: cachedData,
-              count: finalCount,
-            });
-            continue;
+          if (!isAdmin) {
+            // User mode: skip if already loaded
+            if (key in currentState.loadedData || (processedInitialData.loadedData[key] && processedInitialData.loadedData[key].length > 0)) {
+              continue;
+            }
+            
+            // Task 26: Check cache before making API request (user mode only)
+            const cachedData = requestCacheRef.current[cacheKey];
+            
+            if (cachedData !== undefined) {
+              // Use cached data
+              const finalCount = cachedData.length;
+              dispatch({
+                type: 'LOAD_SUCCESS',
+                key,
+                data: cachedData,
+                count: finalCount,
+              });
+              continue;
+            }
+          } else {
+            // Admin mode: check if data is already loaded to prevent infinite loops
+            // Only fetch if data is not already loaded or if there's an error
+            const hasData = key in currentState.loadedData;
+            const hasError = currentState.errors[key] !== null && currentState.errors[key] !== undefined;
+            const isLoading = currentState.loadingStates[key] === true;
+            
+            // Skip if we already have data (even if empty array) and no error and not currently loading
+            // This prevents infinite loops while still allowing:
+            // 1. Initial load (no data yet)
+            // 2. Retry on error (hasError is true)
+            // 3. Loading state (isLoading is true)
+            if (hasData && !hasError && !isLoading) {
+              // Data already loaded successfully, skip to prevent infinite loop
+              continue;
+            }
+            
+            // Clear cache before fetching fresh data
+            delete requestCacheRef.current[cacheKey];
           }
 
           // Request deduplication (Task 13): Check if request already in flight
@@ -1284,13 +1318,13 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                     ) : (
                       // Render direct entities for this relationship first
                       <>
-                        {entities.map((entity) => {
-                          const rowId = `${key}-${entity.id}`;
+                        {entities.map((relatedEntity) => {
+                          const rowId = `${key}-${relatedEntity.id}`;
                           // Check if this entity type has relationships configured (can be expanded)
                           const entityRelationships = getRelationshipsForEntityType(rel.entityType);
                           const hasNestedRelationships = entityRelationships.length > 0 && rel.expandable;
                           // Check if this entity is currently expanded
-                          const isEntityExpanded = state.expandedEntities.has(entity.id);
+                          const isEntityExpanded = state.expandedEntities.has(relatedEntity.id);
                           // Get nested rows if entity is expanded
                           // Nested rows are stored with keys like "Canciones-cancion-ART-002"
                           // and have row IDs like "Canciones-cancion-ART-002-CAN-001"
@@ -1298,9 +1332,9 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                             ? (() => {
                                 const rows: Array<{ id: string; entity: RelatedEntity; entityType: EntityType; indentLevel: number; relationshipLabel: string }> = [];
                                 entityRelationships.forEach((nestedRel) => {
-                                  const nestedKey = `${getRelationshipKey(nestedRel)}-${entity.id}`;
+                                  const nestedKey = `${getRelationshipKey(nestedRel)}-${relatedEntity.id}`;
                                   const nestedEntities = state.loadedData[nestedKey] || [];
-                                  console.log('Getting nested rows for entity:', entity.id, 'key:', nestedKey, 'entities:', nestedEntities.length);
+                                  console.log('Getting nested rows for entity:', relatedEntity.id, 'key:', nestedKey, 'entities:', nestedEntities.length);
                                   nestedEntities.forEach((nestedEntity) => {
                                     rows.push({
                                       id: `${nestedKey}-${nestedEntity.id}`,
@@ -1311,7 +1345,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                     });
                                   });
                                 });
-                                console.log('Total nested rows for entity:', entity.id, ':', rows.length);
+                                console.log('Total nested rows for entity:', relatedEntity.id, ':', rows.length);
                                 return rows;
                               })()
                             : [];
@@ -1322,7 +1356,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                           // If Jingle is nested under a Fabrica, pass the full Fabrica object (with date)
                           const relationshipData: Record<string, unknown> | undefined = (() => {
                             if (rel.entityType === 'jingle') {
-                              const jingle = entity as any;
+                              const jingle = relatedEntity as any;
                               // Check if fabrica data is embedded in the entity object
                               if (jingle.fabrica) {
                                 return { fabrica: jingle.fabrica };
@@ -1340,7 +1374,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                           })();
                           
                           // In admin mode, handle relationship properties expansion
-                          const relationshipPropsKey = `${entity.id}-${key}`;
+                          const relationshipPropsKey = `${relatedEntity.id}-${key}`;
                           const isRelationshipPropsExpanded = expandedRelationshipProps.has(relationshipPropsKey);
                           const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
                           
@@ -1358,42 +1392,122 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                               setExpandedRelationshipProps(prev => new Set(prev).add(relationshipPropsKey));
                               
                               // Fetch relationship properties if not already loaded
-                              if (!relationshipPropsData[relationshipPropsKey] && relType) {
-                                try {
-                                  // Get relationship properties from API
-                                  // The relationship properties should be in the entity object or we need to fetch them
-                                  // For now, check if they're embedded in the entity
-                                  const props: Record<string, any> = {};
-                                  
-                                  // Check if entity has relationship properties embedded
-                                  if ((entity as any).order !== undefined) props.order = (entity as any).order;
-                                  if ((entity as any).timestamp !== undefined) props.timestamp = (entity as any).timestamp;
-                                  if ((entity as any).status !== undefined) props.status = (entity as any).status;
-                                  if ((entity as any).isPrimary !== undefined) props.isPrimary = (entity as any).isPrimary;
-                                  
-                                  setRelationshipPropsData(prev => ({
-                                    ...prev,
-                                    [relationshipPropsKey]: props,
-                                  }));
-                                  
-                                  // Initialize timestamp time
-                                  if (props.timestamp !== undefined) {
-                                    const { h, m, s } = (() => {
-                                      const totalSeconds = Math.floor(Number(props.timestamp));
-                                      return {
-                                        h: Math.floor(totalSeconds / 3600),
-                                        m: Math.floor((totalSeconds % 3600) / 60),
-                                        s: totalSeconds % 60,
-                                      };
-                                    })();
-                                    setTimestampTimes(prev => ({
-                                      ...prev,
-                                      [relationshipPropsKey]: { h, m, s },
-                                    }));
-                                  }
-                                } catch (error) {
-                                  console.error('Error fetching relationship properties:', error);
+                              // Note: `relatedEntity` is the related entity from map, `entity` is root entity from component props
+                              if (!relationshipPropsData[relationshipPropsKey] && relType && relatedEntity?.id) {
+                                // Determine start and end IDs for the relationship
+                                const relatedEntityId = relatedEntity.id; // Related entity from map
+                                const rootEntityId = entity.id; // Root entity from component props
+                                
+                                let startId: string;
+                                let endId: string;
+                                
+                                if (relType === 'appears_in') {
+                                  // Jingle -> Fabrica
+                                  startId = entityType === 'jingle' ? rootEntityId : relatedEntityId;
+                                  endId = entityType === 'jingle' ? relatedEntityId : rootEntityId;
+                                } else if (relType === 'versiona') {
+                                  // Jingle -> Cancion
+                                  startId = entityType === 'jingle' ? rootEntityId : relatedEntityId;
+                                  endId = entityType === 'jingle' ? relatedEntityId : rootEntityId;
+                                } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+                                  // Artista -> Jingle/Cancion
+                                  startId = entityType === 'artista' ? rootEntityId : relatedEntityId;
+                                  endId = entityType === 'artista' ? relatedEntityId : rootEntityId;
+                                } else if (relType === 'tagged_with') {
+                                  // Jingle -> Tematica
+                                  startId = entityType === 'jingle' ? rootEntityId : relatedEntityId;
+                                  endId = entityType === 'jingle' ? relatedEntityId : rootEntityId;
+                                } else {
+                                  // Default: current entity is start, related entity is end
+                                  startId = rootEntityId;
+                                  endId = relatedEntityId;
                                 }
+                                
+                                // Fetch relationship properties from API
+                                (async () => {
+                                  try {
+                                    // First, check if properties are embedded in the entity (from initial data)
+                                    const props: Record<string, any> = {};
+                                    
+                                    // Check if relatedEntity has relationship properties embedded
+                                    if ((relatedEntity as any).order !== undefined) props.order = (relatedEntity as any).order;
+                                    if ((relatedEntity as any).timestamp !== undefined) props.timestamp = (relatedEntity as any).timestamp;
+                                    if ((relatedEntity as any).status !== undefined) props.status = (relatedEntity as any).status;
+                                    if ((relatedEntity as any).isPrimary !== undefined) props.isPrimary = (relatedEntity as any).isPrimary;
+                                    
+                                    // If properties are not embedded, fetch from API
+                                    if (Object.keys(props).length === 0) {
+                                      try {
+                                        // Fetch entity relationships to get relationship properties
+                                        const entityTypeMap: Record<EntityType, string> = {
+                                          jingle: 'jingles',
+                                          cancion: 'canciones',
+                                          artista: 'artistas',
+                                          tematica: 'tematicas',
+                                          fabrica: 'fabricas',
+                                        };
+                                        const apiType = entityTypeMap[entityType];
+                                        const relationships = await adminApi.getEntityRelationships(apiType, rootEntityId);
+                                        
+                                        // Find the specific relationship
+                                        const allRels = [...(relationships.outgoing || []), ...(relationships.incoming || [])];
+                                        const targetRel = allRels.find((r: any) => {
+                                          if (relType === 'appears_in') {
+                                            return r.type === 'APPEARS_IN' && 
+                                              ((r.direction === 'outgoing' && r.target?.id === endId) ||
+                                               (r.direction === 'incoming' && r.source?.id === startId));
+                                          } else if (relType === 'versiona') {
+                                            return r.type === 'VERSIONA' && 
+                                              ((r.direction === 'outgoing' && r.target?.id === endId) ||
+                                               (r.direction === 'incoming' && r.source?.id === startId));
+                                          } else if (relType === 'jinglero_de') {
+                                            return r.type === 'JINGLERO_DE' && 
+                                              ((r.direction === 'outgoing' && r.target?.id === endId) ||
+                                               (r.direction === 'incoming' && r.source?.id === startId));
+                                          } else if (relType === 'autor_de') {
+                                            return r.type === 'AUTOR_DE' && 
+                                              ((r.direction === 'outgoing' && r.target?.id === endId) ||
+                                               (r.direction === 'incoming' && r.source?.id === startId));
+                                          } else if (relType === 'tagged_with') {
+                                            return r.type === 'TAGGED_WITH' && 
+                                              ((r.direction === 'outgoing' && r.target?.id === endId) ||
+                                               (r.direction === 'incoming' && r.source?.id === startId));
+                                          }
+                                          return false;
+                                        });
+                                        
+                                        if (targetRel && targetRel.properties) {
+                                          Object.assign(props, targetRel.properties);
+                                        }
+                                      } catch (apiError) {
+                                        console.error('Error fetching relationship from API:', apiError);
+                                      }
+                                    }
+                                    
+                                    setRelationshipPropsData(prev => ({
+                                      ...prev,
+                                      [relationshipPropsKey]: props,
+                                    }));
+                                    
+                                    // Initialize timestamp time
+                                    if (props.timestamp !== undefined) {
+                                      const { h, m, s } = (() => {
+                                        const totalSeconds = Math.floor(Number(props.timestamp));
+                                        return {
+                                          h: Math.floor(totalSeconds / 3600),
+                                          m: Math.floor((totalSeconds % 3600) / 60),
+                                          s: totalSeconds % 60,
+                                        };
+                                      })();
+                                      setTimestampTimes(prev => ({
+                                        ...prev,
+                                        [relationshipPropsKey]: { h, m, s },
+                                      }));
+                                    }
+                                  } catch (error) {
+                                    console.error('Error fetching relationship properties:', error);
+                                  }
+                                })();
                               }
                             }
                           } : undefined;
@@ -1402,7 +1516,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                             <React.Fragment key={rowId}>
                               <div className="related-entities__row">
                                 <EntityCard
-                                  entity={entity}
+                                  entity={relatedEntity}
                                   entityType={rel.entityType}
                                   variant="contents"
                                   indentationLevel={0}
@@ -1411,28 +1525,28 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                   hasNestedEntities={hasNested}
                                   isExpanded={isEntityExpanded}
                                   onClick={handleAdminClick}
-                                  to={isAdmin ? undefined : getEntityRoute(rel.entityType, entity.id, 'contents')} // In admin mode, don't navigate on click
+                                  to={isAdmin ? undefined : getEntityRoute(rel.entityType, relatedEntity.id, 'contents')} // In admin mode, don't navigate on click
                                   showAdminNavButton={isAdmin}
-                                  adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${entity.id}`}
+                                  adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${relatedEntity.id}`}
                                   onAdminNavClick={() => {
                                     if (onNavigateToEntity) {
-                                      onNavigateToEntity(rel.entityType, entity.id);
+                                      onNavigateToEntity(rel.entityType, relatedEntity.id);
                                     }
                                   }}
                                   onToggleExpand={async () => {
-                                    console.log('onToggleExpand called for entity:', entity.id, 'entityType:', rel.entityType);
+                                    console.log('onToggleExpand called for entity:', relatedEntity.id, 'entityType:', rel.entityType);
                                     const currentState = stateRef.current;
-                                    const wasExpanded = currentState.expandedEntities.has(entity.id);
+                                    const wasExpanded = currentState.expandedEntities.has(relatedEntity.id);
                                     console.log('wasExpanded:', wasExpanded, 'hasNestedRelationships:', hasNestedRelationships);
-                                    dispatch({ type: 'TOGGLE_ENTITY', entityId: entity.id });
+                                    dispatch({ type: 'TOGGLE_ENTITY', entityId: relatedEntity.id });
                                     
                                     // If expanding, load nested relationships
                                     if (!wasExpanded && hasNestedRelationships) {
                                       const nestedRelationships = getRelationshipsForEntityType(rel.entityType);
-                                      console.log('Loading nested relationships for entity:', entity.id, 'relationships:', nestedRelationships.map(r => r.label));
+                                      console.log('Loading nested relationships for entity:', relatedEntity.id, 'relationships:', nestedRelationships.map(r => r.label));
                                       
                                       for (const nestedRel of nestedRelationships) {
-                                        const nestedKey = `${getRelationshipKey(nestedRel)}-${entity.id}`;
+                                        const nestedKey = `${getRelationshipKey(nestedRel)}-${relatedEntity.id}`;
                                         
                                         // Check current state (may have updated)
                                         const latestState = stateRef.current;
@@ -1445,7 +1559,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                         }
                                         
                                         // Check cache
-                                        const cacheKey = `${entity.id}-${rel.entityType}-${getRelationshipKey(nestedRel)}`;
+                                        const cacheKey = `${relatedEntity.id}-${rel.entityType}-${getRelationshipKey(nestedRel)}`;
                                         const cachedData = requestCacheRef.current[cacheKey];
                                         if (cachedData !== undefined) {
                                           console.log('Using cached data:', cachedData.length, 'entities');
@@ -1460,14 +1574,14 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                         
                                         // Load nested relationships
                                         try {
-                                          console.log('Loading nested relationships for:', entity.id, 'relationship:', nestedRel.label);
+                                          console.log('Loading nested relationships for:', relatedEntity.id, 'relationship:', nestedRel.label);
                                           const abortController = new AbortController();
                                           dispatch({ type: 'LOAD_START', key: nestedKey, abortController });
                                           
-                                          const nestedEntities = await nestedRel.fetchFn(entity.id, rel.entityType);
+                                          const nestedEntities = await nestedRel.fetchFn(relatedEntity.id, rel.entityType);
                                           console.log('Fetched nested entities:', nestedEntities.length, nestedEntities);
                                           const sorted = sortEntities(nestedEntities, nestedRel.sortKey, nestedRel.entityType);
-                                          const filtered = sorted.filter((e) => ![...entityPath, entity.id].includes(e.id));
+                                          const filtered = sorted.filter((e) => ![...entityPath, relatedEntity.id].includes(e.id));
                                           
                                           console.log('Filtered nested entities:', filtered.length, 'storing with key:', nestedKey);
                                           
@@ -1695,6 +1809,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                             <input
                                               type={prop.type === 'number' ? 'number' : 'text'}
                                               value={propsData[prop.name] ?? ''}
+                                              readOnly={false}
                                               onChange={(e) => {
                                                 setRelationshipPropsData(prev => ({
                                                   ...prev,
@@ -2436,6 +2551,7 @@ export default React.memo(RelatedEntities, (prevProps, nextProps) => {
   
   // Compare other props
   if (prevProps.isAdmin !== nextProps.isAdmin) return false;
+  if (prevProps.isEditing !== nextProps.isEditing) return false;
   if (prevProps.maxDepth !== nextProps.maxDepth) return false;
   if (prevProps.className !== nextProps.className) return false;
   
