@@ -374,6 +374,7 @@ export default function AdminEntityAnalyze() {
           entityPath={[entity.id]}
           isAdmin={true}
           isEditing={isEditing}
+          onEditToggle={setIsEditing}
           initialRelationshipData={relationshipData ? {
             'Fabrica-fabrica': relationshipData.fabrica ? [relationshipData.fabrica] : [],
             'Cancion-cancion': relationshipData.cancion ? [relationshipData.cancion] : [],

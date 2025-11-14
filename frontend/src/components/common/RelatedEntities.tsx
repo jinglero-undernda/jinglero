@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, f
 import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
+import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 
 // Helper to get entity route (duplicated from EntityCard to avoid circular dependency)
 function getEntityRoute(entityType: EntityType, entityId: string): string {
@@ -128,6 +129,10 @@ export interface RelatedEntitiesProps {
    * Whether the parent entity is in edit mode (affects relationship property editing)
    */
   isEditing?: boolean;
+  /**
+   * Callback to toggle edit mode (called when user clicks "+ Agregar" to enter edit mode)
+   */
+  onEditToggle?: (editing: boolean) => void;
   /**
    * Callback to get relationship properties that need to be saved
    * Returns a map of relationship keys to their properties
@@ -429,6 +434,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
   isAdmin = false,
   initialRelationshipData = {},
   isEditing = false,
+  onEditToggle,
   onGetRelationshipProperties,
   onCheckUnsavedChanges,
   onNavigateToEntity,
@@ -584,65 +590,116 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
       return;
     }
 
-    try {
-      // Determine start and end based on relationship direction
-      let startId: string;
-      let endId: string;
-      
-      if (relType === 'appears_in') {
-        // Jingle -> Fabrica
-        startId = rel.entityType === 'fabrica' ? selectedEntity.id : entity.id;
-        endId = rel.entityType === 'fabrica' ? entity.id : selectedEntity.id;
-      } else if (relType === 'versiona') {
-        // Jingle -> Cancion
-        startId = rel.entityType === 'cancion' ? selectedEntity.id : entity.id;
-        endId = rel.entityType === 'cancion' ? entity.id : selectedEntity.id;
-      } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-        // Artista -> Jingle/Cancion
-        startId = rel.entityType === 'artista' ? selectedEntity.id : entity.id;
-        endId = rel.entityType === 'artista' ? entity.id : selectedEntity.id;
-        console.log(`[DEBUG] Creating ${relType} relationship:`, {
-          entityType,
-          relEntityType: rel.entityType,
-          startId,
-          endId,
-          startIsArtista: rel.entityType === 'artista' ? selectedEntity.id : entity.id,
-          endIsCancionOrJingle: rel.entityType === 'artista' ? entity.id : selectedEntity.id,
-        });
-      } else if (relType === 'tagged_with') {
-        // Jingle -> Tematica
-        startId = rel.entityType === 'tematica' ? selectedEntity.id : entity.id;
-        endId = rel.entityType === 'tematica' ? entity.id : selectedEntity.id;
-      } else {
-        // Default: current entity is start, selected entity is end
-        startId = entity.id;
-        endId = selectedEntity.id;
-      }
-
-      // Prepare properties - convert empty strings to null/undefined, convert numbers
-      const properties: Record<string, any> = {};
-      Object.entries(relationshipProperties).forEach(([key, value]) => {
-        if (value === '' || value === null || value === undefined) {
-          // Skip empty values
-        } else if ((key === 'order' || key === 'timestamp') && (typeof value === 'string' || typeof value === 'number')) {
-          const numValue = typeof value === 'string' ? Number(value) : value;
-          if (!isNaN(numValue)) {
-            properties[key] = numValue;
-          }
-        } else {
-          properties[key] = value;
-        }
+    // Determine start and end based on relationship direction
+    let startId: string;
+    let endId: string;
+    
+    if (relType === 'appears_in') {
+      // Jingle -> Fabrica
+      startId = rel.entityType === 'fabrica' ? selectedEntity.id : entity.id;
+      endId = rel.entityType === 'fabrica' ? entity.id : selectedEntity.id;
+    } else if (relType === 'versiona') {
+      // Jingle -> Cancion
+      startId = rel.entityType === 'cancion' ? selectedEntity.id : entity.id;
+      endId = rel.entityType === 'cancion' ? entity.id : selectedEntity.id;
+    } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+      // Artista -> Jingle/Cancion
+      startId = rel.entityType === 'artista' ? selectedEntity.id : entity.id;
+      endId = rel.entityType === 'artista' ? entity.id : selectedEntity.id;
+      console.log(`[DEBUG] Creating ${relType} relationship:`, {
+        entityType,
+        relEntityType: rel.entityType,
+        startId,
+        endId,
+        startIsArtista: rel.entityType === 'artista' ? selectedEntity.id : entity.id,
+        endIsCancionOrJingle: rel.entityType === 'artista' ? entity.id : selectedEntity.id,
       });
+    } else if (relType === 'tagged_with') {
+      // Jingle -> Tematica
+      startId = rel.entityType === 'tematica' ? selectedEntity.id : entity.id;
+      endId = rel.entityType === 'tematica' ? entity.id : selectedEntity.id;
+    } else {
+      // Default: current entity is start, selected entity is end
+      startId = entity.id;
+      endId = selectedEntity.id;
+    }
 
+    // Prepare properties - convert empty strings to null/undefined, convert numbers
+    const properties: Record<string, any> = {};
+    Object.entries(relationshipProperties).forEach(([key, value]) => {
+      if (value === '' || value === null || value === undefined) {
+        // Skip empty values
+      } else if ((key === 'order' || key === 'timestamp') && (typeof value === 'string' || typeof value === 'number')) {
+        const numValue = typeof value === 'string' ? Number(value) : value;
+        if (!isNaN(numValue)) {
+          properties[key] = numValue;
+        }
+      } else {
+        properties[key] = value;
+      }
+    });
+
+    let relationshipCreated = false;
+    try {
       await adminApi.post(`/relationships/${relType}`, {
         start: startId,
         end: endId,
         ...properties,
       });
+      relationshipCreated = true;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      // If relationship already exists, that's okay - we should still refresh to show it
+      if (errorMessage.includes('already exists') || errorMessage.includes('Relationship already exists')) {
+        console.log('Relationship already exists, refreshing to show it');
+        relationshipCreated = true; // Treat as success for refresh purposes
+      } else {
+        console.error('Error creating relationship:', error);
+        alert(`Error al crear la relación: ${errorMessage}`);
+        return; // Don't refresh if there was a real error
+      }
+    }
 
-      // Refresh the relationship data
+    // Clear cache for jingles involved in this relationship to ensure fresh data
+    // This is important because fetchJingleAllRelationships caches responses
+    // For tagged_with: Jingle -> Tematica, so startId is always the jingle
+    // For other relationships, check both start and end entities
+    if (relType === 'tagged_with') {
+      // TAGGED_WITH is always Jingle -> Tematica, so startId is the jingle
+      clearJingleRelationshipsCache(startId);
+    } else {
+      // For other relationships, clear cache if either entity is a jingle
+      if (entityType === 'jingle') {
+        clearJingleRelationshipsCache(entity.id);
+      }
+      if (rel.entityType === 'jingle' && selectedEntity.id) {
+        clearJingleRelationshipsCache(selectedEntity.id);
+      }
+    }
+
+    // Refresh the relationship data (whether newly created or already existed)
+    if (relationshipCreated) {
+      // For jingles, ensure cache is cleared before fetching
+      // We already cleared it above, but do it again here to be safe
+      if (relType === 'tagged_with' && entityType === 'jingle') {
+        clearJingleRelationshipsCache(entity.id);
+      }
+      
       const fetchFn = rel.fetchFn;
+      // Add a small delay to ensure cache clearing has taken effect
+      // This is especially important if there are pending requests
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
       const entities = await fetchFn(entity.id, entityType);
+      
+      console.log(`[DEBUG] Refreshed ${key} relationship data:`, {
+        entityId: entity.id,
+        entityType,
+        relType,
+        entitiesCount: entities.length,
+        entities: entities.map(e => ({ id: e.id, name: (e as any).name || (e as any).title || e.id }))
+      });
+      
       dispatch({
         type: 'LOAD_SUCCESS',
         key,
@@ -656,9 +713,6 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
       setActiveSearchKey(null);
       setSearchQueries(prev => ({ ...prev, [key]: '' }));
       setSearchResults(prev => ({ ...prev, [key]: [] }));
-    } catch (error) {
-      console.error('Error creating relationship:', error);
-      alert(`Error al crear la relación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }, [selectedEntityForRelationship, entity, entityType, relationships, relationshipProperties, getRelationshipKey, getRelationshipTypeForAPI]);
 
@@ -2405,14 +2459,16 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                   <button
                                     type="button"
                                     onClick={handleCreateRelationship}
+                                    disabled={!isEditing}
                                     style={{
                                       padding: '8px 16px',
-                                      backgroundColor: '#4caf50',
+                                      backgroundColor: isEditing ? '#4caf50' : '#666',
                                       color: '#fff',
                                       border: 'none',
                                       borderRadius: '4px',
-                                      cursor: 'pointer',
+                                      cursor: isEditing ? 'pointer' : 'not-allowed',
                                       fontSize: '14px',
+                                      opacity: isEditing ? 1 : 0.6,
                                     }}
                                   >
                                     Crear Relación
@@ -2471,6 +2527,7 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                                 <button
                                   type="button"
                                   onClick={() => {
+                                    if (!isEditing) return;
                                     // Navigate to create new entity page using correct route format
                                     const routePrefixMap: Record<EntityType, string> = {
                                       jingle: 'j',
@@ -2512,8 +2569,16 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
                         ) : (
                           <div
                             className="related-entities__empty"
-                            onClick={() => setActiveSearchKey(key)}
-                            style={{ cursor: 'pointer' }}
+                            onClick={() => {
+                              // Enter edit mode if not already editing
+                              if (!isEditing && onEditToggle) {
+                                onEditToggle(true);
+                              }
+                              setActiveSearchKey(key);
+                            }}
+                            style={{ 
+                              cursor: 'pointer',
+                            }}
                           >
                             + Agregar {rel.label.toLowerCase()}
                           </div>
