@@ -43,6 +43,12 @@ export interface EntityCardProps {
   isEditing?: boolean;
   /** Callback when edit button is clicked */
   onEditClick?: () => void;
+  /** Whether to show admin navigation button (only in admin mode) */
+  showAdminNavButton?: boolean;
+  /** Callback when admin navigation button is clicked */
+  onAdminNavClick?: () => void;
+  /** Admin route for navigation (e.g., /admin/c/{id}) */
+  adminRoute?: string;
 }
 
 /**
@@ -301,6 +307,9 @@ function EntityCard({
   showAdminEditButton = false,
   isEditing = false,
   onEditClick,
+  showAdminNavButton = false,
+  onAdminNavClick,
+  adminRoute,
 }: EntityCardProps) {
   const navigate = useNavigate();
   // Handle deprecated variants with warnings
@@ -426,6 +435,43 @@ function EntityCard({
     </button>
   ) : null;
 
+  // Admin navigation button (only in admin mode for contents variant)
+  const adminNavButton = showAdminNavButton && actualVariant === 'contents' && onAdminNavClick ? (
+    <button
+      type="button"
+      className="entity-card__admin-nav-button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onAdminNavClick();
+      }}
+      aria-label={`Editar ${primaryText} en modo administrador`}
+      title={`Editar ${primaryText} en modo administrador`}
+      style={{
+        padding: '0.25rem 0.5rem',
+        backgroundColor: '#2a2a2a',
+        color: '#fff',
+        border: '1px solid #444',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '1rem',
+        lineHeight: '1',
+        transition: 'background-color 0.2s',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#3a3a3a';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = '#2a2a2a';
+      }}
+    >
+      🔧
+    </button>
+  ) : null;
+
   // Both heading and contents use the same horizontal compact layout
   const cardContent = (
     <>
@@ -444,11 +490,12 @@ function EntityCard({
           )}
         </div>
       </div>
-      {(showButton || expandIcon || adminEditButton) && (
+      {(showButton || expandIcon || adminEditButton || adminNavButton) && (
         <div className="entity-card__actions-container">
           {showButton}
           {expandIcon}
           {adminEditButton}
+          {adminNavButton}
         </div>
       )}
     </>

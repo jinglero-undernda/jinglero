@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
+import { randomUUID } from 'crypto';
 import { Neo4jClient } from '../db';
 import { 
   getSchemaInfo, 
@@ -76,9 +77,27 @@ const RELATIONSHIP_TYPE_MAP: Record<string, string> = {
   'soy_yo': 'SOY_YO'
 };
 
+// Entity type to prefix mapping
+// Note: Fabricas use YouTube video ID (external), so they use temp IDs until committed
+const ENTITY_PREFIX_MAP: Record<string, string> = {
+  jingles: 'JIN-',
+  canciones: 'CAN-',
+  artistas: 'ART-',
+  tematicas: 'TEM-',
+  usuarios: 'USR-',
+};
+
 function generateId(type: string): string {
-  // Use Neo4j's randomUUID() function
-  return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // For Fabricas: Use temp ID since ID comes from external source (YouTube video ID)
+  if (type === 'fabricas') {
+    return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  // For other entities: Generate UUID with prefix when committed
+  // Format: PREFIX-UUID (e.g., JIN-550e8400-e29b-41d4-a716-446655440000)
+  const prefix = ENTITY_PREFIX_MAP[type] || '';
+  const uuid = randomUUID();
+  return prefix ? `${prefix}${uuid}` : uuid;
 }
 
 // ============================================================================
@@ -348,6 +367,48 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
   res.status(201).json(result[0].r);
 }));
 
+// Update relationship properties
+router.put('/relationships/:relType', asyncHandler(async (req, res) => {
+  const { relType } = req.params;
+  const payload = req.body || {};
+  if (!payload.start || !payload.end) {
+    throw new BadRequestError('Payload must include start and end ids');
+  }
+  const neo4jRelType = RELATIONSHIP_TYPE_MAP[relType];
+  if (!neo4jRelType) {
+    throw new NotFoundError(`Unknown relationship type: ${relType}`);
+  }
+  
+  // Check if relationship exists
+  const existsQuery = `
+    MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
+    RETURN r
+  `;
+  const existing = await db.executeQuery(existsQuery, { start: payload.start, end: payload.end });
+  if (existing.length === 0) {
+    throw new NotFoundError('Relationship not found');
+  }
+  
+  // Extract properties (exclude start and end)
+  const properties = { ...payload };
+  delete (properties as any).start;
+  delete (properties as any).end;
+  
+  // Update relationship properties
+  const updateQuery = `
+    MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
+    SET r += $properties
+    RETURN r
+  `;
+  const result = await db.executeQuery<{ r: any }>(updateQuery, { 
+    start: payload.start, 
+    end: payload.end, 
+    properties 
+  }, undefined, true);
+  
+  res.json(result[0].r);
+}));
+
 // Delete a relationship
 router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
   const { relType } = req.params;
@@ -360,7 +421,7 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
     throw new NotFoundError(`Unknown relationship type: ${relType}`);
   }
   const deleteQuery = `
-    MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { $end })
+    MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
     DELETE r
     RETURN count(r) as deletedCount
   `;

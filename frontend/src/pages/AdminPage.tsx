@@ -12,10 +12,7 @@ import { useAdminAuth } from '../hooks/useAdminAuth';
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAdminAuth(true);
 
-  console.log('ProtectedRoute - loading:', loading, 'isAuthenticated:', isAuthenticated);
-
   if (loading) {
-    console.log('ProtectedRoute - returning loading state');
     return (
       <main style={{ padding: '2rem', textAlign: 'center' }}>
         <p>Cargando...</p>
@@ -24,11 +21,9 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    console.log('ProtectedRoute - not authenticated, returning null');
     return null; // useAdminAuth will redirect to login
   }
 
-  console.log('ProtectedRoute - authenticated, rendering children');
   return <>{children}</>;
 }
 

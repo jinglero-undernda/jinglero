@@ -5,7 +5,7 @@
  * Displays entity properties as editable fields (excluding auto-managed and redundant fields).
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Select from 'react-select';
 import { adminApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
@@ -157,7 +157,7 @@ function combineDate(day: number, month: number, year: number): string {
   return date.toISOString();
 }
 
-export default function EntityMetadataEditor({ entity, entityType, onSave, isEditing: externalIsEditing, onEditToggle }: Props) {
+const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> }, Props>(function EntityMetadataEditor({ entity, entityType, onSave, isEditing: externalIsEditing, onEditToggle }, ref) {
   const [internalIsEditing, setInternalIsEditing] = useState(false);
   const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
   
@@ -373,7 +373,7 @@ export default function EntityMetadataEditor({ entity, entityType, onSave, isEdi
       setHasChanges(false);
       setIsEditing(false);
       if (onSave) {
-        onSave(updated);
+        await onSave(updated);
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error al guardar';
@@ -383,6 +383,16 @@ export default function EntityMetadataEditor({ entity, entityType, onSave, isEdi
       setLoading(false);
     }
   };
+
+  // Expose hasUnsavedChanges and save methods via ref
+  useImperativeHandle(ref, () => ({
+    hasUnsavedChanges: () => hasChanges,
+    save: async () => {
+      if (hasChanges) {
+        await handleSave();
+      }
+    },
+  }), [hasChanges, handleSave]);
 
   const handleCancel = () => {
     // Reset form data to original entity values
@@ -1136,5 +1146,9 @@ export default function EntityMetadataEditor({ entity, entityType, onSave, isEdi
       </div>
     </div>
   );
-}
+});
+
+EntityMetadataEditor.displayName = 'EntityMetadataEditor';
+
+export default EntityMetadataEditor;
 

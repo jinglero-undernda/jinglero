@@ -7,8 +7,8 @@
  * Matches the look and feel of public inspection pages but with admin capabilities.
  */
 
-import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { adminApi } from '../../lib/api/client';
@@ -16,6 +16,8 @@ import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { normalizeEntityType } from '../../lib/utils/entityTypeUtils';
 import EntityCard from '../../components/common/EntityCard';
 import EntityMetadataEditor from '../../components/admin/EntityMetadataEditor';
+import UnsavedChangesModal from '../../components/admin/UnsavedChangesModal';
+import type { EntityType } from '../../components/common/EntityCard';
 
 /**
  * AdminEntityAnalyze - Admin page for analyzing entities with RelatedEntities in Admin Mode
@@ -25,24 +27,22 @@ import EntityMetadataEditor from '../../components/admin/EntityMetadataEditor';
  * This page displays an entity with all its relationships in Admin Mode.
  */
 export default function AdminEntityAnalyze() {
-  console.log('=== AdminEntityAnalyze COMPONENT RENDERED ===');
-  
   const params = useParams<{ entityType: string; entityId: string }>();
   const { entityType: rawEntityType, entityId } = params;
-
-  console.log('Params:', params, 'rawEntityType:', rawEntityType, 'entityId:', entityId);
+  const navigate = useNavigate();
 
   // Normalize entity type
   const entityType = normalizeEntityType(rawEntityType);
-
-  // Debug logging
-  console.log('AdminEntityAnalyze - rawEntityType:', rawEntityType, 'entityId:', entityId, 'normalized:', entityType);
 
   // State for entity data
   const [entity, setEntity] = useState<Artista | Cancion | Fabrica | Jingle | Tematica | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const relatedEntitiesRef = useRef<{ getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> } | null>(null);
+  const metadataEditorRef = useRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> } | null>(null);
+  const [pendingNavigation, setPendingNavigation] = useState<{ entityType: EntityType; entityId: string } | null>(null);
+  const [showUnsavedModal, setShowUnsavedModal] = useState(false);
 
   useEffect(() => {
     // Load root entity from admin API
@@ -323,12 +323,40 @@ export default function AdminEntityAnalyze() {
       {/* Entity Metadata Editor */}
       <div style={{ marginBottom: '2rem' }}>
         <EntityMetadataEditor
+          ref={metadataEditorRef}
           entity={entity}
           entityType={entityType}
           isEditing={isEditing}
           onEditToggle={setIsEditing}
-          onSave={(updatedEntity) => {
+          onSave={async (updatedEntity) => {
             setEntity(updatedEntity);
+            
+            // Save relationship properties if any were modified
+            if (relatedEntitiesRef.current) {
+              const relationshipProps = relatedEntitiesRef.current.getRelationshipProperties();
+              if (Object.keys(relationshipProps).length > 0) {
+                try {
+                  // Save each relationship property update
+                  for (const [key, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
+                    // Filter out empty/null values
+                    const cleanProperties: Record<string, any> = {};
+                    Object.entries(properties).forEach(([propKey, propValue]) => {
+                      if (propValue !== null && propValue !== undefined && propValue !== '') {
+                        cleanProperties[propKey] = propValue;
+                      }
+                    });
+                    
+                    if (Object.keys(cleanProperties).length > 0) {
+                      await adminApi.updateRelationship(relType, startId, endId, cleanProperties);
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error saving relationship properties:', error);
+                  alert(`Error al guardar propiedades de relaciones: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+                }
+              }
+            }
+            
             setIsEditing(false);
           }}
         />
@@ -342,6 +370,7 @@ export default function AdminEntityAnalyze() {
           relationships={relationships}
           entityPath={[entity.id]}
           isAdmin={true}
+          isEditing={isEditing}
           initialRelationshipData={relationshipData ? {
             'Fabrica-fabrica': relationshipData.fabrica ? [relationshipData.fabrica] : [],
             'Cancion-cancion': relationshipData.cancion ? [relationshipData.cancion] : [],
@@ -349,8 +378,53 @@ export default function AdminEntityAnalyze() {
             'Jinglero-artista': relationshipData.jingleros || [],
             'Tematicas-tematica': relationshipData.tematicas || [],
           } : undefined}
+          ref={relatedEntitiesRef}
+          onCheckUnsavedChanges={() => {
+            return metadataEditorRef.current?.hasUnsavedChanges() || false;
+          }}
+          onNavigateToEntity={(targetEntityType, targetEntityId) => {
+            const hasUnsaved = metadataEditorRef.current?.hasUnsavedChanges() || false;
+            
+            if (hasUnsaved) {
+              setPendingNavigation({ entityType: targetEntityType, entityId: targetEntityId });
+              setShowUnsavedModal(true);
+            } else {
+              // Navigate immediately if no unsaved changes
+              const routePrefix = targetEntityType === 'jingle' ? 'j' : targetEntityType === 'cancion' ? 'c' : targetEntityType === 'artista' ? 'a' : targetEntityType === 'fabrica' ? 'f' : 't';
+              navigate(`/admin/${routePrefix}/${targetEntityId}`);
+            }
+          }}
         />
       </div>
+
+      {/* Unsaved Changes Modal */}
+      <UnsavedChangesModal
+        isOpen={showUnsavedModal}
+        entityName={entity ? (entity as any).title || (entity as any).name || entity.id : 'esta entidad'}
+        onDiscard={() => {
+          setShowUnsavedModal(false);
+          if (pendingNavigation) {
+            const routePrefix = pendingNavigation.entityType === 'jingle' ? 'j' : pendingNavigation.entityType === 'cancion' ? 'c' : pendingNavigation.entityType === 'artista' ? 'a' : pendingNavigation.entityType === 'fabrica' ? 'f' : 't';
+            navigate(`/admin/${routePrefix}/${pendingNavigation.entityId}`);
+            setPendingNavigation(null);
+          }
+        }}
+        onSave={async () => {
+          if (metadataEditorRef.current) {
+            await metadataEditorRef.current.save();
+          }
+          setShowUnsavedModal(false);
+          if (pendingNavigation) {
+            const routePrefix = pendingNavigation.entityType === 'jingle' ? 'j' : pendingNavigation.entityType === 'cancion' ? 'c' : pendingNavigation.entityType === 'artista' ? 'a' : pendingNavigation.entityType === 'fabrica' ? 'f' : 't';
+            navigate(`/admin/${routePrefix}/${pendingNavigation.entityId}`);
+            setPendingNavigation(null);
+          }
+        }}
+        onCancel={() => {
+          setShowUnsavedModal(false);
+          setPendingNavigation(null);
+        }}
+      />
     </main>
   );
 }

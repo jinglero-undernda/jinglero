@@ -1,11 +1,61 @@
-import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
+
+// Helper to get entity route (duplicated from EntityCard to avoid circular dependency)
+function getEntityRoute(entityType: EntityType, entityId: string): string {
+  const routeMap: Record<EntityType, string> = {
+    fabrica: `/f/${entityId}`,
+    jingle: `/j/${entityId}`,
+    cancion: `/c/${entityId}`,
+    artista: `/a/${entityId}`,
+    tematica: `/t/${entityId}`,
+  };
+  return routeMap[entityType];
+}
 import { sortEntities } from '../../lib/utils/entitySorters';
+import { api } from '../../lib/api/client';
+import { adminApi } from '../../lib/api/client';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
+
+/**
+ * Map relationship config to API relationship type
+ * Based on entity type and relationship label
+ */
+function getRelationshipTypeForAPI(
+  currentEntityType: EntityType,
+  relationshipLabel: string,
+  targetEntityType: EntityType
+): string | null {
+  // Map based on current entity type and target entity type
+  const mapping: Record<string, Record<string, string>> = {
+    jingle: {
+      fabrica: 'appears_in',
+      cancion: 'versiona',
+      artista: relationshipLabel.toLowerCase() === 'autor' ? 'autor_de' : 'jinglero_de',
+      tematica: 'tagged_with',
+    },
+    fabrica: {
+      jingle: 'appears_in',
+    },
+    cancion: {
+      artista: 'autor_de',
+      jingle: 'versiona',
+    },
+    artista: {
+      cancion: 'autor_de',
+      jingle: 'jinglero_de',
+    },
+    tematica: {
+      jingle: 'tagged_with',
+    },
+  };
+
+  return mapping[currentEntityType]?.[targetEntityType] || null;
+}
 
 // State management types for useReducer
 export type RelatedEntitiesState = {
@@ -74,6 +124,23 @@ export interface RelatedEntitiesProps {
    * This is useful when the parent component already has relationship data from the API.
    */
   initialRelationshipData?: Record<string, RelatedEntity[]>;
+  /**
+   * Whether the parent entity is in edit mode (affects relationship property editing)
+   */
+  isEditing?: boolean;
+  /**
+   * Callback to get relationship properties that need to be saved
+   * Returns a map of relationship keys to their properties
+   */
+  onGetRelationshipProperties?: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
+  /**
+   * Callback to check if there are unsaved changes
+   */
+  onCheckUnsavedChanges?: () => boolean;
+  /**
+   * Callback to handle navigation to a related entity (with unsaved changes check)
+   */
+  onNavigateToEntity?: (entityType: EntityType, entityId: string) => void;
 }
 
 
@@ -352,7 +419,7 @@ export function relatedEntitiesReducer(
  * }
  * ```
  */
-function RelatedEntities({
+const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> }, RelatedEntitiesProps>(function RelatedEntities({
   entity,
   entityType,
   relationships,
@@ -361,7 +428,11 @@ function RelatedEntities({
   className = '',
   isAdmin = false,
   initialRelationshipData = {},
-}: RelatedEntitiesProps) {
+  isEditing = false,
+  onGetRelationshipProperties,
+  onCheckUnsavedChanges,
+  onNavigateToEntity,
+}, ref) {
   // IMPORTANT: The entity prop is always pre-loaded by the parent component.
   // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
   // never the root entity itself. This ensures proper separation of concerns and
@@ -369,6 +440,219 @@ function RelatedEntities({
 
   // Helper to create relationship key (needed for initial data processing)
   const getRelationshipKey = useCallback((rel: RelationshipConfig) => `${rel.label}-${rel.entityType}`, []);
+
+  // State for managing search in blank rows (Admin Mode only)
+  const [activeSearchKey, setActiveSearchKey] = useState<string | null>(null);
+  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
+  const [searchResults, setSearchResults] = useState<Record<string, RelatedEntity[]>>({});
+  const [searchLoading, setSearchLoading] = useState<Record<string, boolean>>({});
+  const searchDebounceRef = useRef<Record<string, number>>({});
+  
+  // State for relationship property editing
+  const [selectedEntityForRelationship, setSelectedEntityForRelationship] = useState<{
+    key: string;
+    entity: RelatedEntity;
+  } | null>(null);
+  const [relationshipProperties, setRelationshipProperties] = useState<Record<string, any>>({});
+  
+  // State for expanded relationship properties in admin mode (key: `${entityId}-${relationshipKey}`)
+  const [expandedRelationshipProps, setExpandedRelationshipProps] = useState<Set<string>>(new Set());
+  const [relationshipPropsData, setRelationshipPropsData] = useState<Record<string, Record<string, any>>>({});
+  // State for timestamp editing (HH, MM, SS) - key: `${entityId}-${relationshipKey}`
+  const [timestampTimes, setTimestampTimes] = useState<Record<string, { h: number; m: number; s: number }>>({});
+
+  // Handle search query changes with debouncing
+  const handleSearchChange = useCallback((key: string, query: string) => {
+    setSearchQueries(prev => ({ ...prev, [key]: query }));
+    
+    // Clear existing debounce timer
+    if (searchDebounceRef.current[key]) {
+      clearTimeout(searchDebounceRef.current[key]);
+    }
+
+    if (!query.trim()) {
+      setSearchResults(prev => ({ ...prev, [key]: [] }));
+      setSearchLoading(prev => ({ ...prev, [key]: false }));
+      return;
+    }
+
+    setSearchLoading(prev => ({ ...prev, [key]: true }));
+
+    // Debounce search API call
+    searchDebounceRef.current[key] = window.setTimeout(async () => {
+      try {
+        const response = await api.get<{
+          jingles?: RelatedEntity[];
+          canciones?: RelatedEntity[];
+          artistas?: RelatedEntity[];
+          tematicas?: RelatedEntity[];
+          fabricas?: RelatedEntity[];
+        }>(`/search?q=${encodeURIComponent(query)}`);
+        
+        // Get the target entity type from the relationship config
+        const rel = relationships.find(r => getRelationshipKey(r) === key);
+        if (!rel) {
+          setSearchResults(prev => ({ ...prev, [key]: [] }));
+          setSearchLoading(prev => ({ ...prev, [key]: false }));
+          return;
+        }
+
+        // Filter results by target entity type
+        const entityTypeMap: Record<EntityType, string> = {
+          jingle: 'jingles',
+          cancion: 'canciones',
+          artista: 'artistas',
+          tematica: 'tematicas',
+          fabrica: 'fabricas',
+        };
+        
+        const resultsKey = entityTypeMap[rel.entityType];
+        const filteredResults = (response[resultsKey as keyof typeof response] || []) as RelatedEntity[];
+        
+        setSearchResults(prev => ({ ...prev, [key]: filteredResults }));
+      } catch (error) {
+        console.error('Search error:', error);
+        setSearchResults(prev => ({ ...prev, [key]: [] }));
+      } finally {
+        setSearchLoading(prev => ({ ...prev, [key]: false }));
+      }
+    }, 250);
+  }, [relationships, getRelationshipKey]);
+
+  // Get relationship properties schema for a relationship type
+  const getRelationshipPropertiesSchema = useCallback((relType: string): Array<{ name: string; type: string; label: string; required?: boolean; options?: string[] }> => {
+    const schemas: Record<string, Array<{ name: string; type: string; label: string; required?: boolean; options?: string[] }>> = {
+      appears_in: [
+        { name: 'order', type: 'number', label: 'Orden', required: false },
+        { name: 'timestamp', type: 'number', label: 'Timestamp (segundos)', required: false },
+      ],
+      versiona: [
+        { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
+      ],
+      jinglero_de: [
+        { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
+      ],
+      autor_de: [
+        { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
+      ],
+      tagged_with: [
+        { name: 'isPrimary', type: 'boolean', label: 'Es Primaria', required: false },
+        { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
+      ],
+    };
+    return schemas[relType] || [];
+  }, []);
+
+  // Handle entity selection - show property form instead of immediately creating
+  const handleSelectEntity = useCallback((key: string, selectedEntity: RelatedEntity) => {
+    const rel = relationships.find(r => getRelationshipKey(r) === key);
+    if (!rel || !entity?.id) return;
+
+    const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+    if (!relType) {
+      console.error('Could not determine relationship type');
+      return;
+    }
+
+    // Set selected entity and initialize properties
+    setSelectedEntityForRelationship({ key, entity: selectedEntity });
+    const schema = getRelationshipPropertiesSchema(relType);
+    const initialProperties: Record<string, any> = {};
+    schema.forEach(prop => {
+      if (prop.type === 'boolean') {
+        initialProperties[prop.name] = false;
+      } else if (prop.type === 'select') {
+        initialProperties[prop.name] = 'DRAFT';
+      } else {
+        initialProperties[prop.name] = '';
+      }
+    });
+    setRelationshipProperties(initialProperties);
+  }, [entity, entityType, relationships, getRelationshipKey, getRelationshipPropertiesSchema]);
+
+  // Handle relationship creation with properties
+  const handleCreateRelationship = useCallback(async () => {
+    if (!selectedEntityForRelationship || !entity?.id) return;
+
+    const { key, entity: selectedEntity } = selectedEntityForRelationship;
+    const rel = relationships.find(r => getRelationshipKey(r) === key);
+    if (!rel) return;
+
+    const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+    if (!relType) {
+      console.error('Could not determine relationship type');
+      return;
+    }
+
+    try {
+      // Determine start and end based on relationship direction
+      let startId: string;
+      let endId: string;
+      
+      if (relType === 'appears_in') {
+        // Jingle -> Fabrica
+        startId = rel.entityType === 'fabrica' ? selectedEntity.id : entity.id;
+        endId = rel.entityType === 'fabrica' ? entity.id : selectedEntity.id;
+      } else if (relType === 'versiona') {
+        // Jingle -> Cancion
+        startId = rel.entityType === 'cancion' ? selectedEntity.id : entity.id;
+        endId = rel.entityType === 'cancion' ? entity.id : selectedEntity.id;
+      } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+        // Artista -> Jingle/Cancion
+        startId = rel.entityType === 'artista' ? selectedEntity.id : entity.id;
+        endId = rel.entityType === 'artista' ? entity.id : selectedEntity.id;
+      } else if (relType === 'tagged_with') {
+        // Jingle -> Tematica
+        startId = rel.entityType === 'tematica' ? selectedEntity.id : entity.id;
+        endId = rel.entityType === 'tematica' ? entity.id : selectedEntity.id;
+      } else {
+        // Default: current entity is start, selected entity is end
+        startId = entity.id;
+        endId = selectedEntity.id;
+      }
+
+      // Prepare properties - convert empty strings to null/undefined, convert numbers
+      const properties: Record<string, any> = {};
+      Object.entries(relationshipProperties).forEach(([key, value]) => {
+        if (value === '' || value === null || value === undefined) {
+          // Skip empty values
+        } else if ((key === 'order' || key === 'timestamp') && (typeof value === 'string' || typeof value === 'number')) {
+          const numValue = typeof value === 'string' ? Number(value) : value;
+          if (!isNaN(numValue)) {
+            properties[key] = numValue;
+          }
+        } else {
+          properties[key] = value;
+        }
+      });
+
+      await adminApi.post(`/relationships/${relType}`, {
+        start: startId,
+        end: endId,
+        ...properties,
+      });
+
+      // Refresh the relationship data
+      const fetchFn = rel.fetchFn;
+      const entities = await fetchFn(entity.id, entityType);
+      dispatch({
+        type: 'LOAD_SUCCESS',
+        key,
+        data: entities,
+        count: entities.length,
+      });
+
+      // Reset all state
+      setSelectedEntityForRelationship(null);
+      setRelationshipProperties({});
+      setActiveSearchKey(null);
+      setSearchQueries(prev => ({ ...prev, [key]: '' }));
+      setSearchResults(prev => ({ ...prev, [key]: [] }));
+    } catch (error) {
+      console.error('Error creating relationship:', error);
+      alert(`Error al crear la relación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    }
+  }, [selectedEntityForRelationship, entity, entityType, relationships, relationshipProperties, getRelationshipKey, getRelationshipTypeForAPI]);
 
   // Process initial relationship data to populate loadedData and counts
   const processedInitialData = useMemo(() => {
@@ -439,6 +723,67 @@ function RelatedEntities({
 
   // Task 26: Request caching - cache key is combination of entityId, entityType, and relationship key
   const requestCacheRef = useRef<Record<string, RelatedEntity[]>>({});
+
+  // Create relationship properties getter function
+  const getRelationshipProperties = useCallback(() => {
+    const result: Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> = {};
+    
+    Object.entries(relationshipPropsData).forEach(([key, props]) => {
+      // Extract entityId and relationshipKey from key format: `${entityId}-${relationshipKey}`
+      const parts = key.split('-');
+      if (parts.length >= 2) {
+        const relatedEntityId = parts[0];
+        const relationshipKey = parts.slice(1).join('-');
+        
+        // Find the relationship config
+        const rel = relationships.find(r => getRelationshipKey(r) === relationshipKey);
+        if (rel) {
+          const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+          if (relType && entity?.id) {
+            // Determine start and end based on relationship direction
+            let startId: string;
+            let endId: string;
+            
+            if (relType === 'appears_in') {
+              // Jingle -> Fabrica
+              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+            } else if (relType === 'versiona') {
+              // Jingle -> Cancion
+              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+            } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+              // Artista -> Jingle/Cancion
+              startId = entityType === 'artista' ? entity.id : relatedEntityId;
+              endId = entityType === 'artista' ? relatedEntityId : entity.id;
+            } else if (relType === 'tagged_with') {
+              // Jingle -> Tematica
+              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+            } else {
+              // Default: current entity is start, related entity is end
+              startId = entity.id;
+              endId = relatedEntityId;
+            }
+            
+            result[key] = {
+              relType,
+              startId,
+              endId,
+              properties: props,
+            };
+          }
+        }
+      }
+    });
+    
+    return result;
+  }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey]);
+  
+  // Expose getter to parent via ref
+  useImperativeHandle(ref, () => ({
+    getRelationshipProperties,
+  }), [getRelationshipProperties]);
 
   // Populate cache with initial relationship data to avoid unnecessary fetches
   useEffect(() => {
@@ -994,6 +1339,65 @@ function RelatedEntities({
                             return undefined;
                           })();
                           
+                          // In admin mode, handle relationship properties expansion
+                          const relationshipPropsKey = `${entity.id}-${key}`;
+                          const isRelationshipPropsExpanded = expandedRelationshipProps.has(relationshipPropsKey);
+                          const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+                          
+                          // Handle click in admin mode - expand relationship properties instead of navigating
+                          const handleAdminClick = isAdmin ? async () => {
+                            if (isRelationshipPropsExpanded) {
+                              // Collapse
+                              setExpandedRelationshipProps(prev => {
+                                const next = new Set(prev);
+                                next.delete(relationshipPropsKey);
+                                return next;
+                              });
+                            } else {
+                              // Expand - fetch relationship properties
+                              setExpandedRelationshipProps(prev => new Set(prev).add(relationshipPropsKey));
+                              
+                              // Fetch relationship properties if not already loaded
+                              if (!relationshipPropsData[relationshipPropsKey] && relType) {
+                                try {
+                                  // Get relationship properties from API
+                                  // The relationship properties should be in the entity object or we need to fetch them
+                                  // For now, check if they're embedded in the entity
+                                  const props: Record<string, any> = {};
+                                  
+                                  // Check if entity has relationship properties embedded
+                                  if ((entity as any).order !== undefined) props.order = (entity as any).order;
+                                  if ((entity as any).timestamp !== undefined) props.timestamp = (entity as any).timestamp;
+                                  if ((entity as any).status !== undefined) props.status = (entity as any).status;
+                                  if ((entity as any).isPrimary !== undefined) props.isPrimary = (entity as any).isPrimary;
+                                  
+                                  setRelationshipPropsData(prev => ({
+                                    ...prev,
+                                    [relationshipPropsKey]: props,
+                                  }));
+                                  
+                                  // Initialize timestamp time
+                                  if (props.timestamp !== undefined) {
+                                    const { h, m, s } = (() => {
+                                      const totalSeconds = Math.floor(Number(props.timestamp));
+                                      return {
+                                        h: Math.floor(totalSeconds / 3600),
+                                        m: Math.floor((totalSeconds % 3600) / 60),
+                                        s: totalSeconds % 60,
+                                      };
+                                    })();
+                                    setTimestampTimes(prev => ({
+                                      ...prev,
+                                      [relationshipPropsKey]: { h, m, s },
+                                    }));
+                                  }
+                                } catch (error) {
+                                  console.error('Error fetching relationship properties:', error);
+                                }
+                              }
+                            }
+                          } : undefined;
+                          
                           return (
                             <React.Fragment key={rowId}>
                               <div className="related-entities__row">
@@ -1006,6 +1410,15 @@ function RelatedEntities({
                                   relationshipData={relationshipData}
                                   hasNestedEntities={hasNested}
                                   isExpanded={isEntityExpanded}
+                                  onClick={handleAdminClick}
+                                  to={isAdmin ? undefined : getEntityRoute(rel.entityType, entity.id, 'contents')} // In admin mode, don't navigate on click
+                                  showAdminNavButton={isAdmin}
+                                  adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${entity.id}`}
+                                  onAdminNavClick={() => {
+                                    if (onNavigateToEntity) {
+                                      onNavigateToEntity(rel.entityType, entity.id);
+                                    }
+                                  }}
                                   onToggleExpand={async () => {
                                     console.log('onToggleExpand called for entity:', entity.id, 'entityType:', rel.entityType);
                                     const currentState = stateRef.current;
@@ -1083,6 +1496,249 @@ function RelatedEntities({
                                   nestedCount={nestedRows.length}
                                 />
                               </div>
+                              {/* Render relationship properties in admin mode when expanded */}
+                              {isAdmin && isRelationshipPropsExpanded && relType && (() => {
+                                const propsData = relationshipPropsData[relationshipPropsKey] || {};
+                                const schema = getRelationshipPropertiesSchema(relType);
+                                
+                                if (schema.length === 0) return null;
+                                
+                                // Helper to convert seconds to HH:MM:SS
+                                const secondsToTime = (seconds: number | null | undefined): { h: number; m: number; s: number } => {
+                                  if (seconds === null || seconds === undefined || isNaN(Number(seconds))) {
+                                    return { h: 0, m: 0, s: 0 };
+                                  }
+                                  const totalSeconds = Math.floor(Number(seconds));
+                                  const h = Math.floor(totalSeconds / 3600);
+                                  const m = Math.floor((totalSeconds % 3600) / 60);
+                                  const s = totalSeconds % 60;
+                                  return { h, m, s };
+                                };
+                                
+                                // Helper to convert HH:MM:SS to seconds
+                                const timeToSeconds = (h: number, m: number, s: number): number => {
+                                  return (h * 3600) + (m * 60) + s;
+                                };
+                                
+                                // Helper to format seconds as HH:MM:SS
+                                const formatTime = (seconds: number | null | undefined): string => {
+                                  if (seconds === null || seconds === undefined || isNaN(Number(seconds))) {
+                                    return '-';
+                                  }
+                                  const { h, m, s } = secondsToTime(seconds);
+                                  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+                                };
+                                
+                                // Get or initialize timestamp time
+                                const getTimestampTime = (): { h: number; m: number; s: number } => {
+                                  if (timestampTimes[relationshipPropsKey]) {
+                                    return timestampTimes[relationshipPropsKey];
+                                  }
+                                  const time = secondsToTime(propsData.timestamp);
+                                  // Initialize synchronously (this is safe since we're in render)
+                                  if (!timestampTimes[relationshipPropsKey]) {
+                                    setTimestampTimes(prev => ({ ...prev, [relationshipPropsKey]: time }));
+                                  }
+                                  return time;
+                                };
+                                
+                                const timestampTime = getTimestampTime();
+                                
+                                const handleTimestampChange = (field: 'h' | 'm' | 's', value: number) => {
+                                  const currentTime = timestampTimes[relationshipPropsKey] || secondsToTime(propsData.timestamp);
+                                  const newTime = { ...currentTime, [field]: Math.max(0, Math.min(field === 'h' ? 23 : 59, value)) };
+                                  setTimestampTimes(prev => ({ ...prev, [relationshipPropsKey]: newTime }));
+                                  const seconds = timeToSeconds(newTime.h, newTime.m, newTime.s);
+                                  setRelationshipPropsData(prev => ({
+                                    ...prev,
+                                    [relationshipPropsKey]: {
+                                      ...prev[relationshipPropsKey],
+                                      timestamp: seconds,
+                                    },
+                                  }));
+                                };
+                                
+                                return (
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginLeft: '16px', marginTop: '4px', marginBottom: '4px' }}>
+                                    {schema.map((prop) => (
+                                      <div
+                                        key={prop.name}
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: prop.name === 'timestamp' && isEditing ? 'flex-start' : 'center',
+                                          gap: '12px',
+                                          padding: '2px 12px',
+                                          minHeight: '28px',
+                                          backgroundColor: '#1a1a1a',
+                                          border: '1px solid #333',
+                                          borderRadius: '4px',
+                                          color: '#fff',
+                                        }}
+                                      >
+                                        <label
+                                          style={{
+                                            fontSize: '14px',
+                                            color: '#ccc',
+                                            minWidth: '150px',
+                                            flexShrink: 0,
+                                            margin: 0,
+                                            paddingTop: prop.name === 'timestamp' && isEditing ? '4px' : '0',
+                                          }}
+                                        >
+                                          {prop.label}:
+                                        </label>
+                                        {isEditing ? (
+                                          prop.name === 'timestamp' ? (
+                                            // Timestamp with separate HH:MM:SS fields
+                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center', flex: 1 }}>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                max="23"
+                                                value={timestampTime.h}
+                                                onChange={(e) => handleTimestampChange('h', parseInt(e.target.value) || 0)}
+                                                style={{
+                                                  width: '50px',
+                                                  padding: '4px 6px',
+                                                  backgroundColor: '#2a2a2a',
+                                                  border: '1px solid #444',
+                                                  borderRadius: '4px',
+                                                  fontSize: '14px',
+                                                  color: '#fff',
+                                                  textAlign: 'center',
+                                                }}
+                                              />
+                                              <span style={{ color: '#999' }}>:</span>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                max="59"
+                                                value={timestampTime.m}
+                                                onChange={(e) => handleTimestampChange('m', parseInt(e.target.value) || 0)}
+                                                style={{
+                                                  width: '50px',
+                                                  padding: '4px 6px',
+                                                  backgroundColor: '#2a2a2a',
+                                                  border: '1px solid #444',
+                                                  borderRadius: '4px',
+                                                  fontSize: '14px',
+                                                  color: '#fff',
+                                                  textAlign: 'center',
+                                                }}
+                                              />
+                                              <span style={{ color: '#999' }}>:</span>
+                                              <input
+                                                type="number"
+                                                min="0"
+                                                max="59"
+                                                value={timestampTime.s}
+                                                onChange={(e) => handleTimestampChange('s', parseInt(e.target.value) || 0)}
+                                                style={{
+                                                  width: '50px',
+                                                  padding: '4px 6px',
+                                                  backgroundColor: '#2a2a2a',
+                                                  border: '1px solid #444',
+                                                  borderRadius: '4px',
+                                                  fontSize: '14px',
+                                                  color: '#fff',
+                                                  textAlign: 'center',
+                                                }}
+                                              />
+                                            </div>
+                                          ) : prop.type === 'boolean' ? (
+                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}>
+                                              <input
+                                                type="checkbox"
+                                                checked={propsData[prop.name] || false}
+                                                onChange={(e) => {
+                                                  setRelationshipPropsData(prev => ({
+                                                    ...prev,
+                                                    [relationshipPropsKey]: {
+                                                      ...prev[relationshipPropsKey],
+                                                      [prop.name]: e.target.checked,
+                                                    },
+                                                  }));
+                                                }}
+                                                style={{ cursor: 'pointer' }}
+                                              />
+                                              <span style={{ color: '#fff', fontSize: '14px' }}>{prop.label}</span>
+                                            </label>
+                                          ) : prop.type === 'select' ? (
+                                            <select
+                                              value={propsData[prop.name] || ''}
+                                              onChange={(e) => {
+                                                setRelationshipPropsData(prev => ({
+                                                  ...prev,
+                                                  [relationshipPropsKey]: {
+                                                    ...prev[relationshipPropsKey],
+                                                    [prop.name]: e.target.value,
+                                                  },
+                                                }));
+                                              }}
+                                              style={{
+                                                flex: 1,
+                                                padding: '4px 8px',
+                                                backgroundColor: '#2a2a2a',
+                                                border: '1px solid #444',
+                                                borderRadius: '4px',
+                                                fontSize: '14px',
+                                                color: '#fff',
+                                                cursor: 'pointer',
+                                              }}
+                                            >
+                                              <option value="">-- Seleccionar --</option>
+                                              {prop.options?.map(opt => (
+                                                <option key={opt} value={opt}>{opt}</option>
+                                              ))}
+                                            </select>
+                                          ) : (
+                                            <input
+                                              type={prop.type === 'number' ? 'number' : 'text'}
+                                              value={propsData[prop.name] ?? ''}
+                                              onChange={(e) => {
+                                                setRelationshipPropsData(prev => ({
+                                                  ...prev,
+                                                  [relationshipPropsKey]: {
+                                                    ...prev[relationshipPropsKey],
+                                                    [prop.name]: prop.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value,
+                                                  },
+                                                }));
+                                              }}
+                                              style={{
+                                                flex: 1,
+                                                padding: '4px 8px',
+                                                backgroundColor: '#2a2a2a',
+                                                border: '1px solid #444',
+                                                borderRadius: '4px',
+                                                fontSize: '14px',
+                                                color: '#fff',
+                                                minWidth: 0,
+                                              }}
+                                            />
+                                          )
+                                        ) : (
+                                          // Display mode
+                                          prop.name === 'timestamp' ? (
+                                            <span style={{ fontSize: '14px', color: '#fff', flex: 1 }}>
+                                              {formatTime(propsData[prop.name])}
+                                            </span>
+                                          ) : prop.type === 'boolean' ? (
+                                            <span style={{ fontSize: '14px', color: '#fff', flex: 1 }}>
+                                              {propsData[prop.name] ? 'Sí' : 'No'}
+                                            </span>
+                                          ) : (
+                                            <span style={{ fontSize: '14px', color: '#fff', flex: 1 }}>
+                                              {propsData[prop.name] !== undefined && propsData[prop.name] !== null 
+                                                ? String(propsData[prop.name]) 
+                                                : '-'}
+                                            </span>
+                                          )
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                );
+                              })()}
                               {/* Render nested rows if entity is expanded */}
                               {isEntityExpanded && (
                                 <>
@@ -1490,8 +2146,263 @@ function RelatedEntities({
 
                     {/* Task 18: Add blank row for Admin Mode - show even when no entities exist */}
                     {isAdmin && (
-                      <div className="related-entities__blank-row" title="Fila en blanco para agregar nueva relación (funcionalidad futura)">
-                        <div className="related-entities__empty">+ Agregar {rel.label.toLowerCase()}</div>
+                      <div className="related-entities__blank-row">
+                        {activeSearchKey === key ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <input
+                                type="text"
+                                value={searchQueries[key] || ''}
+                                onChange={(e) => handleSearchChange(key, e.target.value)}
+                                placeholder={`Buscar ${rel.label.toLowerCase()}...`}
+                                autoFocus
+                                style={{
+                                  flex: 1,
+                                  padding: '8px 12px',
+                                  backgroundColor: '#2a2a2a',
+                                  border: '1px solid #444',
+                                  borderRadius: '4px',
+                                  fontSize: '14px',
+                                  color: '#fff',
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setActiveSearchKey(null);
+                                  setSearchQueries(prev => ({ ...prev, [key]: '' }));
+                                  setSearchResults(prev => ({ ...prev, [key]: [] }));
+                                }}
+                                style={{
+                                  padding: '8px 12px',
+                                  backgroundColor: '#666',
+                                  color: '#fff',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                }}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                            {searchLoading[key] && (
+                              <div style={{ padding: '8px', color: '#999', fontSize: '14px' }}>
+                                Buscando...
+                              </div>
+                            )}
+                            {selectedEntityForRelationship && selectedEntityForRelationship.key === key ? (
+                              // Show property form for selected entity
+                              <div style={{
+                                border: '1px solid #444',
+                                borderRadius: '4px',
+                                backgroundColor: '#1a1a1a',
+                                padding: '16px',
+                              }}>
+                                <div style={{ marginBottom: '12px' }}>
+                                  <strong style={{ color: '#fff', fontSize: '14px' }}>Entidad seleccionada:</strong>
+                                  <div style={{ marginTop: '8px' }}>
+                                    <EntityCard
+                                      entity={selectedEntityForRelationship.entity}
+                                      entityType={rel.entityType}
+                                      variant="contents"
+                                      indentationLevel={0}
+                                    />
+                                  </div>
+                                </div>
+                                {(() => {
+                                  const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+                                  if (!relType) return null;
+                                  const schema = getRelationshipPropertiesSchema(relType);
+                                  if (schema.length === 0) return null;
+                                  
+                                  return (
+                                    <div style={{ marginTop: '16px' }}>
+                                      <strong style={{ color: '#fff', fontSize: '14px', marginBottom: '8px', display: 'block' }}>
+                                        Propiedades de la relación:
+                                      </strong>
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                        {schema.map((prop) => (
+                                          <div key={prop.name} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                            <label style={{ color: '#ccc', fontSize: '13px' }}>
+                                              {prop.label}:
+                                            </label>
+                                            {prop.type === 'boolean' ? (
+                                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input
+                                                  type="checkbox"
+                                                  checked={relationshipProperties[prop.name] || false}
+                                                  onChange={(e) => setRelationshipProperties(prev => ({
+                                                    ...prev,
+                                                    [prop.name]: e.target.checked
+                                                  }))}
+                                                  style={{ cursor: 'pointer' }}
+                                                />
+                                                <span style={{ color: '#fff', fontSize: '14px' }}>{prop.label}</span>
+                                              </label>
+                                            ) : prop.type === 'select' ? (
+                                              <select
+                                                value={relationshipProperties[prop.name] || ''}
+                                                onChange={(e) => setRelationshipProperties(prev => ({
+                                                  ...prev,
+                                                  [prop.name]: e.target.value
+                                                }))}
+                                                style={{
+                                                  padding: '6px 8px',
+                                                  backgroundColor: '#2a2a2a',
+                                                  border: '1px solid #444',
+                                                  borderRadius: '4px',
+                                                  fontSize: '14px',
+                                                  color: '#fff',
+                                                  cursor: 'pointer',
+                                                }}
+                                              >
+                                                {prop.options?.map(opt => (
+                                                  <option key={opt} value={opt}>{opt}</option>
+                                                ))}
+                                              </select>
+                                            ) : (
+                                              <input
+                                                type={prop.type === 'number' ? 'number' : 'text'}
+                                                value={relationshipProperties[prop.name] || ''}
+                                                onChange={(e) => setRelationshipProperties(prev => ({
+                                                  ...prev,
+                                                  [prop.name]: prop.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value
+                                                }))}
+                                                placeholder={prop.label}
+                                                style={{
+                                                  padding: '6px 8px',
+                                                  backgroundColor: '#2a2a2a',
+                                                  border: '1px solid #444',
+                                                  borderRadius: '4px',
+                                                  fontSize: '14px',
+                                                  color: '#fff',
+                                                }}
+                                              />
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={handleCreateRelationship}
+                                    style={{
+                                      padding: '8px 16px',
+                                      backgroundColor: '#4caf50',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '14px',
+                                    }}
+                                  >
+                                    Crear Relación
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedEntityForRelationship(null);
+                                      setRelationshipProperties({});
+                                    }}
+                                    style={{
+                                      padding: '8px 16px',
+                                      backgroundColor: '#666',
+                                      color: '#fff',
+                                      border: 'none',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      fontSize: '14px',
+                                    }}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            ) : !searchLoading[key] && searchResults[key] && searchResults[key].length > 0 && (
+                              <div style={{
+                                maxHeight: '300px',
+                                overflowY: 'auto',
+                                border: '1px solid #444',
+                                borderRadius: '4px',
+                                backgroundColor: '#1a1a1a',
+                              }}>
+                                {searchResults[key].map((resultEntity) => (
+                                  <div
+                                    key={resultEntity.id}
+                                    style={{
+                                      padding: '12px',
+                                      borderBottom: '1px solid #333',
+                                      backgroundColor: '#1a1a1a',
+                                    }}
+                                  >
+                                    <EntityCard
+                                      entity={resultEntity}
+                                      entityType={rel.entityType}
+                                      variant="contents"
+                                      indentationLevel={0}
+                                      onClick={() => handleSelectEntity(key, resultEntity)}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {!searchLoading[key] && searchQueries[key] && searchResults[key] && searchResults[key].length === 0 && (
+                              <div style={{ padding: '8px', color: '#999', fontSize: '14px' }}>
+                                No se encontraron resultados. 
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    // Navigate to create new entity page using correct route format
+                                    const routePrefixMap: Record<EntityType, string> = {
+                                      jingle: 'j',
+                                      cancion: 'c',
+                                      artista: 'a',
+                                      tematica: 't',
+                                      fabrica: 'f',
+                                    };
+                                    const routePrefix = routePrefixMap[rel.entityType];
+                                    const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+                                    const searchText = searchQueries[key] || '';
+                                    const params = new URLSearchParams({
+                                      create: routePrefix,
+                                      from: entityType,
+                                      fromId: entity.id,
+                                      relType: relType || '',
+                                    });
+                                    if (searchText) {
+                                      params.set('searchText', searchText);
+                                    }
+                                    window.location.href = `/admin/dashboard?${params.toString()}`;
+                                  }}
+                                  style={{
+                                    marginLeft: '8px',
+                                    padding: '4px 8px',
+                                    backgroundColor: '#4caf50',
+                                    color: '#fff',
+                                    border: 'none',
+                                    borderRadius: '4px',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                  }}
+                                >
+                                  Crear nuevo {rel.label.toLowerCase()}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div
+                            className="related-entities__empty"
+                            onClick={() => setActiveSearchKey(key)}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            + Agregar {rel.label.toLowerCase()}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1502,7 +2413,9 @@ function RelatedEntities({
       </nav>
     </div>
   );
-}
+});
+
+RelatedEntities.displayName = 'RelatedEntities';
 
 // Task 21: Add React.memo to RelatedEntities component with custom comparison function
 export default React.memo(RelatedEntities, (prevProps, nextProps) => {
