@@ -424,7 +424,10 @@ export function relatedEntitiesReducer(
  * }
  * ```
  */
-const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> }, RelatedEntitiesProps>(function RelatedEntities({
+const RelatedEntities = forwardRef<{ 
+  getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
+  refresh: () => Promise<void>;
+}, RelatedEntitiesProps>(function RelatedEntities({
   entity,
   entityType,
   relationships,
@@ -841,11 +844,6 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
     
     return result;
   }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey]);
-  
-  // Expose getter to parent via ref
-  useImperativeHandle(ref, () => ({
-    getRelationshipProperties,
-  }), [getRelationshipProperties]);
 
   // Populate cache with initial relationship data to avoid unnecessary fetches
   useEffect(() => {
@@ -876,6 +874,101 @@ const RelatedEntities = forwardRef<{ getRelationshipProperties: () => Record<str
     // Also clean up pending promise if it exists
     delete pendingRequestsRef.current[key];
   }, [state.inFlightRequests]);
+
+  // Refresh all relationships - re-fetches all relationship data
+  const refresh = useCallback(async () => {
+    if (!entity?.id || !relationships || relationships.length === 0) return;
+    
+    // Refresh all relationships
+    for (const rel of relationships) {
+      if (!rel || !rel.fetchFn) continue;
+      const key = getRelationshipKey(rel);
+      const cacheKey = getCacheKey(entity.id, entityType, key);
+      
+      // Cancel any in-flight requests
+      cancelInFlightRequest(key);
+      
+      // Clear cache for this relationship
+      delete requestCacheRef.current[cacheKey];
+      delete pendingRequestsRef.current[key];
+      
+      // Clear jingle cache if applicable
+      const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+      if (relType === 'tagged_with' && entityType === 'jingle') {
+        clearJingleRelationshipsCache(entity.id);
+      } else if (entityType === 'jingle') {
+        clearJingleRelationshipsCache(entity.id);
+      } else if (rel.entityType === 'jingle') {
+        // If the related entity type is jingle, we can't clear its cache here
+        // but we'll clear our own cache which should be sufficient
+      }
+      
+      // Create abort controller for this request
+      const abortController = new AbortController();
+      dispatch({ type: 'LOAD_START', key, abortController });
+      
+      try {
+        // Add a small delay to ensure cache clearing has taken effect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Fetch fresh data
+        const entities = await rel.fetchFn(entity.id, entityType);
+        
+        // Check if request was aborted
+        if (abortController.signal.aborted) {
+          continue; // Skip this relationship but continue with others
+        }
+        
+        // Sort entities
+        const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
+        
+        // Filter entities (cycle prevention in User Mode only)
+        const filtered = isAdmin 
+          ? sorted 
+          : sorted.filter((e) => !entityPath.includes(e.id));
+        
+        // Store in cache
+        requestCacheRef.current[cacheKey] = filtered;
+        
+        // Update state with fresh data
+        dispatch({
+          type: 'LOAD_SUCCESS',
+          key,
+          data: filtered,
+          count: filtered.length,
+        });
+      } catch (error) {
+        // Handle AbortError gracefully
+        if (error instanceof Error && error.name === 'AbortError') {
+          continue; // Skip this relationship but continue with others
+        }
+        
+        // Create user-friendly error message
+        const errorMessage = error instanceof Error 
+          ? error.message || 'Error desconocido'
+          : String(error) || 'Error desconocido';
+        
+        const friendlyError = new Error(errorMessage);
+        friendlyError.name = error instanceof Error ? error.name : 'Error';
+        
+        console.error(`Error refreshing ${rel.label}:`, error);
+        dispatch({
+          type: 'LOAD_ERROR',
+          key,
+          error: friendlyError,
+        });
+      } finally {
+        // Clean up pending promise
+        delete pendingRequestsRef.current[key];
+      }
+    }
+  }, [entity, entityType, relationships, getRelationshipKey, getCacheKey, cancelInFlightRequest, isAdmin, entityPath, dispatch]);
+
+  // Expose getter and refresh to parent via ref
+  useImperativeHandle(ref, () => ({
+    getRelationshipProperties,
+    refresh,
+  }), [getRelationshipProperties, refresh]);
 
   // Check if we've exceeded max depth
   const currentDepth = entityPath.length;

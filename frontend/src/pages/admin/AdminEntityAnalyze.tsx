@@ -7,7 +7,7 @@
  * Matches the look and feel of public inspection pages but with admin capabilities.
  */
 
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
@@ -30,6 +30,7 @@ export default function AdminEntityAnalyze() {
   const params = useParams<{ entityType: string; entityId: string }>();
   const { entityType: rawEntityType, entityId } = params;
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Normalize entity type
   const entityType = normalizeEntityType(rawEntityType);
@@ -39,7 +40,10 @@ export default function AdminEntityAnalyze() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-  const relatedEntitiesRef = useRef<{ getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> } | null>(null);
+  const relatedEntitiesRef = useRef<{ 
+    getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
+    refresh: () => Promise<void>;
+  } | null>(null);
   const metadataEditorRef = useRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> } | null>(null);
   const [pendingNavigation, setPendingNavigation] = useState<{ entityType: EntityType; entityId: string } | null>(null);
   const [showUnsavedModal, setShowUnsavedModal] = useState(false);
@@ -105,6 +109,31 @@ export default function AdminEntityAnalyze() {
 
     fetchEntity();
   }, [entityType, entityId]);
+
+  // Refresh relationships when navigating back from entity creation
+  // This handles the case when an entity is created with relationship context
+  // and we navigate back to this page. Task 7.0 will enhance this with proper
+  // URL parameter detection.
+  useEffect(() => {
+    // Check if we have location state indicating we came from entity creation
+    const fromEntityCreation = location?.state && typeof location.state === 'object' && 'fromEntityCreation' in location.state 
+      ? (location.state as any).fromEntityCreation 
+      : false;
+    const shouldRefresh = fromEntityCreation && entity && !loading && relatedEntitiesRef.current;
+    
+    if (shouldRefresh) {
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        if (relatedEntitiesRef.current?.refresh) {
+          relatedEntitiesRef.current.refresh().catch((error) => {
+            console.error('Error refreshing relationships after entity creation:', error);
+          });
+        }
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [entity, loading, location]);
 
   // Helper function to get route prefix for entity type
   const getRoutePrefix = (entityType: string): string => {
@@ -352,6 +381,11 @@ export default function AdminEntityAnalyze() {
                     if (Object.keys(cleanProperties).length > 0) {
                       await adminApi.updateRelationship(relType, startId, endId, cleanProperties);
                     }
+                  }
+                  
+                  // Refresh relationships to show updated properties
+                  if (relatedEntitiesRef.current) {
+                    await relatedEntitiesRef.current.refresh();
                   }
                 } catch (error) {
                   console.error('Error saving relationship properties:', error);
