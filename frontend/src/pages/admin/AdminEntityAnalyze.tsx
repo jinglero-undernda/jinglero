@@ -373,6 +373,13 @@ export default function AdminEntityAnalyze() {
           showAdminEditButton={true}
           isEditing={isEditing}
           onEditClick={() => setIsEditing(!isEditing)}
+          onSaveClick={async () => {
+            // Phase 1: Entity-level save - trigger metadata save which also saves relationships
+            if (metadataEditorRef.current) {
+              await metadataEditorRef.current.save();
+            }
+          }}
+          hasUnsavedChanges={checkUnsavedChanges()}
         />
       </div>
 

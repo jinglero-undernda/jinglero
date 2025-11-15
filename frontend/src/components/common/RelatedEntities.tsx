@@ -5,6 +5,7 @@ import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfi
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 import { useToast } from './ToastContext';
 import EntitySearchAutocomplete from '../admin/EntitySearchAutocomplete';
+import DeleteRelationshipModal from '../admin/DeleteRelationshipModal';
 
 // Helper to get entity route (duplicated from EntityCard to avoid circular dependency)
 function getEntityRoute(entityType: EntityType, entityId: string): string {
@@ -94,6 +95,12 @@ export interface RelationshipConfig {
   fetchFn: (entityId: string, entityType: string) => Promise<RelatedEntity[]>;
   /** Function to get count of related entities (optional, for display purposes) */
   fetchCountFn?: (entityId: string, entityType: string) => Promise<number>;
+  /** Phase 3: Maximum cardinality for this relationship (undefined = unlimited) */
+  maxCardinality?: number;
+  /** Phase 5: Whether this relationship is read-only (derived, cannot be edited) */
+  isReadOnly?: boolean;
+  /** Phase 5: Tooltip text explaining why relationship is read-only */
+  readOnlyReason?: string;
 }
 
 export interface RelatedEntitiesProps {
@@ -465,6 +472,21 @@ const RelatedEntities = forwardRef<{
   const [relationshipPropsData, setRelationshipPropsData] = useState<Record<string, Record<string, any>>>({});
   // State for timestamp editing (HH, MM, SS) - key: `${entityId}-${relationshipKey}`
   const [timestampTimes, setTimestampTimes] = useState<Record<string, { h: number; m: number; s: number }>>({});
+  
+  // Phase 6: State for delete relationship modal
+  const [deleteModalState, setDeleteModalState] = useState<{
+    isOpen: boolean;
+    relationshipType: string | null;
+    startId: string | null;
+    endId: string | null;
+    entityName: string | null;
+  }>({
+    isOpen: false,
+    relationshipType: null,
+    startId: null,
+    endId: null,
+    entityName: null,
+  });
 
   // Get relationship properties schema for a relationship type
   const getRelationshipPropertiesSchema = useCallback((relType: string): Array<{ name: string; type: string; label: string; required?: boolean; options?: string[] }> => {
@@ -654,6 +676,46 @@ const RelatedEntities = forwardRef<{
     }
   }, [selectedEntityForRelationship, entity, entityType, relationships, relationshipProperties, getRelationshipKey, getRelationshipTypeForAPI]);
 
+  // Phase 6: Handle opening delete confirmation modal
+  const handleDeleteRelationshipClick = useCallback((relatedEntityId: string, relatedEntityName: string, relLabel: string, relEntityType: EntityType) => {
+    const relType = getRelationshipTypeForAPI(entityType, relLabel, relEntityType);
+    if (!relType || !entity?.id) return;
+
+    // Determine start and end IDs based on relationship direction
+    let startId: string;
+    let endId: string;
+    
+    if (relType === 'appears_in') {
+      // Jingle -> Fabrica
+      startId = relEntityType === 'fabrica' ? relatedEntityId : entity.id;
+      endId = relEntityType === 'fabrica' ? entity.id : relatedEntityId;
+    } else if (relType === 'versiona') {
+      // Jingle -> Cancion
+      startId = relEntityType === 'cancion' ? relatedEntityId : entity.id;
+      endId = relEntityType === 'cancion' ? entity.id : relatedEntityId;
+    } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+      // Artista -> Jingle/Cancion
+      startId = relEntityType === 'artista' ? relatedEntityId : entity.id;
+      endId = relEntityType === 'artista' ? entity.id : relatedEntityId;
+    } else if (relType === 'tagged_with') {
+      // Jingle -> Tematica
+      startId = relEntityType === 'tematica' ? relatedEntityId : entity.id;
+      endId = relEntityType === 'tematica' ? entity.id : relatedEntityId;
+    } else {
+      // Default: current entity is start, related entity is end
+      startId = entity.id;
+      endId = relatedEntityId;
+    }
+
+    setDeleteModalState({
+      isOpen: true,
+      relationshipType: relType,
+      startId,
+      endId,
+      entityName: relatedEntityName,
+    });
+  }, [entity, entityType, getRelationshipTypeForAPI]);
+
   // Process initial relationship data to populate loadedData and counts
   const processedInitialData = useMemo(() => {
     const loadedData: Record<string, RelatedEntity[]> = {};
@@ -723,76 +785,6 @@ const RelatedEntities = forwardRef<{
 
   // Task 26: Request caching - cache key is combination of entityId, entityType, and relationship key
   const requestCacheRef = useRef<Record<string, RelatedEntity[]>>({});
-
-  // Create relationship properties getter function
-  const getRelationshipProperties = useCallback(() => {
-    const result: Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> = {};
-    
-    Object.entries(relationshipPropsData).forEach(([key, props]) => {
-      // Extract entityId and relationshipKey from key format: `${entityId}-${relationshipKey}`
-      const parts = key.split('-');
-      if (parts.length >= 2) {
-        const relatedEntityId = parts[0];
-        const relationshipKey = parts.slice(1).join('-');
-        
-        // Find the relationship config
-        const rel = relationships.find(r => getRelationshipKey(r) === relationshipKey);
-        if (rel) {
-          const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
-          if (relType && entity?.id) {
-            // Determine start and end based on relationship direction
-            let startId: string;
-            let endId: string;
-            
-            if (relType === 'appears_in') {
-              // Jingle -> Fabrica
-              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
-              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
-            } else if (relType === 'versiona') {
-              // Jingle -> Cancion
-              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
-              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
-            } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-              // Artista -> Jingle/Cancion
-              startId = entityType === 'artista' ? entity.id : relatedEntityId;
-              endId = entityType === 'artista' ? relatedEntityId : entity.id;
-            } else if (relType === 'tagged_with') {
-              // Jingle -> Tematica
-              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
-              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
-            } else {
-              // Default: current entity is start, related entity is end
-              startId = entity.id;
-              endId = relatedEntityId;
-            }
-            
-            result[key] = {
-              relType,
-              startId,
-              endId,
-              properties: props,
-            };
-          }
-        }
-      }
-    });
-    
-    return result;
-  }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey]);
-
-  // Populate cache with initial relationship data to avoid unnecessary fetches
-  useEffect(() => {
-    if (entity?.id && Object.keys(processedInitialData.loadedData).length > 0) {
-      relationships.forEach((rel) => {
-        const key = getRelationshipKey(rel);
-        const initialData = processedInitialData.loadedData[key];
-        if (initialData && initialData.length > 0) {
-          const cacheKey = `${entity.id}-${entityType}-${key}`;
-          requestCacheRef.current[cacheKey] = initialData;
-        }
-      });
-    }
-  }, [entity?.id, entityType, relationships, processedInitialData.loadedData, getRelationshipKey]);
 
   // Helper to create cache key for a relationship
   const getCacheKey = useCallback((entityId: string, entityType: string, relKey: string) => {
@@ -898,6 +890,114 @@ const RelatedEntities = forwardRef<{
       }
     }
   }, [entity, entityType, relationships, getRelationshipKey, getCacheKey, cancelInFlightRequest, isAdmin, entityPath, dispatch]);
+
+  // Phase 6: Execute relationship deletion
+  const handleConfirmDelete = useCallback(async () => {
+    const { relationshipType, startId, endId } = deleteModalState;
+    if (!relationshipType || !startId || !endId) return;
+
+    try {
+      await adminApi.deleteRelationship(relationshipType, startId, endId);
+      showToast('Relación eliminada correctamente', 'success');
+      
+      // Clear cache for jingles involved
+      if (relationshipType === 'tagged_with') {
+        clearJingleRelationshipsCache(startId);
+      } else {
+        if (entityType === 'jingle') {
+          clearJingleRelationshipsCache(entity.id);
+        }
+        // Check if the other entity is a jingle
+        const otherEntityId = startId === entity.id ? endId : startId;
+        clearJingleRelationshipsCache(otherEntityId);
+      }
+      
+      // Refresh relationships to show updated data
+      await refresh();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('Error deleting relationship:', error);
+      showToast(`Error al eliminar la relación: ${errorMessage}`, 'error');
+    } finally {
+      setDeleteModalState({
+        isOpen: false,
+        relationshipType: null,
+        startId: null,
+        endId: null,
+        entityName: null,
+      });
+    }
+  }, [deleteModalState, entity, entityType, refresh, showToast]);
+
+  // Create relationship properties getter function
+  const getRelationshipProperties = useCallback(() => {
+    const result: Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> = {};
+    
+    Object.entries(relationshipPropsData).forEach(([key, props]) => {
+      // Extract entityId and relationshipKey from key format: `${entityId}-${relationshipKey}`
+      const parts = key.split('-');
+      if (parts.length >= 2) {
+        const relatedEntityId = parts[0];
+        const relationshipKey = parts.slice(1).join('-');
+        
+        // Find the relationship config
+        const rel = relationships.find(r => getRelationshipKey(r) === relationshipKey);
+        if (rel) {
+          const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+          if (relType && entity?.id) {
+            // Determine start and end based on relationship direction
+            let startId: string;
+            let endId: string;
+            
+            if (relType === 'appears_in') {
+              // Jingle -> Fabrica
+              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+            } else if (relType === 'versiona') {
+              // Jingle -> Cancion
+              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+            } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+              // Artista -> Jingle/Cancion
+              startId = entityType === 'artista' ? entity.id : relatedEntityId;
+              endId = entityType === 'artista' ? relatedEntityId : entity.id;
+            } else if (relType === 'tagged_with') {
+              // Jingle -> Tematica
+              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+            } else {
+              // Default: current entity is start, related entity is end
+              startId = entity.id;
+              endId = relatedEntityId;
+            }
+            
+            result[key] = {
+              relType,
+              startId,
+              endId,
+              properties: props,
+            };
+          }
+        }
+      }
+    });
+    
+    return result;
+  }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey]);
+
+  // Populate cache with initial relationship data to avoid unnecessary fetches
+  useEffect(() => {
+    if (entity?.id && Object.keys(processedInitialData.loadedData).length > 0) {
+      relationships.forEach((rel) => {
+        const key = getRelationshipKey(rel);
+        const initialData = processedInitialData.loadedData[key];
+        if (initialData && initialData.length > 0) {
+          const cacheKey = `${entity.id}-${entityType}-${key}`;
+          requestCacheRef.current[cacheKey] = initialData;
+        }
+      });
+    }
+  }, [entity?.id, entityType, relationships, processedInitialData.loadedData, getRelationshipKey]);
 
   // Task 5.4: Check for unsaved changes in relationships
   // Tracks: relationship property edits, pending timestamp edits, selected entities in blank rows
@@ -1334,14 +1434,25 @@ const RelatedEntities = forwardRef<{
           // Use entities.length if we have loaded entities, otherwise use stored count
           const count = entities.length > 0 ? entities.length : (state.counts[key] || 0);
           
-          // Hide the section if: not loading, no error, no entities, and data has been loaded
-          // We check if key exists in loadedData to confirm data has been loaded (even if empty)
-          // BUT: In admin mode, always show the section (even if empty) so blank rows can be displayed
+          // Phase 2: Show placeholder for empty relationships in view mode
+          // Hide the section completely if: not loading, no error, no entities, data loaded, AND not in admin mode
+          // In admin mode, show placeholder in view mode, blank row in edit mode
           const hasLoadedData = key in state.loadedData;
-          const shouldHide = !isAdmin && !isLoading && !hasError && entities.length === 0 && hasLoadedData;
+          let shouldShowPlaceholder = !isLoading && !hasError && entities.length === 0 && hasLoadedData && !isEditing;
           
-          // Don't render the section if we should hide it
-          if (shouldHide) {
+          // Hide placeholder for read-only (derived) relationships
+          // Read-only relationships cannot be edited from this entity page, so showing a placeholder
+          // would be misleading (e.g., Jingle → Autor is derived from Cancion → Autor)
+          if (rel.isReadOnly && shouldShowPlaceholder) {
+            shouldShowPlaceholder = false;
+          }
+          
+          // Hide section completely in non-admin mode when empty, or in admin mode for read-only relationships when empty
+          const shouldHideCompletely = (!isAdmin && !isLoading && !hasError && entities.length === 0 && hasLoadedData) ||
+            (isAdmin && rel.isReadOnly && !isLoading && !hasError && entities.length === 0 && hasLoadedData);
+          
+          // Don't render the section if we should hide it (non-admin mode with no entities)
+          if (shouldHideCompletely) {
             return null;
           }
 
@@ -1364,13 +1475,14 @@ const RelatedEntities = forwardRef<{
                 </button>
               ) : (
                 /* Content area - show content rows when expanded */
-                <div
-                  className="related-entities__content"
-                  role="region"
-                  aria-label={`${rel.label} relacionadas`}
-                  aria-live="polite"
-                  aria-busy={isLoading}
-                >
+                <>
+                  <div
+                    className="related-entities__content"
+                    role="region"
+                    aria-label={`${rel.label} relacionadas`}
+                    aria-live="polite"
+                    aria-busy={isLoading}
+                  >
                     {isLoading && entities.length === 0 ? (
                       // Task 34: Skeleton loaders for loading states
                       <div className="related-entities__skeleton-container" aria-label="Cargando">
@@ -1415,9 +1527,17 @@ const RelatedEntities = forwardRef<{
                           </button>
                         )}
                       </div>
+                    ) : entities.length === 0 && shouldShowPlaceholder ? (
+                      // Phase 2: Show placeholder for empty relationships in view mode
+                      <EntityCard
+                        entity={{} as any}
+                        entityType={rel.entityType}
+                        variant="placeholder"
+                        relationshipLabel={rel.label}
+                        indentationLevel={0}
+                      />
                     ) : entities.length === 0 ? (
-                      // This case should not be reached due to shouldHide check above,
-                      // but kept as a fallback for edge cases
+                      // This case: edit mode with no entities - blank row will be shown below
                       null
                     ) : (
                       // Render direct entities for this relationship first
@@ -1636,6 +1756,11 @@ const RelatedEntities = forwardRef<{
                                     if (onNavigateToEntity) {
                                       onNavigateToEntity(rel.entityType, relatedEntity.id);
                                     }
+                                  }}
+                                  showDeleteButton={isAdmin && isEditing && !rel.isReadOnly}
+                                  onDeleteClick={() => {
+                                    const name = (relatedEntity as any).title || (relatedEntity as any).name || (relatedEntity as any).stageName || relatedEntity.id;
+                                    handleDeleteRelationshipClick(relatedEntity.id, name, rel.label, rel.entityType);
                                   }}
                                   onToggleExpand={async () => {
                                     console.log('onToggleExpand called for entity:', relatedEntity.id, 'entityType:', rel.entityType);
@@ -2365,8 +2490,10 @@ const RelatedEntities = forwardRef<{
 
                     {/* Task 18: Add blank row for Admin Mode - show even when no entities exist */}
                     {/* Task 5.3: Only show blank rows when isEditing={true} */}
+                    {/* Phase 3: Hide blank row when maxCardinality is reached */}
+                    {/* Phase 5: Hide blank row for read-only relationships */}
                     {/* Task 7.8: Pass creationContext to EntitySearchAutocomplete for entity creation flow */}
-                    {isAdmin && isEditing && (
+                    {isAdmin && isEditing && !rel.isReadOnly && (!rel.maxCardinality || entities.length < rel.maxCardinality) && (
                       <div className="related-entities__blank-row">
                         {selectedEntityForRelationship && selectedEntityForRelationship.key === key ? (
                               // Show property form for selected entity
@@ -2515,17 +2642,39 @@ const RelatedEntities = forwardRef<{
                                   fromId: entity.id,
                                   relType: getRelationshipTypeForAPI(entityType, rel.label, rel.entityType) || '',
                                 }}
+                                // Phase 4: Filter entities with cardinality constraints (asymmetric logic)
+                                filterExcludeRelationship={
+                                  entityType === 'fabrica' && rel.entityType === 'jingle' ? 'appears_in' :
+                                  entityType === 'cancion' && rel.entityType === 'jingle' ? 'versiona' :
+                                  undefined
+                                }
                                 autoFocus={false}
                               />
                             )}
                       </div>
                     )}
                   </div>
+                </>
               )}
             </div>
           );
         })}
       </nav>
+      
+      {/* Phase 6: Delete relationship confirmation modal */}
+      <DeleteRelationshipModal
+        isOpen={deleteModalState.isOpen}
+        entityName={deleteModalState.entityName || ''}
+        currentEntityName={(entity as any).title || (entity as any).name || entity.id}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteModalState({
+          isOpen: false,
+          relationshipType: null,
+          startId: null,
+          endId: null,
+          entityName: null,
+        })}
+      />
     </div>
   );
 });

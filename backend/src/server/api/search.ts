@@ -72,12 +72,14 @@ function convertNeo4jDates(obj: any): any {
 
 // Simple global search across Jingle, Cancion, Artista, Tematica
 // Query param: q
+// Phase 4: Add excludeWithRelationship filter for cardinality constraints
 router.get('/', asyncHandler(async (req, res) => {
   const q = (req.query.q as string) || '';
   const limitParam = req.query.limit as string;
   const offsetParam = req.query.offset as string;
   const typesParam = (req.query.types as string) || '';
   const mode = ((req.query.mode as string) || 'basic').toLowerCase(); // 'basic' | 'fulltext'
+  const excludeWithRelationship = (req.query.excludeWithRelationship as string) || '';
 
   if (!q.trim()) {
     return res.json({ jingles: [], canciones: [], artistas: [], tematicas: [], fabricas: [] });
@@ -172,10 +174,20 @@ router.get('/', asyncHandler(async (req, res) => {
   const text = q.toLowerCase();
   const queries: Array<Promise<any[]>> = [];
   if (active.includes('jingles')) {
+    // Phase 4: Build WHERE clause with optional relationship filtering
+    let whereClause = `(j.title IS NOT NULL AND j.title <> '' AND toLower(j.title) CONTAINS $text)
+         OR (j.songTitle IS NOT NULL AND j.songTitle <> '' AND toLower(j.songTitle) CONTAINS $text)`;
+    
+    // Add filtering for cardinality constraints
+    if (excludeWithRelationship === 'appears_in') {
+      whereClause = `(${whereClause}) AND j.fabricaId IS NULL`;
+    } else if (excludeWithRelationship === 'versiona') {
+      whereClause = `(${whereClause}) AND j.cancionId IS NULL`;
+    }
+    
     const jinglesQuery = `
       MATCH (j:Jingle)
-      WHERE (j.title IS NOT NULL AND j.title <> '' AND toLower(j.title) CONTAINS $text)
-         OR (j.songTitle IS NOT NULL AND j.songTitle <> '' AND toLower(j.songTitle) CONTAINS $text)
+      WHERE ${whereClause}
       RETURN j { .id, .title, .timestamp, .songTitle } AS j
       ORDER BY j.title
       SKIP $offset

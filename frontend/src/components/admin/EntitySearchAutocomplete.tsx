@@ -59,6 +59,8 @@ export interface EntitySearchAutocompleteProps {
   autoFocus?: boolean;
   /** Optional: Custom CSS class */
   className?: string;
+  /** Phase 4: Filter to exclude entities with specific relationship (e.g., 'appears_in', 'versiona') */
+  filterExcludeRelationship?: string;
 }
 
 interface SearchResults {
@@ -83,6 +85,7 @@ export default function EntitySearchAutocomplete({
   creationContext,
   autoFocus = false,
   className = '',
+  filterExcludeRelationship,
 }: EntitySearchAutocompleteProps) {
   const navigate = useNavigate();
   const [query, setQuery] = useState('');
@@ -115,8 +118,10 @@ export default function EntitySearchAutocomplete({
 
     try {
       const typesParam = getTypesParam();
+      // Phase 4: Add excludeWithRelationship filter for cardinality constraints
+      const filterParam = filterExcludeRelationship ? `&excludeWithRelationship=${encodeURIComponent(filterExcludeRelationship)}` : '';
       const response = await fetch(
-        `${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&types=${typesParam}&limit=10`
+        `${API_BASE}/search?q=${encodeURIComponent(searchQuery)}&types=${typesParam}&limit=10${filterParam}`
       );
       
       if (!response.ok) {
@@ -157,7 +162,7 @@ export default function EntitySearchAutocomplete({
     } finally {
       setLoading(false);
     }
-  }, [entityTypes, getTypesParam]);
+  }, [entityTypes, getTypesParam, filterExcludeRelationship]);
 
   // Handle input change with debouncing
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

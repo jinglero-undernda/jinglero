@@ -103,7 +103,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     }
   };
   const [formData, setFormData] = useState<Record<string, any>>({});
-  const [loading, setLoading] = useState(false);
+  // Phase 1: loading state removed - save button now in EntityCard heading
   const [hasChanges, setHasChanges] = useState(false);
   // Separate state for date components (day, month, year) for Fabricas
   const [dateComponents, setDateComponents] = useState<{ day: number; month: number; year: number } | null>(null);
@@ -328,7 +328,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     // Prevent submission if there are validation errors
     if (Object.keys(validationErrors).length > 0) {
       showToast('Por favor corrige los errores antes de guardar', 'error');
-      setLoading(false);
       return;
     }
     
@@ -338,8 +337,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         showToast(warning, 'warning');
       });
     }
-    
-    setLoading(true);
 
     try {
       const updatePayload: Partial<Entity> = { ...formData };
@@ -433,8 +430,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       }
       
       console.error('Error saving entity:', err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -448,70 +443,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     },
   }), [hasChanges, handleSave]);
 
-  const handleCancel = () => {
-    // Reset form data to original entity values
-    const data: Record<string, any> = {};
-    const excluded = [
-      ...(EXCLUDED_FIELDS._all || []),
-      ...(EXCLUDED_FIELDS[entityType] || []),
-      ...(entityType === 'jingle' ? EXCLUDED_FIELDS.jingles_derived || [] : []),
-    ];
-
-    // For jingles, fabricas, canciones, artistas, and tematicas, only include specific fields
-    if (entityType === 'jingle' && FIELD_ORDER.jingle) {
-      FIELD_ORDER.jingle.forEach((key) => {
-        // Include all fields from FIELD_ORDER, even if they don't exist in entity
-        data[key] = (entity as any)[key] ?? undefined;
-      });
-      } else if (entityType === 'fabrica' && FIELD_ORDER.fabrica) {
-        FIELD_ORDER.fabrica.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
-        });
-        // Auto-generate youtubeUrl from id if it doesn't exist
-        if (data.id && !data.youtubeUrl) {
-          data.youtubeUrl = `https://www.youtube.com/watch?v=${data.id}`;
-        }
-        // Reset date components
-        if (data.date) {
-          const parsedDate = parseDate(data.date);
-          setDateComponents(splitDate(parsedDate));
-        } else {
-          setDateComponents(null);
-        }
-      } else if (entityType === 'cancion' && FIELD_ORDER.cancion) {
-        FIELD_ORDER.cancion.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
-        });
-      } else if (entityType === 'artista' && FIELD_ORDER.artista) {
-        FIELD_ORDER.artista.forEach((key) => {
-          // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
-        });
-      } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
-        FIELD_ORDER.tematica.forEach((key) => {
-          // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
-        });
-      } else {
-      // For other entity types, use the original logic but include 'id'
-      Object.keys(entity).forEach((key) => {
-        if (!excluded.includes(key)) {
-          data[key] = (entity as any)[key];
-        }
-      });
-    }
-      setFormData(data);
-      formDataRef.current = data;
-      setHasChanges(false);
-      setFieldErrors({});
-      setTouchedFields(new Set());
-      setFormWarnings({});
-      setIsEditing(false); // This will call onEditToggle if provided
-  };
+  // Phase 1: handleCancel removed - cancel button now in EntityCard heading calls onEditClick
 
   if (!entity) {
     return null;
@@ -661,42 +593,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         }}>
           Metadatos
         </h3>
-        {isEditing && (
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button
-              onClick={handleCancel}
-              disabled={loading}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: '#f5f5f5',
-                color: '#333',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
-                opacity: loading ? 0.6 : 1,
-              }}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={loading || !hasChanges}
-              style={{
-                padding: '0.5rem 1rem',
-                backgroundColor: hasChanges && !loading ? '#4caf50' : '#ccc',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: hasChanges && !loading ? 'pointer' : 'not-allowed',
-                fontSize: '0.875rem',
-                opacity: loading || !hasChanges ? 0.6 : 1,
-              }}
-            >
-              {loading ? 'Guardando...' : 'Guardar'}
-            </button>
-          </div>
-        )}
+        {/* Phase 1: Save/Cancel buttons removed - now in EntityCard heading */}
       </div>
 
       {/* Fields as rows - similar to related entities */}

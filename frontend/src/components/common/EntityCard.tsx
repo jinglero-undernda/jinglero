@@ -19,8 +19,8 @@ export interface EntityCardProps {
   entity: Entity;
   /** Type of entity to determine rendering logic */
   entityType: EntityType;
-  /** Display variant: 'heading' for title rows, 'contents' for content rows */
-  variant?: 'heading' | 'contents' | 'card' | 'row'; // 'card' and 'row' are deprecated
+  /** Display variant: 'heading' for title rows, 'contents' for content rows, 'placeholder' for empty state */
+  variant?: 'heading' | 'contents' | 'placeholder' | 'card' | 'row'; // 'card' and 'row' are deprecated
   /** Optional route destination (if provided, card becomes clickable link) */
   to?: string;
   /** Custom badge or status indicator */
@@ -39,6 +39,8 @@ export interface EntityCardProps {
   nestedCount?: number;
   /** Optional relationship label for context-dependent icons (e.g., "Jinglero", "Autor" for Artista) */
   relationshipLabel?: string;
+  /** Message to display in placeholder variant */
+  placeholderMessage?: string;
   /** Indentation level for table rows (0 = no indent, 1 = 16px, 2 = 32px, etc.) */
   indentationLevel?: number;
   /** Optional relationship data for enhanced field display (e.g., autores for Cancion, fabrica for Jingle) */
@@ -49,12 +51,20 @@ export interface EntityCardProps {
   isEditing?: boolean;
   /** Callback when edit button is clicked */
   onEditClick?: () => void;
+  /** Callback when save button is clicked (only for heading variant) */
+  onSaveClick?: () => void;
+  /** Whether there are unsaved changes (enables/disables save button) */
+  hasUnsavedChanges?: boolean;
   /** Whether to show admin navigation button (only in admin mode) */
   showAdminNavButton?: boolean;
   /** Callback when admin navigation button is clicked */
   onAdminNavClick?: () => void;
   /** Admin route for navigation (e.g., /admin/c/{id}) */
   adminRoute?: string;
+  /** Phase 6: Whether to show delete button (only in admin edit mode for contents variant) */
+  showDeleteButton?: boolean;
+  /** Phase 6: Callback when delete button is clicked */
+  onDeleteClick?: () => void;
 }
 
 /**
@@ -123,18 +133,23 @@ function EntityCard({
   isExpanded = false,
   onToggleExpand,
   relationshipLabel,
+  placeholderMessage,
   indentationLevel = 0,
   relationshipData,
   showAdminEditButton = false,
   isEditing = false,
   onEditClick,
+  onSaveClick,
+  hasUnsavedChanges = false,
   showAdminNavButton = false,
   onAdminNavClick,
   adminRoute: _adminRoute,
+  showDeleteButton = false,
+  onDeleteClick,
 }: EntityCardProps) {
   const navigate = useNavigate();
   // Handle deprecated variants with warnings
-  let actualVariant: 'heading' | 'contents' = variant as 'heading' | 'contents';
+  let actualVariant: 'heading' | 'contents' | 'placeholder' = variant as 'heading' | 'contents' | 'placeholder';
   if (variant === 'card' || variant === 'row') {
     console.warn(`EntityCard: variant="${variant}" is deprecated. Use "contents" instead.`);
     actualVariant = 'contents';
@@ -142,10 +157,13 @@ function EntityCard({
 
   const primaryText = getPrimaryText(entity, entityType, relationshipData);
   const secondaryText = getSecondaryText(entity, entityType, relationshipData);
+  // Pass placeholder variant to getEntityIcon so it can handle Jinglero icon
   const icon = getEntityIcon(entityType, actualVariant, relationshipLabel);
   const defaultBadges = getEntityBadges(entity, entityType);
   // Don't make it a link if admin edit button is shown (we're already on the entity page)
-  const route = showAdminEditButton ? undefined : (to || (onClick ? undefined : getEntityRoute(entityType, entity.id, actualVariant)));
+  // For route, use 'contents' for placeholder variant since getEntityRoute doesn't accept placeholder
+  const routeVariant = actualVariant === 'placeholder' ? 'contents' : actualVariant;
+  const route = showAdminEditButton ? undefined : (to || (onClick ? undefined : getEntityRoute(entityType, entity.id, routeVariant)));
 
   // Handle expand/collapse icon click
   const handleExpandClick = (e: React.MouseEvent) => {
@@ -221,39 +239,140 @@ function EntityCard({
     </button>
   ) : null;
 
-  // Admin edit button (only for heading variant in admin mode)
+  // Admin edit/save/cancel buttons (only for heading variant in admin mode)
+  // Phase 1: Consolidate all save/cancel controls to EntityCard heading
   const adminEditButton = showAdminEditButton && actualVariant === 'heading' && onEditClick ? (
-    <button
-      type="button"
-      className="entity-card__edit-button"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onEditClick();
-      }}
-      aria-label={isEditing ? 'Cancelar edición' : 'Editar'}
-      title={isEditing ? 'Cancelar edición' : 'Editar'}
-      style={{
-        padding: '0.5rem 1rem',
-        backgroundColor: isEditing ? '#666' : '#1976d2',
-        color: 'white',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '0.875rem',
-        fontWeight: '500',
-        transition: 'background-color 0.2s',
-        whiteSpace: 'nowrap',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = isEditing ? '#555' : '#1565c0';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = isEditing ? '#666' : '#1976d2';
-      }}
-    >
-      {isEditing ? 'Cancelar' : 'Editar'}
-    </button>
+    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      {!isEditing ? (
+        // View mode: Show Editar button
+        <button
+          type="button"
+          className="entity-card__edit-button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onEditClick();
+          }}
+          aria-label="Editar"
+          title="Editar"
+          style={{
+            padding: '0.5rem 1rem',
+            backgroundColor: '#1976d2',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '500',
+            transition: 'background-color 0.2s',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#1565c0';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = '#1976d2';
+          }}
+        >
+          Editar
+        </button>
+      ) : (
+        // Edit mode: Show Guardar, Cancelar, and disabled Borrar
+        <>
+          <button
+            type="button"
+            className="entity-card__save-button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (onSaveClick && hasUnsavedChanges) {
+                onSaveClick();
+              }
+            }}
+            disabled={!hasUnsavedChanges}
+            aria-label="Guardar cambios"
+            title={hasUnsavedChanges ? "Guardar cambios" : "No hay cambios para guardar"}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: hasUnsavedChanges ? '#4caf50' : '#999',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: hasUnsavedChanges ? 'pointer' : 'not-allowed',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+              whiteSpace: 'nowrap',
+              opacity: hasUnsavedChanges ? 1 : 0.6,
+            }}
+            onMouseEnter={(e) => {
+              if (hasUnsavedChanges) {
+                e.currentTarget.style.backgroundColor = '#45a049';
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (hasUnsavedChanges) {
+                e.currentTarget.style.backgroundColor = '#4caf50';
+              }
+            }}
+          >
+            Guardar
+          </button>
+          <button
+            type="button"
+            className="entity-card__cancel-button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onEditClick();
+            }}
+            aria-label="Cancelar edición"
+            title="Cancelar edición"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#666',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              transition: 'background-color 0.2s',
+              whiteSpace: 'nowrap',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#555';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#666';
+            }}
+          >
+            Cancelar
+          </button>
+          <button
+            type="button"
+            className="entity-card__delete-button"
+            disabled={true}
+            aria-label="Borrar entidad (no disponible)"
+            title="Borrar entidad (funcionalidad pendiente)"
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: '#999',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'not-allowed',
+              fontSize: '0.875rem',
+              fontWeight: '500',
+              whiteSpace: 'nowrap',
+              opacity: 0.5,
+            }}
+          >
+            Borrar
+          </button>
+        </>
+      )}
+    </div>
   ) : null;
 
   // Admin navigation button (only in admin mode for contents variant)
@@ -293,6 +412,95 @@ function EntityCard({
     </button>
   ) : null;
 
+  // Phase 6: Delete button (only in admin edit mode for contents variant)
+  const deleteButton = showDeleteButton && actualVariant === 'contents' && onDeleteClick ? (
+    <button
+      type="button"
+      className="entity-card__delete-button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDeleteClick();
+      }}
+      aria-label={`Eliminar relación con ${primaryText}`}
+      title={`Eliminar relación con ${primaryText}`}
+      style={{
+        padding: '0.25rem 0.5rem',
+        backgroundColor: '#d32f2f',
+        color: '#fff',
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '18px',
+        lineHeight: '1',
+        fontWeight: 'bold',
+        transition: 'background-color 0.2s',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minWidth: '32px',
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = '#b71c1c';
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = '#d32f2f';
+      }}
+    >
+      ×
+    </button>
+  ) : null;
+
+  // Calculate indentation styling
+  const indentationStyle = {
+    paddingLeft: `calc(var(--indent-base, 16px) * ${indentationLevel})`,
+  };
+
+  // Phase 2: Placeholder variant for empty relationships
+  if (actualVariant === 'placeholder') {
+    // Helper to get Spanish name for entity type
+    const getEntityTypeName = (type: EntityType, relLabel?: string): string => {
+      // Special case: Jinglero uses singular form
+      if (relLabel === 'Jinglero') {
+        return 'Jinglero';
+      }
+      
+      const typeMap: Record<EntityType, string> = {
+        fabrica: 'Fábricas',
+        jingle: 'Jingles',
+        cancion: 'Canciones',
+        artista: 'Artistas',
+        tematica: 'Temáticas',
+      };
+      return typeMap[type] || 'elementos';
+    };
+    
+    const entityTypeName = getEntityTypeName(entityType, relationshipLabel);
+    // Use singular form for Jinglero
+    const isSingular = relationshipLabel === 'Jinglero';
+    const message = placeholderMessage || `No hay ${entityTypeName} ${isSingular ? 'asociado' : 'asociadas'}. Edita para agregarlos`;
+    return (
+      <div 
+        className={`entity-card entity-card--placeholder ${className}`}
+        style={{
+          ...indentationStyle,
+          padding: '0.5rem 1rem',
+          backgroundColor: '#1a1a1a',
+          color: '#999',
+          fontStyle: 'italic',
+          opacity: 0.7,
+        }}
+        role="status"
+        aria-label={message}
+      >
+        <div className="entity-card__icon" style={{ opacity: 0.5 }}>{icon}</div>
+        <div className="entity-card__content">
+          <span>{message}</span>
+        </div>
+      </div>
+    );
+  }
+
   // Both heading and contents use the same horizontal compact layout
   const cardContent = (
     <>
@@ -311,11 +519,12 @@ function EntityCard({
           )}
         </div>
       </div>
-      {(showButton || expandIcon || adminEditButton || adminNavButton) && (
+      {(showButton || expandIcon || adminEditButton || adminNavButton || deleteButton) && (
         <div className="entity-card__actions-container">
           {showButton}
           {expandIcon}
           {adminEditButton}
+          {deleteButton}
           {adminNavButton}
         </div>
       )}
@@ -329,11 +538,6 @@ function EntityCard({
   ].filter(Boolean).join(' ');
 
   const ariaLabel = `${entityType}: ${primaryText}${secondaryText ? `, ${secondaryText}` : ''}`;
-
-  // Calculate indentation styling
-  const indentationStyle = {
-    paddingLeft: `calc(var(--indent-base, 16px) * ${indentationLevel})`,
-  };
 
   // Render as Link if route is provided
   if (route && !onClick) {

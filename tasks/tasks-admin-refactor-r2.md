@@ -195,7 +195,7 @@ This task list breaks down the Admin Portal refactoring specification into actio
   - [ ] 9.12 Test unsaved changes tracking for relationship modifications
 
 - [ ] 10.0 Update Entity Display Logic and Date Picker
-  - [ ] 10.1 Update EntityCard to display Artista with stageName as primary text (if present), name as secondary
+  - [ ] 10.1 Update EntityCard to display Artista with stageName as primary text (if present), name as secondary if different to stageName
   - [ ] 10.2 Update EntityCard to show name as primary if stageName is empty
   - [ ] 10.3 Update all Artista sorting to use stageName first, fallback to name
   - [ ] 10.4 Install date picker library (e.g., `react-datepicker` or `@mui/x-date-pickers`)

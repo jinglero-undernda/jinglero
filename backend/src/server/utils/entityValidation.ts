@@ -64,10 +64,12 @@ const urlSchema = z
   .refine((val) => val === '' || isValidURL(val), 'Debe ser una URL válida');
 
 const optionalUrlSchema = z
-  .string()
-  .trim()
-  .optional()
-  .refine((val) => !val || val === '' || isValidURL(val), 'Debe ser una URL válida');
+  .union([
+    z.string().trim(),
+    z.null(),
+    z.undefined()
+  ])
+  .refine((val) => val === null || val === undefined || val === '' || isValidURL(val), 'Debe ser una URL válida');
 
 const emailSchema = z
   .string()
@@ -149,13 +151,13 @@ export const jingleSchema = z.object({
  * Required: title
  */
 export const cancionSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().nullish(),
   title: z.string().trim().min(1, 'El título es requerido'),
-  album: z.string().optional(),
+  album: z.string().nullish(),
   year: optionalYearSchema,
-  genre: z.string().optional(),
+  genre: z.string().nullish(),
   youtubeMusic: optionalUrlSchema,
-  lyrics: z.string().optional(),
+  lyrics: z.string().nullish(),
   status: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED', 'DELETED']).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
