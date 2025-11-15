@@ -2,6 +2,7 @@ import { render as rtlRender } from '@testing-library/react';
 import type { RenderOptions } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
+import { ToastProvider } from '../components/common/ToastContext';
 import type { ReactElement } from 'react';
 
 // Create a custom render function that includes providers
@@ -18,7 +19,9 @@ function render(ui: ReactElement, options?: Omit<RenderOptions, 'wrapper'>) {
     return (
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </BrowserRouter>
       </QueryClientProvider>
     );

@@ -9,6 +9,7 @@ import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import Select from 'react-select';
 import { adminApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
+import { useToast } from '../common/ToastContext';
 
 type Entity = Artista | Cancion | Fabrica | Jingle | Tematica;
 
@@ -158,6 +159,7 @@ function combineDate(day: number, month: number, year: number): string {
 }
 
 const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> }, Props>(function EntityMetadataEditor({ entity, entityType, onSave, isEditing: externalIsEditing, onEditToggle }, ref) {
+  const { showToast } = useToast();
   const [internalIsEditing, setInternalIsEditing] = useState(false);
   const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
   
@@ -170,8 +172,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   };
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
   // Separate state for date components (day, month, year) for Fabricas
   const [dateComponents, setDateComponents] = useState<{ day: number; month: number; year: number } | null>(null);
@@ -297,8 +297,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       }
       setFormData(data);
       setHasChanges(false);
-      setError(null);
-      setSuccess(null);
     }
   }, [externalIsEditing, entity, entityType]);
 
@@ -314,8 +312,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       return updated;
     });
     setHasChanges(true);
-    setError(null);
-    setSuccess(null);
   };
 
   const handleDateComponentChange = (component: 'day' | 'month' | 'year', value: number) => {
@@ -330,8 +326,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
 
   const handleSave = async () => {
     setLoading(true);
-    setError(null);
-    setSuccess(null);
 
     try {
       const updatePayload: Partial<Entity> = { ...formData };
@@ -367,7 +361,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
           throw new Error(`Unknown entity type: ${apiType}`);
       }
 
-      setSuccess('Cambios guardados exitosamente');
+      showToast('Cambios guardados exitosamente', 'success');
       setHasChanges(false);
       setIsEditing(false);
       if (onSave) {
@@ -375,7 +369,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Error al guardar';
-      setError(errorMessage);
+      showToast(errorMessage, 'error');
       console.error('Error saving entity:', err);
     } finally {
       setLoading(false);
@@ -448,11 +442,9 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         }
       });
     }
-    setFormData(data);
-    setHasChanges(false);
-    setIsEditing(false); // This will call onEditToggle if provided
-    setError(null);
-    setSuccess(null);
+      setFormData(data);
+      setHasChanges(false);
+      setIsEditing(false); // This will call onEditToggle if provided
   };
 
   if (!entity) {
@@ -640,34 +632,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
           </div>
         )}
       </div>
-
-      {error && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: '#fee',
-            borderRadius: '4px',
-            color: '#c00',
-            fontSize: '0.875rem',
-          }}
-        >
-          <strong>Error:</strong> {error}
-        </div>
-      )}
-
-      {success && (
-        <div
-          style={{
-            padding: '0.75rem',
-            backgroundColor: '#f1f8f4',
-            borderRadius: '4px',
-            color: '#2e7d32',
-            fontSize: '0.875rem',
-          }}
-        >
-          {success}
-        </div>
-      )}
 
       {/* Fields as rows - similar to related entities */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>

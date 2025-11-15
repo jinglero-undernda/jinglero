@@ -3,6 +3,7 @@ import EntityCard, { type EntityType } from './EntityCard';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
+import { useToast } from './ToastContext';
 
 // Helper to get entity route (duplicated from EntityCard to avoid circular dependency)
 function getEntityRoute(entityType: EntityType, entityId: string): string {
@@ -442,6 +443,7 @@ const RelatedEntities = forwardRef<{
   onCheckUnsavedChanges,
   onNavigateToEntity,
 }, ref) {
+  const { showToast } = useToast();
   // IMPORTANT: The entity prop is always pre-loaded by the parent component.
   // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
   // never the root entity itself. This ensures proper separation of concerns and
@@ -658,7 +660,7 @@ const RelatedEntities = forwardRef<{
         relationshipCreated = true; // Treat as success for refresh purposes
       } else {
         console.error('Error creating relationship:', error);
-        alert(`Error al crear la relación: ${errorMessage}`);
+        showToast(`Error al crear la relación: ${errorMessage}`, 'error');
         return; // Don't refresh if there was a real error
       }
     }

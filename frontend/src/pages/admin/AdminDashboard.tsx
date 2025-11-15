@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../lib/api/client';
 import DataIntegrityChecker from '../../components/admin/DataIntegrityChecker';
+import { useToast } from '../../components/common/ToastContext';
 
 interface EntityCounts {
   fabricas: number;
@@ -38,6 +39,7 @@ const ENTITY_TYPES = [
 ];
 
 export default function AdminDashboard() {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   
@@ -57,7 +59,6 @@ export default function AdminDashboard() {
     usuarios: 0,
   });
   const [countsLoading, setCountsLoading] = useState(true);
-  const [countsError, setCountsError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [selectedEntityType, setSelectedEntityType] = useState<string>('');
   const [showValidation, setShowValidation] = useState(false);
@@ -67,7 +68,6 @@ export default function AdminDashboard() {
   useEffect(() => {
     const loadCounts = async () => {
       setCountsLoading(true);
-      setCountsError(null);
 
       try {
         const counts: EntityCounts = {
@@ -95,7 +95,7 @@ export default function AdminDashboard() {
         setLastUpdated(new Date());
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar los conteos';
-        setCountsError(errorMessage);
+        showToast(errorMessage, 'error');
         console.error('Error loading entity counts:', err);
       } finally {
         setCountsLoading(false);
@@ -169,7 +169,7 @@ export default function AdminDashboard() {
 
   const handleCreateEntity = () => {
     if (!selectedEntityType) {
-      alert('Por favor selecciona un tipo de entidad');
+      showToast('Por favor selecciona un tipo de entidad', 'warning');
       return;
     }
     const entityType = ENTITY_TYPES.find((e) => e.type === selectedEntityType);
@@ -273,7 +273,8 @@ export default function AdminDashboard() {
         navigate(`/admin/${fromRoutePrefix}/${fromId}`);
       } catch (error) {
         console.error('Error creating relationship:', error);
-        alert(`Entidad creada, pero error al crear la relación: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+        const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+        showToast(`Entidad creada, pero error al crear la relación: ${errorMessage}`, 'error');
         // Still navigate back even if relationship creation fails
         let fromRoutePrefix: string;
         if (fromType.length === 1) {
@@ -766,19 +767,6 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {countsError && (
-          <div
-            style={{
-              padding: '1rem',
-              backgroundColor: '#fee',
-              borderRadius: '8px',
-              color: '#c00',
-              marginBottom: '1rem',
-            }}
-          >
-            <strong>Error:</strong> {countsError}
-          </div>
-        )}
 
         <div
           style={{

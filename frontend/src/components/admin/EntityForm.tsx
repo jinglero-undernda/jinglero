@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { adminApi } from '../../lib/api/client';
 import KnowledgeGraphValidator from './KnowledgeGraphValidator';
+import { useToast } from '../common/ToastContext';
+import ErrorDisplay, { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
 
 // Import the type separately to avoid module resolution issues
 type ValidationResult = {
@@ -37,20 +39,17 @@ type Props = {
 };
 
 export default function EntityForm({ type, fields, idFirst, mode = 'create', initialData, onSave, submitLabel }: Props) {
+  const { showToast } = useToast();
   const initialState = fields.reduce((acc, f) => ({ ...acc, [f.name]: initialData && initialData[f.name] != null ? String(initialData[f.name]) : '' }), {} as Record<string, string>);
   const [form, setForm] = useState<Record<string, string>>(initialState);
   const [id, setId] = useState(initialData && initialData.id ? String(initialData.id) : '');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showValidation, setShowValidation] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setSuccess(null);
     setLoading(true);
 
     // Build payload: include all fields; set empty optional fields to null
@@ -68,7 +67,7 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
     try {
       if (mode === 'edit' && onSave) {
         await onSave(payload);
-        setSuccess(submitLabel || 'Guardado');
+        showToast(submitLabel || 'Guardado', 'success');
       } else {
         let data: any;
         switch (type) {
@@ -93,7 +92,7 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
           default:
             throw new Error(`Unknown entity type: ${type}`);
         }
-        setSuccess(`Creado: ${data.id || JSON.stringify(data)}`);
+        showToast(`Creado: ${data.id || JSON.stringify(data)}`, 'success');
         
         // Validate the newly created entity
         if (data && data.id) {
@@ -124,30 +123,14 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
         }
       }
     } catch (err: unknown) {
-      setError((err as Error)?.message || String(err));
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      showToast(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
   }
 
-  // Validate entity after edit save
-  useEffect(() => {
-    if (mode === 'edit' && id && success) {
-      const validateAfterSave = async () => {
-        try {
-          const validation = await adminApi.validateEntity(type, id);
-          setValidationResult(validation);
-          if (!validation.isValid) {
-            setShowValidation(true);
-          }
-        } catch (err) {
-          // Validation errors are non-blocking
-          console.warn('Validation error after save:', err);
-        }
-      };
-      validateAfterSave();
-    }
-  }, [mode, id, success, type]);
+  // Note: Validation after edit save is handled in handleSubmit now
 
   // Basic field validation
   const validateField = (fieldName: string, value: string): string | null => {
@@ -175,8 +158,6 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
     <div>
     <form className={`entity-form entity-form-${type}`} onSubmit={handleSubmit}>
       <h3>{mode === 'edit' ? `Editar ${type}` : `Crear ${type}`}</h3>
-      {error && <div className="error">{error}</div>}
-      {success && <div className="success">{success}</div>}
       {idFirst && (
         <div>
           <label>
@@ -200,16 +181,9 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
                 }
               }}
               required={!!f.required}
-              style={{
-                borderColor: fieldErrors[f.name] ? '#d32f2f' : undefined,
-                borderWidth: fieldErrors[f.name] ? '2px' : undefined,
-              }}
+              style={getFieldErrorStyle(!!fieldErrors[f.name])}
             />
-            {fieldErrors[f.name] && (
-              <div style={{ color: '#d32f2f', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-                {fieldErrors[f.name]}
-              </div>
-            )}
+            <FieldErrorDisplay error={fieldErrors[f.name]} fieldName={f.name} />
           </label>
         </div>
       ))}
