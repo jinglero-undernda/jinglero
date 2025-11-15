@@ -163,21 +163,21 @@ This task list breaks down the Admin Portal refactoring specification into actio
   - [x] 7.12 Test entity creation from blank row in RelatedEntities
   - [x] 7.13 Test entity creation from EntityList "New" button
 
-- [ ] 8.0 Implement Field Configuration System with Shared Validation
+- [x] 8.0 Implement Field Configuration System with Shared Validation
 
-  - [ ] 8.1 Install Zod validation library: `npm install zod`
-  - [ ] 8.2 Create `frontend/src/lib/validation/schemas.ts` with Zod schemas for all entity types
-  - [ ] 8.3 Create `frontend/src/lib/config/fieldConfigs.ts` with field ordering, excluded fields, field options per entity type
-  - [ ] 8.4 Define FIELD_ORDER configuration for each entity type (Fabrica, Jingle, Cancion, Artista, Tematica)
-  - [ ] 8.5 Define EXCLUDED_FIELDS configuration (auto-managed and redundant fields)
-  - [ ] 8.6 Define FIELD_OPTIONS configuration (dropdown options for status, category, nationality)
-  - [ ] 8.7 Define TEXTAREA_FIELDS configuration (multi-line text fields)
-  - [ ] 8.8 Update EntityMetadataEditor to use fieldConfigs for field ordering and display
-  - [ ] 8.9 Update EntityMetadataEditor to use Zod schemas for validation
-  - [ ] 8.10 Update EntityForm to use same fieldConfigs and Zod schemas
-  - [ ] 8.11 Create backend validation utilities that use same validation rules (convert Zod schemas or share logic)
-  - [ ] 8.12 Ensure frontend and backend validation rules match exactly
-  - [ ] 8.13 Test validation consistency between frontend and backend for all entity types
+  - [x] 8.1 Install Zod validation library: `npm install zod`
+  - [x] 8.2 Create `frontend/src/lib/validation/schemas.ts` with Zod schemas for all entity types
+  - [x] 8.3 Create `frontend/src/lib/config/fieldConfigs.ts` with field ordering, excluded fields, field options per entity type
+  - [x] 8.4 Define FIELD_ORDER configuration for each entity type (Fabrica, Jingle, Cancion, Artista, Tematica)
+  - [x] 8.5 Define EXCLUDED_FIELDS configuration (auto-managed and redundant fields)
+  - [x] 8.6 Define FIELD_OPTIONS configuration (dropdown options for status, category, nationality)
+  - [x] 8.7 Define TEXTAREA_FIELDS configuration (multi-line text fields)
+  - [x] 8.8 Update EntityMetadataEditor to use fieldConfigs for field ordering and display
+  - [x] 8.9 Update EntityMetadataEditor to use Zod schemas for validation
+  - [x] 8.10 Update EntityForm to use same fieldConfigs and Zod schemas
+  - [x] 8.11 Create backend validation utilities that use same validation rules (convert Zod schemas or share logic)
+  - [x] 8.12 Ensure frontend and backend validation rules match exactly
+  - [x] 8.13 Test validation consistency between frontend and backend for all entity types
 
 - [ ] 9.0 Enhance Edit Mode and Relationship Management
 

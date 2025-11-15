@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '../../__tests__/test-utils';
+import { render, screen, fireEvent, waitFor } from '../../../__tests__/test-utils';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import AdminEntityAnalyze from '../AdminEntityAnalyze';
-import type { Jingle } from '../../types';
+import type { Jingle } from '../../../types';
+import RelatedEntitiesModule from '../../../components/common/RelatedEntities';
+import EntityMetadataEditorModule from '../../../components/admin/EntityMetadataEditor';
+
+const RelatedEntities = vi.mocked(RelatedEntitiesModule);
+const EntityMetadataEditor = vi.mocked(EntityMetadataEditorModule);
 
 // Mock the admin API
-vi.mock('../../lib/api/client', () => ({
+vi.mock('../../../lib/api/client', () => ({
   adminApi: {
     getJingle: vi.fn(),
     updateJingle: vi.fn(),
@@ -13,8 +18,8 @@ vi.mock('../../lib/api/client', () => ({
 }));
 
 // Mock RelatedEntities to control its behavior
-vi.mock('../../components/common/RelatedEntities', () => ({
-  default: vi.fn(({ ref, isEditing, onNavigateToEntity }) => {
+vi.mock('../../../components/common/RelatedEntities', () => ({
+  default: vi.fn(({ ref, isEditing }) => {
     // Expose methods via ref
     if (ref) {
       ref.current = {
@@ -33,7 +38,7 @@ vi.mock('../../components/common/RelatedEntities', () => ({
 }));
 
 // Mock EntityMetadataEditor
-vi.mock('../../components/admin/EntityMetadataEditor', () => ({
+vi.mock('../../../components/admin/EntityMetadataEditor', () => ({
   default: vi.fn(({ ref, isEditing }) => {
     // Expose methods via ref
     if (ref) {
@@ -51,7 +56,7 @@ vi.mock('../../components/admin/EntityMetadataEditor', () => ({
 }));
 
 // Mock EntityCard
-vi.mock('../../components/common/EntityCard', () => ({
+vi.mock('../../../components/common/EntityCard', () => ({
   default: vi.fn(({ isEditing, onEditClick }) => (
     <div data-testid="entity-card">
       <button onClick={() => onEditClick()}>
@@ -89,8 +94,8 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    const { adminApi } = await import('../../lib/api/client');
-    adminApi.getJingle.mockResolvedValue(mockJingle);
+    const { adminApi } = await import('../../../lib/api/client');
+    (adminApi.getJingle as ReturnType<typeof vi.fn>).mockResolvedValue(mockJingle);
   });
 
   describe('Task 5.1: Always start in view mode', () => {
@@ -188,9 +193,6 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
 
   describe('Task 5.4 & 5.5: Unsaved changes detection', () => {
     it('should detect unsaved changes from metadata editor', async () => {
-      const { adminApi } = await import('../../lib/api/client');
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
-      const EntityMetadataEditor = (await import('../../components/admin/EntityMetadataEditor')).default;
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -207,7 +209,7 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
       // Simulate metadata editor having unsaved changes
       const metadataEditorCall = EntityMetadataEditor.mock.calls[0];
       const metadataEditorRef = metadataEditorCall[0].ref;
-      if (metadataEditorRef) {
+      if (metadataEditorRef && typeof metadataEditorRef !== 'function' && metadataEditorRef.current) {
         metadataEditorRef.current.hasUnsavedChanges = vi.fn(() => true);
       }
 
@@ -221,8 +223,6 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
     });
 
     it('should detect unsaved changes from relationships', async () => {
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
-      const EntityMetadataEditor = (await import('../../components/admin/EntityMetadataEditor')).default;
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -239,7 +239,7 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
       // Simulate relationships having unsaved changes
       const relatedEntitiesCall = RelatedEntities.mock.calls[0];
       const relatedEntitiesRef = relatedEntitiesCall[0].ref;
-      if (relatedEntitiesRef) {
+      if (relatedEntitiesRef && typeof relatedEntitiesRef !== 'function' && relatedEntitiesRef.current) {
         relatedEntitiesRef.current.hasUnsavedChanges = vi.fn(() => true);
       }
 
@@ -250,8 +250,6 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
 
   describe('Task 5.8: Navigation with unsaved changes', () => {
     it('should show modal when navigating with unsaved changes', async () => {
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
-      const EntityMetadataEditor = (await import('../../components/admin/EntityMetadataEditor')).default;
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -268,7 +266,7 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
       // Set up unsaved changes
       const metadataEditorCall = EntityMetadataEditor.mock.calls[0];
       const metadataEditorRef = metadataEditorCall[0].ref;
-      if (metadataEditorRef) {
+      if (metadataEditorRef && typeof metadataEditorRef !== 'function' && metadataEditorRef.current) {
         metadataEditorRef.current.hasUnsavedChanges = vi.fn(() => true);
       }
 
@@ -288,7 +286,6 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
     });
 
     it('should navigate immediately when no unsaved changes', async () => {
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -318,8 +315,6 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
 
   describe('Task 5.9: UnsavedChangesModal actions', () => {
     it('should handle Discard action', async () => {
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
-      const EntityMetadataEditor = (await import('../../components/admin/EntityMetadataEditor')).default;
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -336,7 +331,7 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
       // Set up unsaved changes and trigger navigation
       const metadataEditorCall = EntityMetadataEditor.mock.calls[0];
       const metadataEditorRef = metadataEditorCall[0].ref;
-      if (metadataEditorRef) {
+      if (metadataEditorRef && typeof metadataEditorRef !== 'function' && metadataEditorRef.current) {
         metadataEditorRef.current.hasUnsavedChanges = vi.fn(() => true);
       }
 
@@ -362,11 +357,9 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
     });
 
     it('should handle Save action', async () => {
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
-      const EntityMetadataEditor = (await import('../../components/admin/EntityMetadataEditor')).default;
-      const { adminApi } = await import('../../lib/api/client');
+      const { adminApi } = await import('../../../lib/api/client');
 
-      adminApi.updateJingle.mockResolvedValue(mockJingle);
+      (adminApi.updateJingle as ReturnType<typeof vi.fn>).mockResolvedValue(mockJingle);
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -384,7 +377,7 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
       const metadataEditorCall = EntityMetadataEditor.mock.calls[0];
       const metadataEditorRef = metadataEditorCall[0].ref;
       const mockSave = vi.fn(() => Promise.resolve());
-      if (metadataEditorRef) {
+      if (metadataEditorRef && typeof metadataEditorRef !== 'function' && metadataEditorRef.current) {
         metadataEditorRef.current.hasUnsavedChanges = vi.fn(() => true);
         metadataEditorRef.current.save = mockSave;
       }
@@ -416,8 +409,6 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
     });
 
     it('should handle Cancel action', async () => {
-      const RelatedEntities = (await import('../../components/common/RelatedEntities')).default;
-      const EntityMetadataEditor = (await import('../../components/admin/EntityMetadataEditor')).default;
 
       render(
         <MemoryRouter initialEntries={['/admin/j/jingle-1']}>
@@ -434,7 +425,7 @@ describe('AdminEntityAnalyze - Task 5: Navigation and Edit Mode', () => {
       // Set up unsaved changes and trigger navigation
       const metadataEditorCall = EntityMetadataEditor.mock.calls[0];
       const metadataEditorRef = metadataEditorCall[0].ref;
-      if (metadataEditorRef) {
+      if (metadataEditorRef && typeof metadataEditorRef !== 'function' && metadataEditorRef.current) {
         metadataEditorRef.current.hasUnsavedChanges = vi.fn(() => true);
       }
 

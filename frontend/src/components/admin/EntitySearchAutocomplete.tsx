@@ -404,7 +404,7 @@ export default function EntitySearchAutocomplete({
                     {entityType === 'tematica' && 'Temáticas'}
                     {entityType === 'fabrica' && 'Fábricas'}
                   </div>
-                  {typeResults.map((result, index) => {
+                  {typeResults.map((result) => {
                     const globalIndex = results.indexOf(result);
                     const icon = getEntityIcon(result.entityType);
                     const primaryText = getPrimaryText(result.entity, result.entityType);

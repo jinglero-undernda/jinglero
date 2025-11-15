@@ -135,7 +135,7 @@ describe('RelatedEntities - Task 5: hasUnsavedChanges and Edit Mode', () => {
       ];
 
       const rootEntity = createMockFabrica({ id: 'fabrica-root' });
-      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, unknown> } | null } = { current: null };
+      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> } | null } = { current: null };
 
       render(
         <RelatedEntities
@@ -172,7 +172,7 @@ describe('RelatedEntities - Task 5: hasUnsavedChanges and Edit Mode', () => {
       ];
 
       const rootEntity = createMockFabrica({ id: 'fabrica-root' });
-      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, unknown> } | null } = { current: null };
+      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> } | null } = { current: null };
 
       render(
         <RelatedEntities
@@ -204,7 +204,7 @@ describe('RelatedEntities - Task 5: hasUnsavedChanges and Edit Mode', () => {
     it('should return true when entity is selected for relationship creation', async () => {
       const mockFetchFn = vi.fn().mockResolvedValue([]);
       const { api } = await import('../../../lib/api/client');
-      api.get.mockResolvedValue({
+      (api.get as ReturnType<typeof vi.fn>).mockResolvedValue({
         data: {
           jingles: [createMockJingle({ id: 'j-1' })],
         },
@@ -220,7 +220,7 @@ describe('RelatedEntities - Task 5: hasUnsavedChanges and Edit Mode', () => {
       ];
 
       const rootEntity = createMockFabrica({ id: 'fabrica-root' });
-      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, unknown> } | null } = { current: null };
+      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> } | null } = { current: null };
 
       render(
         <RelatedEntities
@@ -276,7 +276,7 @@ describe('RelatedEntities - Task 5: hasUnsavedChanges and Edit Mode', () => {
       ];
 
       const rootEntity = createMockFabrica({ id: 'fabrica-root' });
-      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, unknown> } | null } = { current: null };
+      const ref: { current: { hasUnsavedChanges: () => boolean; refresh: () => Promise<void>; getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> } | null } = { current: null };
 
       render(
         <RelatedEntities

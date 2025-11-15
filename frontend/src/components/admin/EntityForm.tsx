@@ -3,6 +3,8 @@ import { adminApi } from '../../lib/api/client';
 import KnowledgeGraphValidator from './KnowledgeGraphValidator';
 import { useToast } from '../common/ToastContext';
 import { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
+import { getEntityWarnings } from '../../lib/validation/schemas';
+import { validateEntityField, validateEntityForm } from '../../lib/validation/entityValidation';
 
 // Import the type separately to avoid module resolution issues
 type ValidationResult = {
@@ -63,6 +65,24 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
       }
     });
     if (id) payload.id = id;
+    
+    // Validate the payload before submission
+    const validationErrors = validateEntityForm(type, payload as Record<string, any>);
+    const warnings = getEntityWarnings(type, payload as Record<string, any>);
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      showToast('Por favor corrige los errores antes de continuar', 'error');
+      setLoading(false);
+      return;
+    }
+    
+    // Show warnings if any (non-blocking)
+    if (Object.keys(warnings).length > 0) {
+      Object.values(warnings).forEach((warning) => {
+        showToast(warning, 'warning');
+      });
+    }
 
     try {
       if (mode === 'edit' && onSave) {
@@ -132,13 +152,18 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
 
   // Note: Validation after edit save is handled in handleSubmit now
 
-  // Basic field validation
+  // Comprehensive field validation using centralized validation
   const validateField = (fieldName: string, value: string): string | null => {
     const field = fields.find((f) => f.name === fieldName);
+    
+    // Check required fields first
     if (field?.required && (!value || value.trim() === '')) {
       return `${field.label || fieldName} es requerido`;
     }
-    return null;
+    
+    // Use centralized validation for format and cross-field checks
+    const error = validateEntityField(type, fieldName, value, form);
+    return error;
   };
 
   const handleFieldChange = (fieldName: string, value: string) => {

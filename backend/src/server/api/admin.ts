@@ -20,6 +20,7 @@ import {
   ValidationResult,
   RelationshipValidationResult,
 } from '../utils/validation';
+import { validateEntityInput, validateEntityInputSafe } from '../utils/entityValidation';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -567,12 +568,11 @@ router.post('/:type', asyncHandler(async (req, res) => {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
   
-  // Validate Artista name/stageName requirement
-  if (label === 'Artista') {
-    const validationIssue = validateArtistaNameOrStageName(payload);
-    if (validationIssue) {
-      throw new BadRequestError(validationIssue.message);
-    }
+  // Validate entity input using Zod schemas
+  try {
+    validateEntityInput(type, payload);
+  } catch (validationError: any) {
+    throw new BadRequestError(validationError.message || 'Validation failed');
   }
   
   const id = payload.id || generateId(type);
@@ -619,12 +619,13 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
   
-  // Validate Artista name/stageName requirement
-  if (label === 'Artista') {
-    const validationIssue = validateArtistaNameOrStageName(payload);
-    if (validationIssue) {
-      throw new BadRequestError(validationIssue.message);
-    }
+  // Validate entity input using Zod schemas
+  const validationResult = validateEntityInputSafe(type, payload);
+  if (!validationResult.valid) {
+    const errorMessages = Object.entries(validationResult.errors)
+      .map(([field, message]) => `${field}: ${message}`)
+      .join(', ');
+    throw new BadRequestError(`Validation failed: ${errorMessages}`);
   }
   
   // Remove timestamp fields from payload to ensure updatedAt is always set to current time

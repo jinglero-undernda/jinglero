@@ -18,7 +18,6 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
   return routeMap[entityType];
 }
 import { sortEntities } from '../../lib/utils/entitySorters';
-import { publicApi } from '../../lib/api/client';
 import { adminApi } from '../../lib/api/client';
 import '../../styles/components/related-entities.css';
 
@@ -440,7 +439,7 @@ const RelatedEntities = forwardRef<{
   isAdmin = false,
   initialRelationshipData = {},
   isEditing = false,
-  onEditToggle,
+  onEditToggle: _onEditToggle,
   onGetRelationshipProperties: _onGetRelationshipProperties,
   onCheckUnsavedChanges: _onCheckUnsavedChanges,
   onNavigateToEntity,

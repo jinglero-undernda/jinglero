@@ -421,15 +421,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const _handleRunValidation = (type: string) => {
-    setValidationType(type);
-    setShowValidation(true);
-  };
-
-  const _getEntityTypeRoutePrefix = (type: string): string => {
-    const entityType = ENTITY_TYPES.find((e) => e.type === type);
-    return entityType?.routePrefix || type.charAt(0);
-  };
 
   // Form state (only used when showing create form)
   const [formData, setFormData] = useState<Record<string, any>>({});
