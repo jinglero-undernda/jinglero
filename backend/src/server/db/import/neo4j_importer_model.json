@@ -154,6 +154,14 @@
               },
               {
                 "$id": "p:0_12",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:0_13",
                 "token": "createdAt",
                 "type": {
                   "type": "datetime"
@@ -161,7 +169,7 @@
                 "nullable": false
               },
               {
-                "$id": "p:0_13",
+                "$id": "p:0_14",
                 "token": "updatedAt",
                 "type": {
                   "type": "datetime"
@@ -232,6 +240,14 @@
               },
               {
                 "$id": "p:1_7",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:1_8",
                 "token": "createdAt",
                 "type": {
                   "type": "datetime"
@@ -239,7 +255,7 @@
                 "nullable": false
               },
               {
-                "$id": "p:1_8",
+                "$id": "p:1_9",
                 "token": "updatedAt",
                 "type": {
                   "type": "datetime"
@@ -460,6 +476,14 @@
               },
               {
                 "$id": "p:3_14",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:3_15",
                 "token": "createdAt",
                 "type": {
                   "type": "datetime"
@@ -467,7 +491,7 @@
                 "nullable": false
               },
               {
-                "$id": "p:3_15",
+                "$id": "p:3_16",
                 "token": "updatedAt",
                 "type": {
                   "type": "datetime"
@@ -514,6 +538,14 @@
               },
               {
                 "$id": "p:4_4",
+                "token": "status",
+                "type": {
+                  "type": "string"
+                },
+                "nullable": true
+              },
+              {
+                "$id": "p:4_5",
                 "token": "createdAt",
                 "type": {
                   "type": "string"
@@ -521,7 +553,7 @@
                 "nullable": false
               },
               {
-                "$id": "p:4_5",
+                "$id": "p:4_6",
                 "token": "updatedAt",
                 "type": {
                   "type": "string"

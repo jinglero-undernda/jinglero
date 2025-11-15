@@ -540,6 +540,27 @@ async function fixDuplicateRelationship(
 }
 
 /**
+ * Validate that Artista has at least one of name or stageName
+ */
+export function validateArtistaNameOrStageName(artista: { name?: string; stageName?: string }): ValidationIssue | null {
+  const hasName = artista.name && artista.name.trim().length > 0;
+  const hasStageName = artista.stageName && artista.stageName.trim().length > 0;
+  
+  if (!hasName && !hasStageName) {
+    return {
+      type: 'invalid_target',
+      severity: 'error',
+      entityType: 'artistas',
+      entityId: 'validation',
+      message: "Artista must have at least one of 'name' or 'stageName'",
+      fixable: false,
+    };
+  }
+  
+  return null;
+}
+
+/**
  * Helper: Get Neo4j entity label from entity type
  */
 function getEntityLabel(entityType: string): string | null {

@@ -55,6 +55,7 @@ export interface Jingle {
   // NEW: UX identification props
   isLive?: boolean; // Indicates if Jingle was performed live
   isRepeat?: boolean; // Indicates if this song was performed on the show before
+  status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED'; // Entity lifecycle status
   createdAt: Date;
   updatedAt: Date;
 }
@@ -72,6 +73,7 @@ export interface Artista {
   facebookProfile?: string;
   website?: string;
   bio?: string;
+  status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED'; // Entity lifecycle status
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +88,7 @@ export interface Cancion {
   lyrics: string;
   // NEW: Redundant foreign keys for performance (denormalized)
   autorIds?: string[]; // Array of Artista IDs (redundant with AUTOR_DE relationships)
+  status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED'; // Entity lifecycle status
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,6 +112,7 @@ export interface Tematica {
    name: string;
    category: CategoriaTematica;
    description?: string;
+   status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED'; // Entity lifecycle status
    createdAt: Date;
    updatedAt: Date
   }

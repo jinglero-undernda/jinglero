@@ -14,10 +14,10 @@ describe('Neo4j Schema', () => {
     
     // Check clip constraints
     expect(constraints.some(c => c.name.includes('clip_id'))).toBe(true);
-    expect(constraints.some(c => c.name.includes('clip_required'))).toBe(true);
+    // clip_required constraint removed - timestamp is derived from relationship
     
     // Check artist constraints
-    expect(constraints.some(c => c.name.includes('artist_name'))).toBe(true);
+    // artist_name constraint removed - at least one of name OR stageName required (handled by validation)
     expect(constraints.some(c => c.name.includes('artist_required'))).toBe(true);
     
     // Check song constraints

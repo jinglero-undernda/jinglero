@@ -34,17 +34,18 @@ Nodes:
    - title: string (optional)
    - comment: string (optional)
    - lyrics: string (optional)
-   - songTitle: string (inherited from the associated Cancion)
-   - artistName: string (inherited from the associated Cancion's Artista)
-   - genre: string (optional, inherited from the associated Cancion)
-   - isJinglazo: boolean
-   - isJinglazoDelDia: boolean
-   - isPrecario: boolean
+  - songTitle: string (inherited from the associated Cancion)
+  - artistName: string (inherited from the associated Cancion's Artista)
+  - genre: string (optional, inherited from the associated Cancion)
+  - isJinglazo: boolean (optional)
+  - isJinglazoDelDia: boolean (optional)
+  - isPrecario: boolean (optional)
   - fabricaId: string (optional, redundant with APPEARS_IN relationship - for performance)
   - fabricaDate: datetime (optional, redundant with APPEARS_IN->Fabrica.date - for display/query performance)
   - cancionId: string (optional, redundant with VERSIONA relationship - for performance)
   - isLive: boolean (optional, indicates if Jingle was performed live)
   - isRepeat: boolean (optional, indicates if this song was performed on the show before)
+   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
    - createdAt: datetime
    - updatedAt: datetime
 
@@ -55,17 +56,18 @@ Nodes:
    - id: string (UUID)
    - name: string (unique)
    - stageName: string (optional)
-   - idUsuario: string (optional, indicates if the artist is also a user ,inherited from relationship)
-   - nationality: string (optional)
-   - isArg: boolean (indicates if the artist is from Argentina)
+  - idUsuario: string (optional, indicates if the artist is also a user ,inherited from relationship)
+  - nationality: string (optional)
+  - isArg: boolean (optional, auto-managed from nationality, true if nationality === 'Argentina')
    - youtubeHandle: string (optional)
    - instagramHandle: string (optional)
    - twitterHandle: string (optional)
    - facebookProfile: string (optional)
-   - website: string (optional)
-   - bio: string (optional)
-   - createdAt: datetime
-   - updatedAt: datetime
+  - website: string (optional)
+  - bio: string (optional)
+  - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
+  - createdAt: datetime
+  - updatedAt: datetime
 
 4. Cancion 
    Labels: Cancion
@@ -79,6 +81,7 @@ Nodes:
    - youtubeMusic: string (optional)
    - lyrics: string (optional, URL to retrieve lyrics)
    - autorIds: string[] (optional, redundant with AUTOR_DE relationships - for performance)
+   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
    - createdAt: datetime
    - updatedAt: datetime
 
@@ -104,10 +107,11 @@ Nodes:
    Properties:
    - id: string (UUID)
    - name: string (unique)
-   - category: string (optional enum: ACTUALIDAD, POLITICA, CULTURA, GENTE, GELATINA)
-   - description: string
-   - createdAt: datetime
-   - updatedAt: datetime
+  - category: string (optional enum: ACTUALIDAD, POLITICA, CULTURA, GENTE, GELATINA)
+  - description: string
+  - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
+  - createdAt: datetime
+  - updatedAt: datetime
 
 Relationships:
 -------------
@@ -118,6 +122,8 @@ Relationships:
    Properties:
    - order: number
    - timestamp: number
+   - status: string (enum: DRAFT, CONFIRMED, default: DRAFT)
+   - createdAt: datetime
 
 2. JINGLERO_DE
    Start Node: Artista

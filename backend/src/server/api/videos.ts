@@ -301,6 +301,13 @@ router.delete('/canciones/:id', async (req, res) => {
 router.post('/artistas', async (req, res) => {
   try {
     const artista: Artista = req.body;
+    
+    // Validate that at least one of name or stageName is provided
+    const hasName = artista.name && artista.name.trim().length > 0;
+    const hasStageName = artista.stageName && artista.stageName.trim().length > 0;
+    if (!hasName && !hasStageName) {
+      return res.status(400).json({ error: "Artista must have at least one of 'name' or 'stageName'" });
+    }
     const query = `
       CREATE (a:Artista {
         id: randomUUID(),

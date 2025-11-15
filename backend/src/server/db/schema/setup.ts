@@ -14,9 +14,7 @@ const constraints = [
   'CREATE CONSTRAINT user_required IF NOT EXISTS FOR (u:Usuario) REQUIRE (u.displayName) IS NOT NULL',
 
   'CREATE CONSTRAINT clip_id IF NOT EXISTS FOR (c:Jingle) REQUIRE (c.id) IS UNIQUE',
-  'CREATE CONSTRAINT clip_required IF NOT EXISTS FOR (c:Jingle) REQUIRE (c.timestamp) IS NOT NULL',
 
-  'CREATE CONSTRAINT artist_name IF NOT EXISTS FOR (a:Artista) REQUIRE (a.name) IS NOT NULL',
   'CREATE CONSTRAINT artist_required IF NOT EXISTS FOR (a:Artista) REQUIRE (a.id) IS NOT NULL',
 
   'CREATE CONSTRAINT song_id IF NOT EXISTS FOR (s:Cancion) REQUIRE (s.id) IS UNIQUE',
@@ -154,10 +152,6 @@ export async function validateSchema() {
     // If an id uniqueness exists for Jingle, also present clip_id
     if (constraintNames.includes('id_Jingle_uniq') && !constraintNames.includes('clip_id')) {
       existingConstraints.push({ name: 'clip_id' });
-    }
-    // Present clip_required if jingle timestamp exists as index (best-effort)
-    if (indexNames.includes('jingle_timestamp') && !constraintNames.includes('clip_required')) {
-      existingConstraints.push({ name: 'clip_required' });
     }
 
     // Map song/cancion names

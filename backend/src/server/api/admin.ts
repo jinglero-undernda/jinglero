@@ -16,6 +16,7 @@ import {
   validateRelationship,
   validateAllEntities,
   fixValidationIssue,
+  validateArtistaNameOrStageName,
   ValidationResult,
   RelationshipValidationResult,
 } from '../utils/validation';
@@ -565,6 +566,15 @@ router.post('/:type', asyncHandler(async (req, res) => {
   if (!label) {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
+  
+  // Validate Artista name/stageName requirement
+  if (label === 'Artista') {
+    const validationIssue = validateArtistaNameOrStageName(payload);
+    if (validationIssue) {
+      throw new BadRequestError(validationIssue.message);
+    }
+  }
+  
   const id = payload.id || generateId(type);
   const existsQuery = `MATCH (n:${label} { id: $id }) RETURN n`;
   const existing = await db.executeQuery(existsQuery, { id });
@@ -586,6 +596,12 @@ router.post('/:type', asyncHandler(async (req, res) => {
   // Remove timestamp fields from properties to ensure they're always set to current time
   delete properties.createdAt;
   delete properties.updatedAt;
+  
+  // Set default status for entities that support it (Jingle, Cancion, Artista, Tematica)
+  if ((label === 'Jingle' || label === 'Cancion' || label === 'Artista' || label === 'Tematica') && !properties.status) {
+    properties.status = 'DRAFT';
+  }
+  
   const result = await db.executeQuery<{ n: { properties: any } }>(createQuery, {
     id,
     createdAt: now, // Always use current timestamp for creation
@@ -602,6 +618,15 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   if (!label) {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
+  
+  // Validate Artista name/stageName requirement
+  if (label === 'Artista') {
+    const validationIssue = validateArtistaNameOrStageName(payload);
+    if (validationIssue) {
+      throw new BadRequestError(validationIssue.message);
+    }
+  }
+  
   // Remove timestamp fields from payload to ensure updatedAt is always set to current time
   const properties = { ...payload } as any;
   delete properties.createdAt; // Don't allow updating createdAt
