@@ -5,11 +5,13 @@
  * Displays entity properties as editable fields (excluding auto-managed and redundant fields).
  */
 
-import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
 import Select from 'react-select';
 import { adminApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { useToast } from '../common/ToastContext';
+import { validateEntityField, validateEntityForm, getEntityFormWarnings } from '../../lib/validation/entityValidation';
+import { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
 
 type Entity = Artista | Cancion | Fabrica | Jingle | Tematica;
 
@@ -175,6 +177,12 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   const [hasChanges, setHasChanges] = useState(false);
   // Separate state for date components (day, month, year) for Fabricas
   const [dateComponents, setDateComponents] = useState<{ day: number; month: number; year: number } | null>(null);
+  // Validation state
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
+  const [formWarnings, setFormWarnings] = useState<Record<string, string>>({});
+  // Ref to track latest formData for validation
+  const formDataRef = useRef<Record<string, any>>({});
 
   // Initialize form data from entity
   useEffect(() => {
@@ -234,7 +242,11 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         });
       }
       setFormData(data);
+      formDataRef.current = data;
       setHasChanges(false);
+      setFieldErrors({});
+      setTouchedFields(new Set());
+      setFormWarnings({});
     }
   }, [entity, entityType]);
 
@@ -296,7 +308,11 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         });
       }
       setFormData(data);
+      formDataRef.current = data;
       setHasChanges(false);
+      setFieldErrors({});
+      setTouchedFields(new Set());
+      setFormWarnings({});
     }
   }, [externalIsEditing, entity, entityType]);
 
@@ -309,9 +325,52 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         updated.youtubeUrl = `https://www.youtube.com/watch?v=${value}`;
       }
       
+      // Update ref with latest formData
+      formDataRef.current = updated;
+      
+      // Clear field error when user types
+      if (fieldErrors[fieldName]) {
+        setFieldErrors((prevErrors) => {
+          const newErrors = { ...prevErrors };
+          delete newErrors[fieldName];
+          return newErrors;
+        });
+      }
+      
+      // Update warnings for cross-field validations
+      if (entityType === 'jingle') {
+        const warnings = getEntityFormWarnings(entityType, updated);
+        setFormWarnings(warnings);
+      }
+      
       return updated;
     });
     setHasChanges(true);
+  };
+
+  const handleFieldBlur = (fieldName: string) => {
+    setTouchedFields((prev) => new Set(prev).add(fieldName));
+    
+    // Use ref to get latest formData for validation
+    const currentFormData = formDataRef.current;
+    const value = currentFormData[fieldName];
+    const error = validateEntityField(entityType, fieldName, value, currentFormData);
+    
+    if (error) {
+      setFieldErrors((prev) => ({ ...prev, [fieldName]: error }));
+    } else {
+      setFieldErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[fieldName];
+        return newErrors;
+      });
+    }
+    
+    // Check cross-field validations
+    if (entityType === 'artista' && (fieldName === 'name' || fieldName === 'stageName')) {
+      const crossFieldErrors = validateEntityForm(entityType, currentFormData);
+      setFieldErrors((prev) => ({ ...prev, ...crossFieldErrors }));
+    }
   };
 
   const handleDateComponentChange = (component: 'day' | 'month' | 'year', value: number) => {
@@ -325,6 +384,31 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   };
 
   const handleSave = async () => {
+    // Mark all fields as touched for validation
+    const allFields = new Set(Object.keys(formData));
+    setTouchedFields(allFields);
+    
+    // Run full form validation
+    const validationErrors = validateEntityForm(entityType, formData);
+    const warnings = getEntityFormWarnings(entityType, formData);
+    
+    setFieldErrors(validationErrors);
+    setFormWarnings(warnings);
+    
+    // Prevent submission if there are validation errors
+    if (Object.keys(validationErrors).length > 0) {
+      showToast('Por favor corrige los errores antes de guardar', 'error');
+      setLoading(false);
+      return;
+    }
+    
+    // Show warnings if any (non-blocking)
+    if (Object.keys(warnings).length > 0) {
+      Object.values(warnings).forEach((warning) => {
+        showToast(warning, 'warning');
+      });
+    }
+    
     setLoading(true);
 
     try {
@@ -363,13 +447,61 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
 
       showToast('Cambios guardados exitosamente', 'success');
       setHasChanges(false);
+      setFieldErrors({});
+      setTouchedFields(new Set());
+      setFormWarnings({});
       setIsEditing(false);
       if (onSave) {
         await onSave(updated);
       }
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Error al guardar';
-      showToast(errorMessage, 'error');
+      // Parse server-side validation errors
+      let serverErrors: Record<string, string> = {};
+      let errorMessage = 'Error al guardar';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Try to parse error response for field-specific errors
+        try {
+          // Check if error has a response with data
+          const errorAny = err as any;
+          if (errorAny.response?.data) {
+            const errorData = errorAny.response.data;
+            // Handle different error response formats
+            if (errorData.errors && typeof errorData.errors === 'object') {
+              serverErrors = errorData.errors;
+            } else if (errorData.field && errorData.message) {
+              serverErrors[errorData.field] = errorData.message;
+            } else if (typeof errorData === 'object') {
+              // Try to extract field errors from object
+              Object.keys(errorData).forEach((key) => {
+                if (typeof errorData[key] === 'string') {
+                  serverErrors[key] = errorData[key];
+                }
+              });
+            }
+          }
+        } catch (parseError) {
+          // If parsing fails, just use the error message
+          console.warn('Could not parse server error response:', parseError);
+        }
+      }
+      
+      // Set server errors to fieldErrors state
+      if (Object.keys(serverErrors).length > 0) {
+        setFieldErrors(serverErrors);
+        // Mark all error fields as touched
+        setTouchedFields((prev) => {
+          const newTouched = new Set(prev);
+          Object.keys(serverErrors).forEach((field) => newTouched.add(field));
+          return newTouched;
+        });
+      } else {
+        // Show general error toast if no field-specific errors
+        showToast(errorMessage, 'error');
+      }
+      
       console.error('Error saving entity:', err);
     } finally {
       setLoading(false);
@@ -443,7 +575,11 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       });
     }
       setFormData(data);
+      formDataRef.current = data;
       setHasChanges(false);
+      setFieldErrors({});
+      setTouchedFields(new Set());
+      setFormWarnings({});
       setIsEditing(false); // This will call onEditToggle if provided
   };
 
@@ -654,6 +790,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                 border: '1px solid #333',
                 borderRadius: '4px',
                 color: '#fff',
+                flexWrap: 'wrap',
               }}
             >
               {isEditing ? (
@@ -722,63 +859,69 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       >
                         {fieldName}:
                       </label>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, minWidth: 0 }}>
-                        <input
-                          type="number"
-                          min="1"
-                          max="31"
-                          value={dateComponents?.day || ''}
-                          onChange={(e) => handleDateComponentChange('day', parseInt(e.target.value) || 1)}
-                          placeholder="DD"
-                          style={{
-                            width: '50px',
-                            padding: '4px 8px',
-                            backgroundColor: '#2a2a2a',
-                            border: '1px solid #444',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            color: '#fff',
-                            textAlign: 'center',
-                          }}
-                        />
-                        <span style={{ color: '#999', fontSize: '14px' }}>/</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="12"
-                          value={dateComponents?.month || ''}
-                          onChange={(e) => handleDateComponentChange('month', parseInt(e.target.value) || 1)}
-                          placeholder="MM"
-                          style={{
-                            width: '50px',
-                            padding: '4px 8px',
-                            backgroundColor: '#2a2a2a',
-                            border: '1px solid #444',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            color: '#fff',
-                            textAlign: 'center',
-                          }}
-                        />
-                        <span style={{ color: '#999', fontSize: '14px' }}>/</span>
-                        <input
-                          type="number"
-                          min="2000"
-                          max="2100"
-                          value={dateComponents?.year || ''}
-                          onChange={(e) => handleDateComponentChange('year', parseInt(e.target.value) || new Date().getFullYear())}
-                          placeholder="YYYY"
-                          style={{
-                            width: '80px',
-                            padding: '4px 8px',
-                            backgroundColor: '#2a2a2a',
-                            border: '1px solid #444',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            color: '#fff',
-                            textAlign: 'center',
-                          }}
-                        />
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <input
+                            type="number"
+                            min="1"
+                            max="31"
+                            value={dateComponents?.day || ''}
+                            onChange={(e) => handleDateComponentChange('day', parseInt(e.target.value) || 1)}
+                            onBlur={() => handleFieldBlur('date')}
+                            placeholder="DD"
+                            style={{
+                              width: '50px',
+                              padding: '4px 8px',
+                              backgroundColor: '#2a2a2a',
+                              border: fieldErrors.date ? '2px solid #d32f2f' : '1px solid #444',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              color: '#fff',
+                              textAlign: 'center',
+                            }}
+                          />
+                          <span style={{ color: '#999', fontSize: '14px' }}>/</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="12"
+                            value={dateComponents?.month || ''}
+                            onChange={(e) => handleDateComponentChange('month', parseInt(e.target.value) || 1)}
+                            onBlur={() => handleFieldBlur('date')}
+                            placeholder="MM"
+                            style={{
+                              width: '50px',
+                              padding: '4px 8px',
+                              backgroundColor: '#2a2a2a',
+                              border: fieldErrors.date ? '2px solid #d32f2f' : '1px solid #444',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              color: '#fff',
+                              textAlign: 'center',
+                            }}
+                          />
+                          <span style={{ color: '#999', fontSize: '14px' }}>/</span>
+                          <input
+                            type="number"
+                            min="2000"
+                            max="2100"
+                            value={dateComponents?.year || ''}
+                            onChange={(e) => handleDateComponentChange('year', parseInt(e.target.value) || new Date().getFullYear())}
+                            onBlur={() => handleFieldBlur('date')}
+                            placeholder="YYYY"
+                            style={{
+                              width: '80px',
+                              padding: '4px 8px',
+                              backgroundColor: '#2a2a2a',
+                              border: fieldErrors.date ? '2px solid #d32f2f' : '1px solid #444',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              color: '#fff',
+                              textAlign: 'center',
+                            }}
+                          />
+                        </div>
+                        {fieldErrors.date && <FieldErrorDisplay error={fieldErrors.date} fieldName="date" />}
                       </div>
                     </>
                   ) : fieldName === 'status' && entityType === 'fabrica' && FIELD_OPTIONS.fabrica?.status ? (
@@ -795,27 +938,31 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       >
                         {fieldName}:
                       </label>
-                      <select
-                        value={value || ''}
-                        onChange={(e) => handleFieldChange(fieldName, e.target.value)}
-                        style={{
-                          flex: 1,
-                          padding: '4px 8px',
-                          backgroundColor: '#2a2a2a',
-                          border: '1px solid #444',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          color: '#fff',
-                          minWidth: 0,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        {FIELD_OPTIONS.fabrica.status.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                        <select
+                          value={value || ''}
+                          onChange={(e) => handleFieldChange(fieldName, e.target.value)}
+                          onBlur={() => handleFieldBlur(fieldName)}
+                          style={{
+                            flex: 1,
+                            padding: '4px 8px',
+                            backgroundColor: '#2a2a2a',
+                            border: fieldErrors[fieldName] ? '2px solid #d32f2f' : '1px solid #444',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            color: '#fff',
+                            minWidth: 0,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {FIELD_OPTIONS.fabrica.status.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldErrors[fieldName] && <FieldErrorDisplay error={fieldErrors[fieldName]} fieldName={fieldName} />}
+                      </div>
                     </>
                   ) : fieldName === 'category' && entityType === 'tematica' && FIELD_OPTIONS.tematica?.category ? (
                     // Category field as dropdown for Tematicas
@@ -831,28 +978,32 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       >
                         {fieldName}:
                       </label>
-                      <select
-                        value={value || ''}
-                        onChange={(e) => handleFieldChange(fieldName, e.target.value || null)}
-                        style={{
-                          flex: 1,
-                          padding: '4px 8px',
-                          backgroundColor: '#2a2a2a',
-                          border: '1px solid #444',
-                          borderRadius: '4px',
-                          fontSize: '14px',
-                          color: '#fff',
-                          minWidth: 0,
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <option value="">-- Seleccionar --</option>
-                        {FIELD_OPTIONS.tematica.category.map((option) => (
-                          <option key={option} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                        <select
+                          value={value || ''}
+                          onChange={(e) => handleFieldChange(fieldName, e.target.value || null)}
+                          onBlur={() => handleFieldBlur(fieldName)}
+                          style={{
+                            flex: 1,
+                            padding: '4px 8px',
+                            backgroundColor: '#2a2a2a',
+                            border: fieldErrors[fieldName] ? '2px solid #d32f2f' : '1px solid #444',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            color: '#fff',
+                            minWidth: 0,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <option value="">-- Seleccionar --</option>
+                          {FIELD_OPTIONS.tematica.category.map((option) => (
+                            <option key={option} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                        {fieldErrors[fieldName] && <FieldErrorDisplay error={fieldErrors[fieldName]} fieldName={fieldName} />}
+                      </div>
                     </>
                   ) : fieldName === 'nationality' && entityType === 'artista' && FIELD_OPTIONS.artista?.nationality ? (
                     // Nationality field as searchable dropdown for Artistas using react-select
@@ -868,10 +1019,11 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       >
                         {fieldName}:
                       </label>
-                      <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <Select
                           value={value ? { value, label: value } : null}
                           onChange={(selected) => handleFieldChange(fieldName, selected?.value || '')}
+                          onBlur={() => handleFieldBlur(fieldName)}
                           options={FIELD_OPTIONS.artista.nationality.map((country) => ({
                             value: country,
                             label: country,
@@ -883,11 +1035,12 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                             control: (base) => ({
                               ...base,
                               backgroundColor: '#2a2a2a',
-                              borderColor: '#444',
+                              borderColor: fieldErrors[fieldName] ? '#d32f2f' : '#444',
+                              borderWidth: fieldErrors[fieldName] ? '2px' : '1px',
                               minHeight: '32px',
                               fontSize: '14px',
                               '&:hover': {
-                                borderColor: '#555',
+                                borderColor: fieldErrors[fieldName] ? '#d32f2f' : '#555',
                               },
                             }),
                             menu: (base) => ({
@@ -939,6 +1092,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                             },
                           })}
                         />
+                        {fieldErrors[fieldName] && <FieldErrorDisplay error={fieldErrors[fieldName]} fieldName={fieldName} />}
                       </div>
                     </>
                   ) : isBoolean ? (
@@ -984,53 +1138,63 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       >
                         {fieldName}:
                       </label>
-                      {(TEXTAREA_FIELDS[entityType] || []).includes(fieldName) ? (
-                        <textarea
-                          value={value ?? ''}
-                          onChange={(e) => handleFieldChange(fieldName, e.target.value)}
-                          style={{
-                            flex: 1,
-                            padding: '4px 8px',
-                            backgroundColor: '#2a2a2a',
-                            border: '1px solid #444',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            color: '#fff',
-                            minWidth: 0,
-                            minHeight: '60px',
-                            resize: 'vertical',
-                            fontFamily: 'inherit',
-                            lineHeight: '1.4',
-                            wordWrap: 'break-word',
-                            overflowWrap: 'break-word',
-                            overflow: 'auto',
-                            boxSizing: 'border-box',
-                            verticalAlign: 'top',
-                          }}
-                          rows={Math.max(2, Math.ceil((value?.length || 0) / 50))}
-                        />
-                      ) : (
-                        <input
-                          type={fieldType === 'number' ? 'number' : 'text'}
-                          value={value ?? ''}
-                          onChange={(e) =>
-                            handleFieldChange(
-                              fieldName,
-                              fieldType === 'number' ? parseFloat(e.target.value) || 0 : e.target.value
-                            )
-                          }
-                          style={{
-                            flex: 1,
-                            padding: '4px 8px',
-                            backgroundColor: '#2a2a2a',
-                            border: '1px solid #444',
-                            borderRadius: '4px',
-                            fontSize: '14px',
-                            color: '#fff',
-                            minWidth: 0,
-                          }}
-                        />
-                      )}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
+                        {(TEXTAREA_FIELDS[entityType] || []).includes(fieldName) ? (
+                          <textarea
+                            value={value ?? ''}
+                            onChange={(e) => handleFieldChange(fieldName, e.target.value)}
+                            onBlur={() => handleFieldBlur(fieldName)}
+                            style={{
+                              flex: 1,
+                              padding: '4px 8px',
+                              backgroundColor: '#2a2a2a',
+                              border: fieldErrors[fieldName] ? '2px solid #d32f2f' : '1px solid #444',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              color: '#fff',
+                              minWidth: 0,
+                              minHeight: '60px',
+                              resize: 'vertical',
+                              fontFamily: 'inherit',
+                              lineHeight: '1.4',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word',
+                              overflow: 'auto',
+                              boxSizing: 'border-box',
+                              verticalAlign: 'top',
+                            }}
+                            rows={Math.max(2, Math.ceil((value?.length || 0) / 50))}
+                          />
+                        ) : (
+                          <input
+                            type={fieldType === 'number' ? 'number' : 'text'}
+                            value={value ?? ''}
+                            onChange={(e) =>
+                              handleFieldChange(
+                                fieldName,
+                                fieldType === 'number' ? parseFloat(e.target.value) || 0 : e.target.value
+                              )
+                            }
+                            onBlur={() => handleFieldBlur(fieldName)}
+                            style={{
+                              flex: 1,
+                              padding: '4px 8px',
+                              backgroundColor: '#2a2a2a',
+                              border: fieldErrors[fieldName] ? '2px solid #d32f2f' : '1px solid #444',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              color: '#fff',
+                              minWidth: 0,
+                            }}
+                          />
+                        )}
+                        {fieldErrors[fieldName] && <FieldErrorDisplay error={fieldErrors[fieldName]} fieldName={fieldName} />}
+                        {formWarnings[fieldName] && (
+                          <div style={{ color: '#ff9800', fontSize: '0.875rem', marginTop: '0.25rem' }}>
+                            {formWarnings[fieldName]}
+                          </div>
+                        )}
+                      </div>
                     </>
                   )}
                 </>
