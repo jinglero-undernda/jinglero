@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../__tests__/test-utils';
 import RelatedEntities, { type RelationshipConfig } from '../common/RelatedEntities';
-import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
+import type { Cancion, Fabrica, Jingle } from '../../types';
 
 // Mock the relationship configs utility
 vi.mock('../../lib/utils/relationshipConfigs', () => ({
@@ -40,14 +40,14 @@ const createMockCancion = (overrides?: Partial<Cancion>): Cancion => ({
   ...overrides,
 });
 
-const createMockArtista = (overrides?: Partial<Artista>): Artista => ({
-  id: 'artista-1',
-  stageName: 'Test Artist',
-  isArg: true,
-  createdAt: '2024-01-01T00:00:00Z',
-  updatedAt: '2024-01-01T00:00:00Z',
-  ...overrides,
-});
+// const createMockArtista = (overrides?: Partial<Artista>): Artista => ({
+//   id: 'artista-1',
+//   stageName: 'Test Artist',
+//   isArg: true,
+//   createdAt: '2024-01-01T00:00:00Z',
+//   updatedAt: '2024-01-01T00:00:00Z',
+//   ...overrides,
+// });
 
 describe('RelatedEntities', () => {
   beforeEach(() => {

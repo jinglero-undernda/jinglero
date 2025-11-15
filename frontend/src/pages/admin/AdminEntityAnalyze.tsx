@@ -8,7 +8,7 @@
  */
 
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { adminApi } from '../../lib/api/client';
@@ -43,6 +43,7 @@ export default function AdminEntityAnalyze() {
   const relatedEntitiesRef = useRef<{ 
     getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
     refresh: () => Promise<void>;
+    hasUnsavedChanges: () => boolean;
   } | null>(null);
   const metadataEditorRef = useRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> } | null>(null);
   const [pendingNavigation, setPendingNavigation] = useState<{ entityType: EntityType; entityId: string } | null>(null);
@@ -110,6 +111,35 @@ export default function AdminEntityAnalyze() {
     fetchEntity();
   }, [entityType, entityId]);
 
+  // Task 5.5: Helper function to check for unsaved changes from both metadata and relationships
+  const checkUnsavedChanges = useCallback(() => {
+    const metadataHasChanges = metadataEditorRef.current?.hasUnsavedChanges() || false;
+    const relationshipsHaveChanges = relatedEntitiesRef.current?.hasUnsavedChanges() || false;
+    return metadataHasChanges || relationshipsHaveChanges;
+  }, []);
+
+  // Task 5.6: Note: useBlocker requires a data router (createBrowserRouter), but this app uses BrowserRouter.
+  // Navigation blocking is handled via:
+  // 1. beforeunload event for browser navigation (implemented below)
+  // 2. Manual checks in onNavigateToEntity callback (implemented in RelatedEntities)
+  // 3. For Link clicks, users will see the browser's beforeunload dialog if there are unsaved changes
+
+  // Task 5.7: Add beforeunload event listener for browser navigation
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (checkUnsavedChanges()) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome
+        return ''; // Required for some browsers
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [checkUnsavedChanges]);
+
   // Refresh relationships when navigating back from entity creation
   // This handles the case when an entity is created with relationship context
   // and we navigate back to this page. Task 7.0 will enhance this with proper
@@ -136,7 +166,7 @@ export default function AdminEntityAnalyze() {
   }, [entity, loading, location]);
 
   // Helper function to get route prefix for entity type
-  const getRoutePrefix = (entityType: string): string => {
+  const _getRoutePrefix = (entityType: string): string => {
     const routeMap: Record<string, string> = {
       'fabrica': 'f',
       'jingle': 'j',
@@ -277,13 +307,8 @@ export default function AdminEntityAnalyze() {
   }
 
   // Extract relationship data for EntityCard (similar to inspection pages)
-  const relationshipData = entity && 'fabrica' in entity ? {
-    fabrica: (entity as Jingle).fabrica,
-    cancion: (entity as Jingle).cancion,
-    jingleros: (entity as Jingle).jingleros,
-    autores: (entity as Jingle).autores,
-    tematicas: (entity as Jingle).tematicas,
-  } : undefined;
+  // Note: Jingle relationships are accessed via API, not directly from entity object
+  const relationshipData = undefined;
 
   // This check is redundant but kept for safety - the earlier check should catch this
   // But we'll keep it to ensure we always render something
@@ -369,7 +394,7 @@ export default function AdminEntityAnalyze() {
               if (Object.keys(relationshipProps).length > 0) {
                 try {
                   // Save each relationship property update
-                  for (const [key, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
+                  for (const [_key, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
                     // Filter out empty/null values
                     const cleanProperties: Record<string, any> = {};
                     Object.entries(properties).forEach(([propKey, propValue]) => {
@@ -409,19 +434,12 @@ export default function AdminEntityAnalyze() {
           isAdmin={true}
           isEditing={isEditing}
           onEditToggle={setIsEditing}
-          initialRelationshipData={relationshipData ? {
-            'Fabrica-fabrica': relationshipData.fabrica ? [relationshipData.fabrica] : [],
-            'Cancion-cancion': relationshipData.cancion ? [relationshipData.cancion] : [],
-            'Autor-artista': relationshipData.autores || [],
-            'Jinglero-artista': relationshipData.jingleros || [],
-            'Tematicas-tematica': relationshipData.tematicas || [],
-          } : undefined}
+          initialRelationshipData={undefined}
           ref={relatedEntitiesRef}
-          onCheckUnsavedChanges={() => {
-            return metadataEditorRef.current?.hasUnsavedChanges() || false;
-          }}
+          onCheckUnsavedChanges={checkUnsavedChanges}
           onNavigateToEntity={(targetEntityType, targetEntityId) => {
-            const hasUnsaved = metadataEditorRef.current?.hasUnsavedChanges() || false;
+            // Task 5.8: Check both metadata and relationship unsaved changes
+            const hasUnsaved = checkUnsavedChanges();
             
             if (hasUnsaved) {
               setPendingNavigation({ entityType: targetEntityType, entityId: targetEntityId });
@@ -441,6 +459,7 @@ export default function AdminEntityAnalyze() {
         entityName={entity ? (entity as any).title || (entity as any).name || entity.id : 'esta entidad'}
         onDiscard={() => {
           setShowUnsavedModal(false);
+          // Task 5.6: Proceed with navigation after discarding changes
           if (pendingNavigation) {
             const routePrefix = pendingNavigation.entityType === 'jingle' ? 'j' : pendingNavigation.entityType === 'cancion' ? 'c' : pendingNavigation.entityType === 'artista' ? 'a' : pendingNavigation.entityType === 'fabrica' ? 'f' : 't';
             navigate(`/admin/${routePrefix}/${pendingNavigation.entityId}`);
@@ -448,10 +467,14 @@ export default function AdminEntityAnalyze() {
           }
         }}
         onSave={async () => {
+          // Task 5.5: Save both metadata and relationship changes
           if (metadataEditorRef.current) {
             await metadataEditorRef.current.save();
           }
+          // Relationship properties are saved via the onSave callback in EntityMetadataEditor
+          // which calls getRelationshipProperties and saves them
           setShowUnsavedModal(false);
+          // Task 5.6: Proceed with navigation after saving
           if (pendingNavigation) {
             const routePrefix = pendingNavigation.entityType === 'jingle' ? 'j' : pendingNavigation.entityType === 'cancion' ? 'c' : pendingNavigation.entityType === 'artista' ? 'a' : pendingNavigation.entityType === 'fabrica' ? 'f' : 't';
             navigate(`/admin/${routePrefix}/${pendingNavigation.entityId}`);

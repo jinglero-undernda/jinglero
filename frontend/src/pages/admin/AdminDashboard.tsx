@@ -23,11 +23,11 @@ interface EntityCounts {
   usuarios: number;
 }
 
-interface ValidationSummary {
-  totalIssues: number;
-  entitiesWithIssues: number;
-  issuesByType: Record<string, number>;
-}
+// interface ValidationSummary {
+//   totalIssues: number;
+//   entitiesWithIssues: number;
+//   issuesByType: Record<string, number>;
+// }
 
 const ENTITY_TYPES = [
   { type: 'fabricas', label: 'Fábricas', routePrefix: 'f', singular: 'fabrica' },
@@ -200,7 +200,7 @@ export default function AdminDashboard() {
           return value;
         };
         const createdEntityType = getEntityType(createType || '');
-        const fromEntityType = getEntityType(fromType);
+        // const fromEntityType = getEntityType(fromType);
         
         let startId: string;
         let endId: string;
@@ -292,12 +292,12 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleRunValidation = (type: string) => {
+  const _handleRunValidation = (type: string) => {
     setValidationType(type);
     setShowValidation(true);
   };
 
-  const getEntityTypeRoutePrefix = (type: string): string => {
+  const _getEntityTypeRoutePrefix = (type: string): string => {
     const entityType = ENTITY_TYPES.find((e) => e.type === type);
     return entityType?.routePrefix || type.charAt(0);
   };

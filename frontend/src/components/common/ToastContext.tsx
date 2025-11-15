@@ -5,8 +5,9 @@
  * Provides useToast hook for showing toast notifications throughout the app.
  */
 
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { Toast, ToastVariant, ToastContainer } from './Toast';
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { ToastContainer } from './Toast';
+import type { Toast, ToastVariant } from './Toast';
 
 interface ToastContextType {
   showToast: (message: string, variant?: ToastVariant, duration?: number) => void;

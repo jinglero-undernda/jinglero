@@ -9,6 +9,7 @@ import type { Jingle } from '../../../types';
 describe('relatedEntitiesReducer', () => {
   const initialState: RelatedEntitiesState = {
     expandedRelationships: new Set(),
+    expandedEntities: new Set(),
     loadedData: {},
     loadingStates: {},
     counts: {},

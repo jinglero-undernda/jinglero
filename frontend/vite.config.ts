@@ -18,6 +18,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: true, // Allow access from local network
     port: 5173,
     strictPort: true,
     proxy: {

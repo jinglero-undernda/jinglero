@@ -309,7 +309,7 @@ function EntityCard({
   onEditClick,
   showAdminNavButton = false,
   onAdminNavClick,
-  adminRoute,
+  adminRoute: _adminRoute,
 }: EntityCardProps) {
   const navigate = useNavigate();
   // Handle deprecated variants with warnings

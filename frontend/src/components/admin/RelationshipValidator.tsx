@@ -47,7 +47,7 @@ export default function RelationshipValidator({
   startEntityId,
   endEntityId,
   onValidationComplete,
-  autoValidate = false,
+  autoValidate: _autoValidate = false,
 }: Props) {
   const [result, setResult] = useState<RelationshipValidationResult | null>(null);
   const [loading, setLoading] = useState(false);

@@ -17,7 +17,7 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
   return routeMap[entityType];
 }
 import { sortEntities } from '../../lib/utils/entitySorters';
-import { api } from '../../lib/api/client';
+import { publicApi } from '../../lib/api/client';
 import { adminApi } from '../../lib/api/client';
 import '../../styles/components/related-entities.css';
 
@@ -428,6 +428,7 @@ export function relatedEntitiesReducer(
 const RelatedEntities = forwardRef<{ 
   getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
   refresh: () => Promise<void>;
+  hasUnsavedChanges: () => boolean;
 }, RelatedEntitiesProps>(function RelatedEntities({
   entity,
   entityType,
@@ -439,8 +440,8 @@ const RelatedEntities = forwardRef<{
   initialRelationshipData = {},
   isEditing = false,
   onEditToggle,
-  onGetRelationshipProperties,
-  onCheckUnsavedChanges,
+  onGetRelationshipProperties: _onGetRelationshipProperties,
+  onCheckUnsavedChanges: _onCheckUnsavedChanges,
   onNavigateToEntity,
 }, ref) {
   const { showToast } = useToast();
@@ -492,7 +493,7 @@ const RelatedEntities = forwardRef<{
     // Debounce search API call
     searchDebounceRef.current[key] = window.setTimeout(async () => {
       try {
-        const response = await api.get<{
+        const response = await publicApi.get<{
           jingles?: RelatedEntity[];
           canciones?: RelatedEntity[];
           artistas?: RelatedEntity[];
@@ -966,11 +967,33 @@ const RelatedEntities = forwardRef<{
     }
   }, [entity, entityType, relationships, getRelationshipKey, getCacheKey, cancelInFlightRequest, isAdmin, entityPath, dispatch]);
 
-  // Expose getter and refresh to parent via ref
+  // Task 5.4: Check for unsaved changes in relationships
+  // Tracks: relationship property edits, pending timestamp edits, selected entities in blank rows
+  const hasUnsavedChanges = useCallback(() => {
+    // Check for pending relationship property edits
+    if (Object.keys(relationshipPropsData).length > 0) {
+      return true;
+    }
+    
+    // Check for pending timestamp edits
+    if (Object.keys(timestampTimes).length > 0) {
+      return true;
+    }
+    
+    // Check for selected entity in blank row (pending relationship creation)
+    if (selectedEntityForRelationship !== null) {
+      return true;
+    }
+    
+    return false;
+  }, [relationshipPropsData, timestampTimes, selectedEntityForRelationship]);
+
+  // Expose getter, refresh, and hasUnsavedChanges to parent via ref
   useImperativeHandle(ref, () => ({
     getRelationshipProperties,
     refresh,
-  }), [getRelationshipProperties, refresh]);
+    hasUnsavedChanges,
+  }), [getRelationshipProperties, refresh, hasUnsavedChanges]);
 
   // Check if we've exceeded max depth
   const currentDepth = entityPath.length;
@@ -1290,15 +1313,15 @@ const RelatedEntities = forwardRef<{
 
   // Helper function to recursively collect all rows into a flat array
   // This replaces the nested table structure with a flat container structure
-  type FlatRow = {
-    id: string;
-    entity: RelatedEntity;
-    entityType: EntityType;
-    indentLevel: number;
-    relationshipLabel: string;
-  };
+  // type FlatRow = {
+  //   id: string;
+  //   entity: RelatedEntity;
+  //   entityType: EntityType;
+  //   indentLevel: number;
+  //   relationshipLabel: string;
+  // };
 
-  const collectFlatRows = useCallback(
+  /* const collectFlatRows = useCallback(
     (
       currentEntityRelationships: RelationshipConfig[],
       currentIndentLevel: number,
@@ -1359,13 +1382,13 @@ const RelatedEntities = forwardRef<{
       return rows;
     },
     [isAdmin, state.expandedRelationships, state.expandedEntities, state.loadedData, canExpand, getRelationshipKey, entityPath]
-  );
+  ); */
 
-  // Collect all rows into a flat array
-  const flatRows = useMemo(
-    () => collectFlatRows(visibleRelationships, 0, entityPath),
-    [visibleRelationships, entityPath, collectFlatRows]
-  );
+  // Collect all rows into a flat array (computed but not currently used)
+  // const flatRows = useMemo(
+  //   () => collectFlatRows(visibleRelationships, 0, entityPath),
+  //   [visibleRelationships, entityPath, collectFlatRows]
+  // );
 
   return (
     <div className={`related-entities ${modeClass} ${className}`}>
@@ -1674,7 +1697,7 @@ const RelatedEntities = forwardRef<{
                                   hasNestedEntities={hasNested}
                                   isExpanded={isEntityExpanded}
                                   onClick={handleAdminClick}
-                                  to={isAdmin ? undefined : getEntityRoute(rel.entityType, relatedEntity.id, 'contents')} // In admin mode, don't navigate on click
+                                  to={isAdmin ? undefined : getEntityRoute(rel.entityType, relatedEntity.id)} // In admin mode, don't navigate on click
                                   showAdminNavButton={isAdmin}
                                   adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${relatedEntity.id}`}
                                   onAdminNavClick={() => {
@@ -2409,7 +2432,8 @@ const RelatedEntities = forwardRef<{
                     )}
 
                     {/* Task 18: Add blank row for Admin Mode - show even when no entities exist */}
-                    {isAdmin && (
+                    {/* Task 5.3: Only show blank rows when isEditing={true} */}
+                    {isAdmin && isEditing && (
                       <div className="related-entities__blank-row">
                         {activeSearchKey === key ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>

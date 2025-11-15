@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { adminApi } from '../../lib/api/client';
 import KnowledgeGraphValidator from './KnowledgeGraphValidator';
 import { useToast } from '../common/ToastContext';
-import ErrorDisplay, { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
+import { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
 
 // Import the type separately to avoid module resolution issues
 type ValidationResult = {

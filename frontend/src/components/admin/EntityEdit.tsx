@@ -212,7 +212,7 @@ export default function EntityEdit({ type, id }: Props) {
         };
 
         // Helper to get display label for an entity
-        const getEntityLabel = (entityData: any, entityType: string): string => {
+        const getEntityLabel = (entityData: any): string => {
           if (entityData.title) return entityData.title;
           if (entityData.stageName) return entityData.stageName;
           if (entityData.name) return entityData.name;
@@ -248,7 +248,7 @@ export default function EntityEdit({ type, id }: Props) {
                   relatedEntity: {
                     id: target.id,
                     type: entityType,
-                    label: getEntityLabel(target, entityType),
+                    label: getEntityLabel(target),
                   },
                   properties: rel.properties || {},
                 });
@@ -284,7 +284,7 @@ export default function EntityEdit({ type, id }: Props) {
                   relatedEntity: {
                     id: source.id,
                     type: entityType,
-                    label: getEntityLabel(source, entityType),
+                    label: getEntityLabel(source),
                   },
                   properties: rel.properties || {},
                 });

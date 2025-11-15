@@ -160,6 +160,8 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
             rel: showRelatedVideos ? 1 : 0,
             enablejsapi: enablejsapi ? 1 : 0,
             modestbranding: 1,
+            playsinline: 1, // Required for iOS to play inline instead of opening YouTube app
+            origin: window.location.origin, // Helps with security and mobile compatibility
           },
           events: {
             onReady: (event) => {

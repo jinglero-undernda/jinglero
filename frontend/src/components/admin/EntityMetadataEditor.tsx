@@ -11,7 +11,7 @@ import { adminApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { useToast } from '../common/ToastContext';
 import { validateEntityField, validateEntityForm, getEntityFormWarnings } from '../../lib/validation/entityValidation';
-import { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
+import { FieldErrorDisplay } from '../common/ErrorDisplay';
 
 type Entity = Artista | Cancion | Fabrica | Jingle | Tematica;
 
@@ -179,8 +179,8 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   const [dateComponents, setDateComponents] = useState<{ day: number; month: number; year: number } | null>(null);
   // Validation state
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
   const [formWarnings, setFormWarnings] = useState<Record<string, string>>({});
+  const [, setTouchedFields] = useState<Set<string>>(new Set()); // Keep for compatibility but mark as unused
   // Ref to track latest formData for validation
   const formDataRef = useRef<Record<string, any>>({});
 
