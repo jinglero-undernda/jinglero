@@ -48,120 +48,120 @@ This task list breaks down the Admin Portal refactoring specification into actio
 
 **Goal:** Update database constraints and schema to match specification. This must be done first as it affects validation logic, required fields, and component behavior.
 
-- [ ] 1.0 Update Database Schema and Constraints
-  - [ ] 1.1 Remove NOT NULL constraint for Jingle.timestamp (timestamp is derived from relationship, not always present on node)
-  - [ ] 1.2 Remove NOT NULL constraint for Artista.name (at least one of name OR stageName required instead)
-  - [ ] 1.3 Add custom constraint logic for Artista: require at least one of `name` OR `stageName` (implement as validation check since Neo4j doesn't support OR constraints natively)
-  - [ ] 1.4 Update schema documentation in `backend/src/server/db/schema/schema.ts` to reflect that Jingle boolean fields (isJinglazo, isJinglazoDelDia, isPrecario) are optional
-  - [ ] 1.5 Update schema documentation to reflect that Artista.isArg is auto-managed from nationality and not required
-  - [ ] 1.6 Add `status` property to Jingle, Cancion, Artista, Tematica entities (default: 'DRAFT', values: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED)
-  - [ ] 1.7 Ensure all relationships (except SOY_YO and REACCIONA_A) have `status` and `createdAt` properties standardized
-  - [ ] 1.8 Update `backend/src/server/db/schema/setup.ts` to remove dropped constraints and add new constraint logic
-  - [ ] 1.9 Create migration script or update procedure to add `status` field to existing entities (default to 'DRAFT')
-  - [ ] 1.10 Update `backend/src/server/db/import/neo4j_importer_model.json` to reflect schema changes
-  - [ ] 1.11 Test schema changes with existing data to ensure backward compatibility
-  - [ ] 1.12 Update backend API validation to match new schema constraints (especially Artista name/stageName OR requirement)
+- [x] 1.0 Update Database Schema and Constraints
+  - [x] 1.1 Remove NOT NULL constraint for Jingle.timestamp (timestamp is derived from relationship, not always present on node)
+  - [x] 1.2 Remove NOT NULL constraint for Artista.name (at least one of name OR stageName required instead)
+  - [x] 1.3 Add custom constraint logic for Artista: require at least one of `name` OR `stageName` (implement as validation check since Neo4j doesn't support OR constraints natively)
+  - [x] 1.4 Update schema documentation in `backend/src/server/db/schema/schema.ts` to reflect that Jingle boolean fields (isJinglazo, isJinglazoDelDia, isPrecario) are optional
+  - [x] 1.5 Update schema documentation to reflect that Artista.isArg is auto-managed from nationality and not required
+  - [x] 1.6 Add `status` property to Jingle, Cancion, Artista, Tematica entities (default: 'DRAFT', values: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED)
+  - [x] 1.7 Ensure all relationships (except SOY_YO and REACCIONA_A) have `status` and `createdAt` properties standardized
+  - [x] 1.8 Update `backend/src/server/db/schema/setup.ts` to remove dropped constraints and add new constraint logic
+  - [x] 1.9 Create migration script or update procedure to add `status` field to existing entities (default to 'DRAFT')
+  - [x] 1.10 Update `backend/src/server/db/import/neo4j_importer_model.json` to reflect schema changes
+  - [x] 1.11 Test schema changes with existing data to ensure backward compatibility
+  - [x] 1.12 Update backend API validation to match new schema constraints (especially Artista name/stageName OR requirement)
 
 ### Sprint 2: Critical Fixes (Priority 1 - Week 2)
 
 **Goal:** Fix broken functionality, improve stability, establish foundation for consistency. Builds on updated schema constraints.
 
-- [ ] 2.0 Implement Relationship Visibility Fix
+- [x] 2.0 Implement Relationship Visibility Fix
 
-  - [ ] 2.1 Add `refresh()` method to RelatedEntities component that re-fetches all relationships
-  - [ ] 2.2 Expose `refresh()` method via `useImperativeHandle` ref in RelatedEntities
-  - [ ] 2.3 Update RelatedEntities TypeScript interface to include refresh method in ref type
-  - [ ] 2.4 Call `relatedEntitiesRef.current.refresh()` in AdminEntityAnalyze after relationship creation
-  - [ ] 2.5 Call `refresh()` after relationship deletion in AdminEntityAnalyze
-  - [ ] 2.6 Call `refresh()` after relationship property updates in AdminEntityAnalyze
-  - [ ] 2.7 Call `refresh()` when navigating back from entity creation with relationship context
-  - [ ] 2.8 Test that new relationships appear immediately after creation
-  - [ ] 2.9 Test that deleted relationships disappear immediately
-  - [ ] 2.10 Test that updated relationship properties reflect immediately
+  - [x] 2.1 Add `refresh()` method to RelatedEntities component that re-fetches all relationships
+  - [x] 2.2 Expose `refresh()` method via `useImperativeHandle` ref in RelatedEntities
+  - [x] 2.3 Update RelatedEntities TypeScript interface to include refresh method in ref type
+  - [x] 2.4 Call `relatedEntitiesRef.current.refresh()` in AdminEntityAnalyze after relationship creation
+  - [x] 2.5 Call `refresh()` after relationship deletion in AdminEntityAnalyze
+  - [x] 2.6 Call `refresh()` after relationship property updates in AdminEntityAnalyze
+  - [x] 2.7 Call `refresh()` when navigating back from entity creation with relationship context
+  - [x] 2.8 Test that new relationships appear immediately after creation
+  - [x] 2.9 Test that deleted relationships disappear immediately
+  - [x] 2.10 Test that updated relationship properties reflect immediately
 
-- [ ] 3.0 Standardize Error Handling and Notifications
+- [x] 3.0 Standardize Error Handling and Notifications
 
-  - [ ] 3.1 Create `frontend/src/components/common/Toast.tsx` component with auto-dismiss, stackable notifications
-  - [ ] 3.2 Create `frontend/src/components/common/ToastContext.tsx` for global toast state management
-  - [ ] 3.3 Create `frontend/src/components/common/ErrorDisplay.tsx` component for field-level and form-level errors
-  - [ ] 3.4 Implement toast notification system with success, error, warning, and info variants
-  - [ ] 3.5 Standardize error message format from API (ensure consistent structure)
-  - [ ] 3.6 Update EntityMetadataEditor to use Toast for non-critical errors
-  - [ ] 3.7 Update RelatedEntities to use Toast for relationship operation errors
-  - [ ] 3.8 Update EntityForm to use Toast and ErrorDisplay components
-  - [ ] 3.9 Update AdminDashboard to use Toast for creation errors
-  - [ ] 3.10 Update all admin API calls to use Toast for network errors
-  - [ ] 3.11 Implement retry logic for transient network failures with exponential backoff
-  - [ ] 3.12 Add offline mode detection and user-friendly error messages
-  - [ ] 3.13 Test error display for API errors, validation errors, network errors, and critical errors
+  - [x] 3.1 Create `frontend/src/components/common/Toast.tsx` component with auto-dismiss, stackable notifications
+  - [x] 3.2 Create `frontend/src/components/common/ToastContext.tsx` for global toast state management
+  - [x] 3.3 Create `frontend/src/components/common/ErrorDisplay.tsx` component for field-level and form-level errors
+  - [x] 3.4 Implement toast notification system with success, error, warning, and info variants
+  - [x] 3.5 Standardize error message format from API (ensure consistent structure)
+  - [x] 3.6 Update EntityMetadataEditor to use Toast for non-critical errors
+  - [x] 3.7 Update RelatedEntities to use Toast for relationship operation errors
+  - [x] 3.8 Update EntityForm to use Toast and ErrorDisplay components
+  - [x] 3.9 Update AdminDashboard to use Toast for creation errors
+  - [x] 3.10 Update all admin API calls to use Toast for network errors
+  - [x] 3.11 Implement retry logic for transient network failures with exponential backoff
+  - [x] 3.12 Add offline mode detection and user-friendly error messages
+  - [x] 3.13 Test error display for API errors, validation errors, network errors, and critical errors
 
-- [ ] 4.0 Improve Input Validation and Field-Level Feedback
+- [x] 4.0 Improve Input Validation and Field-Level Feedback
 
-  - [ ] 4.1 Add required field validation to EntityMetadataEditor for all entity types
-  - [ ] 4.2 Add format validation for YouTube Video ID (Fabrica.id): 11 chars, alphanumeric + `-` and `_`
-  - [ ] 4.3 Add URL format validation for youtubeUrl, youtubeClipUrl, youtubeMusic, lyrics, website fields
-  - [ ] 4.4 Add year range validation for Cancion.year (1900 to current year)
-  - [ ] 4.5 Add social media handle validation (no @ prefix) for youtubeHandle, instagramHandle, twitterHandle
-  - [ ] 4.6 Add email format validation for Usuario.email
-  - [ ] 4.7 Add cross-field validation: warn if Jingle.isJinglazoDelDia is true but isJinglazo is false
-  - [ ] 4.8 Add validation: Artista requires at least one of name OR stageName
-  - [ ] 4.9 Highlight invalid fields with red border and display error message below field
-  - [ ] 4.10 Prevent form submission when validation errors exist
-  - [ ] 4.11 Add field-level validation on blur event
-  - [ ] 4.12 Add form-level validation on submit
-  - [ ] 4.13 Display server-side validation errors on specific fields after API response
-  - [ ] 4.14 Test validation for all entity types and all validation rules
+  - [x] 4.1 Add required field validation to EntityMetadataEditor for all entity types
+  - [x] 4.2 Add format validation for YouTube Video ID (Fabrica.id): 11 chars, alphanumeric + `-` and `_`
+  - [x] 4.3 Add URL format validation for youtubeUrl, youtubeClipUrl, youtubeMusic, lyrics, website fields
+  - [x] 4.4 Add year range validation for Cancion.year (1900 to current year)
+  - [x] 4.5 Add social media handle validation (no @ prefix) for youtubeHandle, instagramHandle, twitterHandle
+  - [x] 4.6 Add email format validation for Usuario.email
+  - [x] 4.7 Add cross-field validation: warn if Jingle.isJinglazoDelDia is true but isJinglazo is false
+  - [x] 4.8 Add validation: Artista requires at least one of name OR stageName
+  - [x] 4.9 Highlight invalid fields with red border and display error message below field
+  - [x] 4.10 Prevent form submission when validation errors exist
+  - [x] 4.11 Add field-level validation on blur event
+  - [x] 4.12 Add form-level validation on submit
+  - [x] 4.13 Display server-side validation errors on specific fields after API response
+  - [x] 4.14 Test validation for all entity types and all validation rules
 
-- [ ] 5.0 Fix Navigation and Edit Mode Behavior
-  - [ ] 5.1 Update AdminEntityAnalyze to always start in view mode (isEditing = false by default)
-  - [ ] 5.2 Ensure EntityMetadataEditor starts in view mode when isEditing prop is false
-  - [ ] 5.3 Ensure RelatedEntities blank rows only appear when isEditing={true}
-  - [ ] 5.4 Implement `hasUnsavedChanges()` method in RelatedEntities to track relationship changes
-  - [ ] 5.5 Update UnsavedChangesModal to check both metadata changes (via metadataEditorRef) and relationship changes (via relatedEntitiesRef)
-  - [ ] 5.6 Intercept React Router navigation with unsaved changes check using `useBlocker` or similar
-  - [ ] 5.7 Add `beforeunload` event listener to intercept browser back button with unsaved changes
-  - [ ] 5.8 Update navigation to related entities to check for unsaved changes before navigating
-  - [ ] 5.9 Implement "Discard", "Save", and "Cancel" actions in UnsavedChangesModal
-  - [ ] 5.10 Test that page always loads in view mode
-  - [ ] 5.11 Test that edit mode activates only on explicit "Editar" button click
-  - [ ] 5.12 Test that unsaved changes modal appears on navigation with changes
-  - [ ] 5.13 Test that browser back button triggers unsaved changes check
+- [x] 5.0 Fix Navigation and Edit Mode Behavior
+  - [x] 5.1 Update AdminEntityAnalyze to always start in view mode (isEditing = false by default)
+  - [x] 5.2 Ensure EntityMetadataEditor starts in view mode when isEditing prop is false
+  - [x] 5.3 Ensure RelatedEntities blank rows only appear when isEditing={true}
+  - [x] 5.4 Implement `hasUnsavedChanges()` method in RelatedEntities to track relationship changes
+  - [x] 5.5 Update UnsavedChangesModal to check both metadata changes (via metadataEditorRef) and relationship changes (via relatedEntitiesRef)
+  - [x] 5.6 Intercept React Router navigation with unsaved changes check using `useBlocker` or similar
+  - [x] 5.7 Add `beforeunload` event listener to intercept browser back button with unsaved changes
+  - [x] 5.8 Update navigation to related entities to check for unsaved changes before navigating
+  - [x] 5.9 Implement "Discard", "Save", and "Cancel" actions in UnsavedChangesModal
+  - [x] 5.10 Test that page always loads in view mode
+  - [x] 5.11 Test that edit mode activates only on explicit "Editar" button click
+  - [x] 5.12 Test that unsaved changes modal appears on navigation with changes
+  - [x] 5.13 Test that browser back button triggers unsaved changes check
 
 ### Sprint 3: Consistency and UX Improvements (Priority 2 - Weeks 3-4)
 
 **Goal:** Make UX consistent across all entities, unify patterns
 
-- [ ] 6.0 Create Unified Search/Autocomplete Component
+- [x] 6.0 Create Unified Search/Autocomplete Component
 
-  - [ ] 6.1 Create `frontend/src/components/admin/EntitySearchAutocomplete.tsx` component
-  - [ ] 6.2 Implement debounced search input (300ms delay)
-  - [ ] 6.3 Add minimum 2 characters before triggering search
-  - [ ] 6.4 Implement keyboard navigation (arrow keys, enter to select, escape to close)
-  - [ ] 6.5 Display top 10 results per entity type in dropdown
-  - [ ] 6.6 Use consistent entity icons from EntityCard component
-  - [ ] 6.7 Format display: [Entity Type Icon] {primary field} with {secondary field if available}
-  - [ ] 6.8 Enhance `backend/src/server/api/search.ts` to support type filtering and return consistent format
-  - [ ] 6.9 Update RelatedEntities blank rows to use EntitySearchAutocomplete instead of current search
-  - [ ] 6.10 Update AdminHome to optionally use EntitySearchAutocomplete for entity selection
-  - [ ] 6.11 Show "+" button in autocomplete when no results found (for entity creation)
-  - [ ] 6.12 Test autocomplete with all entity types (Fabrica, Jingle, Cancion, Artista, Tematica)
-  - [ ] 6.13 Test search performance with large datasets
+  - [x] 6.1 Create `frontend/src/components/admin/EntitySearchAutocomplete.tsx` component
+  - [x] 6.2 Implement debounced search input (300ms delay)
+  - [x] 6.3 Add minimum 2 characters before triggering search
+  - [x] 6.4 Implement keyboard navigation (arrow keys, enter to select, escape to close)
+  - [x] 6.5 Display top 10 results per entity type in dropdown
+  - [x] 6.6 Use consistent entity icons from EntityCard component
+  - [x] 6.7 Format display: [Entity Type Icon] {primary field} with {secondary field if available}
+  - [x] 6.8 Enhance `backend/src/server/api/search.ts` to support type filtering and return consistent format
+  - [x] 6.9 Update RelatedEntities blank rows to use EntitySearchAutocomplete instead of current search
+  - [x] 6.10 Update AdminHome to optionally use EntitySearchAutocomplete for entity selection
+  - [x] 6.11 Show "+" button in autocomplete when no results found (for entity creation)
+  - [x] 6.12 Test autocomplete with all entity types (Fabrica, Jingle, Cancion, Artista, Tematica)
+  - [x] 6.13 Test search performance with large datasets
 
-- [ ] 7.0 Standardize Entity Creation Flow
+- [x] 7.0 Standardize Entity Creation Flow
 
-  - [ ] 7.1 Update AdminDashboard to handle creation context via URL parameters: `?create={type}&fromType={type}&fromId={id}&relType={relType}&searchText={query}`
-  - [ ] 7.2 Pre-populate entity fields from searchText parameter (title for Fabrica/Jingle/Cancion, name for Artista/Tematica)
-  - [ ] 7.3 Auto-create relationship after entity creation when context parameters provided
-  - [ ] 7.4 Determine relationship direction (start/end nodes) based on relationship type and creation context
-  - [ ] 7.5 Navigate back to source entity after creation with relationship context
-  - [ ] 7.6 Call RelatedEntities.refresh() after navigation back to show new relationship
-  - [ ] 7.7 Handle relationship creation errors gracefully (toast notification, navigate to source entity)
-  - [ ] 7.8 Update RelatedEntities "+" button to navigate with full context parameters
-  - [ ] 7.9 Add "New" button to AdminEntityList pages that navigates to Dashboard with creation context
-  - [ ] 7.10 Document entity creation flow clearly in code comments
-  - [ ] 7.11 Test entity creation from Dashboard with and without relationship context
-  - [ ] 7.12 Test entity creation from blank row in RelatedEntities
-  - [ ] 7.13 Test entity creation from EntityList "New" button
+  - [x] 7.1 Update AdminDashboard to handle creation context via URL parameters: `?create={type}&fromType={type}&fromId={id}&relType={relType}&searchText={query}`
+  - [x] 7.2 Pre-populate entity fields from searchText parameter (title for Fabrica/Jingle/Cancion, name for Artista/Tematica)
+  - [x] 7.3 Auto-create relationship after entity creation when context parameters provided
+  - [x] 7.4 Determine relationship direction (start/end nodes) based on relationship type and creation context
+  - [x] 7.5 Navigate back to source entity after creation with relationship context
+  - [x] 7.6 Call RelatedEntities.refresh() after navigation back to show new relationship
+  - [x] 7.7 Handle relationship creation errors gracefully (toast notification, navigate to source entity)
+  - [x] 7.8 Update RelatedEntities "+" button to navigate with full context parameters
+  - [x] 7.9 Add "New" button to AdminEntityList pages that navigates to Dashboard with creation context
+  - [x] 7.10 Document entity creation flow clearly in code comments
+  - [x] 7.11 Test entity creation from Dashboard with and without relationship context
+  - [x] 7.12 Test entity creation from blank row in RelatedEntities
+  - [x] 7.13 Test entity creation from EntityList "New" button
 
 - [ ] 8.0 Implement Field Configuration System with Shared Validation
 

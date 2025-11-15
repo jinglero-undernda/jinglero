@@ -140,10 +140,21 @@ export default function AdminEntityAnalyze() {
     };
   }, [checkUnsavedChanges]);
 
-  // Refresh relationships when navigating back from entity creation
-  // This handles the case when an entity is created with relationship context
-  // and we navigate back to this page. Task 7.0 will enhance this with proper
-  // URL parameter detection.
+  /**
+   * Task 7.6: Refresh relationships when navigating back from entity creation
+   * 
+   * This effect handles the automatic refresh of relationships after entity creation.
+   * 
+   * Flow:
+   * 1. AdminDashboard creates entity with relationship context
+   * 2. handleEntityCreated creates relationship and navigates back with state: { fromEntityCreation: true }
+   * 3. This effect detects the state and calls relatedEntitiesRef.current.refresh()
+   * 4. RelatedEntities re-fetches all relationships and displays the new one
+   * 
+   * Timing:
+   * - Uses a 100ms delay to ensure the RelatedEntities component is fully mounted
+   * - This prevents race conditions where refresh is called before refs are set
+   */
   useEffect(() => {
     // Check if we have location state indicating we came from entity creation
     const fromEntityCreation = location?.state && typeof location.state === 'object' && 'fromEntityCreation' in location.state 

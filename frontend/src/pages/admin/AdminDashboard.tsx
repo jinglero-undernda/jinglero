@@ -6,6 +6,73 @@
  * - Validation status overview
  * - Quick actions (create entity, import CSV, view issues)
  * - Recent activity
+ * 
+ * ============================================================================
+ * Task 7.0: STANDARDIZED ENTITY CREATION FLOW
+ * ============================================================================
+ * 
+ * This component serves as the central hub for entity creation in the admin portal.
+ * All entity creation flows converge here, whether from:
+ * 1. Dashboard dropdown selection
+ * 2. Blank row in RelatedEntities (via EntitySearchAutocomplete)
+ * 3. "New" button in AdminEntityList
+ * 
+ * URL PARAMETERS (Task 7.1):
+ * ---------------------------
+ * ?create={type}          - Entity type to create (route prefix: f, j, c, a, t, u)
+ * &from={type}            - Source entity type (optional, for relationship context)
+ * &fromId={id}            - Source entity ID (optional, for relationship context)
+ * &relType={type}         - Relationship type (optional: appears_in, versiona, autor_de, jinglero_de, tagged_with)
+ * &searchText={text}      - Pre-populate title/name field (optional)
+ * 
+ * CREATION FLOW:
+ * --------------
+ * 1. User initiates creation (from Dashboard, blank row, or list)
+ * 2. Dashboard renders creation form with pre-populated fields (Task 7.2)
+ * 3. User fills required fields and clicks "Crear"
+ * 4. Entity created via adminApi.create{Type}()
+ * 5. If relationship context provided:
+ *    a. Determine relationship direction (Task 7.4)
+ *    b. Create relationship via API (Task 7.3)
+ *    c. Navigate to source entity with fromEntityCreation state (Task 7.5)
+ *    d. AdminEntityAnalyze calls RelatedEntities.refresh() (Task 7.6)
+ * 6. If no relationship context:
+ *    a. Navigate to new entity detail page
+ * 7. Errors handled gracefully with toast notifications (Task 7.7)
+ * 
+ * RELATIONSHIP DIRECTION (Task 7.4):
+ * -----------------------------------
+ * All Neo4j relationships are directed: (StartNode)-[RELATIONSHIP]->(EndNode)
+ * 
+ * APPEARS_IN:    (Jingle)-[APPEARS_IN]->(Fabrica)
+ * VERSIONA:      (Jingle)-[VERSIONA]->(Cancion)
+ * AUTOR_DE:      (Artista)-[AUTOR_DE]->(Cancion)
+ * JINGLERO_DE:   (Artista)-[JINGLERO_DE]->(Jingle)
+ * TAGGED_WITH:   (Jingle)-[TAGGED_WITH]->(Tematica)
+ * 
+ * Direction is determined based on:
+ * - Relationship type (relType)
+ * - Which entity is being created (createType)
+ * - Which entity is the source (fromType)
+ * 
+ * PRE-POPULATION (Task 7.2):
+ * ---------------------------
+ * When searchText is provided:
+ * - Fabrica, Jingle, Cancion: Pre-populate 'title' field
+ * - Artista, Tematica: Pre-populate 'name' field
+ * 
+ * ERROR HANDLING (Task 7.7):
+ * ---------------------------
+ * - Entity creation fails: Show error toast, keep form data, allow retry
+ * - Relationship creation fails: Show error toast, navigate to source entity for manual creation
+ * - Validation fails: Non-blocking, entity and relationship created anyway
+ * 
+ * RELATED FILES:
+ * --------------
+ * - AdminEntityAnalyze.tsx: Detects fromEntityCreation state, calls refresh()
+ * - RelatedEntities.tsx: Provides refresh() method, passes creationContext to search
+ * - EntitySearchAutocomplete.tsx: Shows "+" button, navigates with full context
+ * - AdminEntityList.tsx: Provides "New" button for list-based creation
  */
 
 import { useState, useEffect } from 'react';
@@ -180,12 +247,51 @@ export default function AdminDashboard() {
     }
   };
 
-  // Handle entity creation with relationship context
+  /**
+   * Task 7.0: Handle entity creation with relationship context
+   * 
+   * This function is called after a new entity is successfully created. It handles:
+   * 1. Auto-creating relationships when context parameters are provided
+   * 2. Determining correct relationship direction (start/end nodes)
+   * 3. Navigating back to source entity with state to trigger refresh
+   * 4. Error handling for relationship creation failures
+   * 
+   * @param createdEntity - The newly created entity with at least an 'id' property
+   * 
+   * URL Parameters used:
+   * - relType: Relationship type (appears_in, versiona, autor_de, jinglero_de, tagged_with)
+   * - fromType: Source entity type (route prefix or full type name)
+   * - fromId: Source entity ID
+   * - createType: Type of entity being created (route prefix)
+   * 
+   * Flow:
+   * 1. Check if relationship context exists (relType && fromType && fromId)
+   * 2. Determine start and end node IDs based on relationship direction
+   * 3. Create relationship via API: POST /api/admin/relationships/{relType}
+   * 4. Navigate back to source entity with fromEntityCreation state
+   * 5. AdminEntityAnalyze detects state and calls RelatedEntities.refresh()
+   * 
+   * Relationship Direction Logic:
+   * - APPEARS_IN: Jingle → Fabrica
+   * - VERSIONA: Jingle → Cancion
+   * - AUTOR_DE: Artista → Cancion
+   * - JINGLERO_DE: Artista → Jingle
+   * - TAGGED_WITH: Jingle → Tematica
+   * 
+   * Error Handling:
+   * - Entity creation fails: Error shown, form keeps data, user can retry
+   * - Relationship creation fails: Toast notification, still navigate to source entity
+   */
   const handleEntityCreated = async (createdEntity: any) => {
+    // Task 7.3-7.4: Auto-create relationship when context parameters are provided
     if (relType && fromType && fromId && createdEntity?.id) {
       try {
-        // Determine start and end based on relationship direction
-        // Map route prefixes to entity types
+        // Task 7.4: Determine start and end node IDs based on relationship direction
+        // 
+        // Neo4j relationships are directed: (StartNode)-[RELATIONSHIP]->(EndNode)
+        // We need to ensure start/end are correct based on the relationship type
+        // 
+        // Map route prefixes to entity types for proper type checking
         const prefixToType: Record<string, string> = {
           j: 'jingle',
           c: 'cancion',
@@ -207,8 +313,13 @@ export default function AdminDashboard() {
         let startId: string;
         let endId: string;
         
+        // Relationship Direction Determination
+        // For each relationship type, we check which entity is being created
+        // and assign start/end accordingly to match the Neo4j schema
+        
         if (relType === 'appears_in') {
-          // APPEARS_IN: Jingle -> Fabrica (Jingle is start, Fabrica is end)
+          // APPEARS_IN: (Jingle)-[APPEARS_IN]->(Fabrica)
+          // Jingle is start node, Fabrica is end node
           if (createdEntityType === 'fabrica') {
             // Creating Fabrica from Jingle: start=Jingle (fromId), end=Fabrica (createdEntity.id)
             startId = fromId;
@@ -219,7 +330,8 @@ export default function AdminDashboard() {
             endId = fromId;
           }
         } else if (relType === 'versiona') {
-          // VERSIONA: Jingle -> Cancion (Jingle is start, Cancion is end)
+          // VERSIONA: (Jingle)-[VERSIONA]->(Cancion)
+          // Jingle is start node, Cancion is end node
           if (createdEntityType === 'cancion') {
             // Creating Cancion from Jingle: start=Jingle (fromId), end=Cancion (createdEntity.id)
             startId = fromId;
@@ -230,7 +342,9 @@ export default function AdminDashboard() {
             endId = fromId;
           }
         } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-          // JINGLERO_DE/AUTOR_DE: Artista -> Jingle/Cancion (Artista is start, Jingle/Cancion is end)
+          // JINGLERO_DE: (Artista)-[JINGLERO_DE]->(Jingle)
+          // AUTOR_DE: (Artista)-[AUTOR_DE]->(Cancion)
+          // Artista is start node, Jingle/Cancion is end node
           if (createdEntityType === 'artista') {
             // Creating Artista from Jingle/Cancion: start=Artista (createdEntity.id), end=Jingle/Cancion (fromId)
             startId = createdEntity.id;
@@ -241,7 +355,8 @@ export default function AdminDashboard() {
             endId = createdEntity.id;
           }
         } else if (relType === 'tagged_with') {
-          // TAGGED_WITH: Jingle -> Tematica (Jingle is start, Tematica is end)
+          // TAGGED_WITH: (Jingle)-[TAGGED_WITH]->(Tematica)
+          // Jingle is start node, Tematica is end node
           if (createdEntityType === 'tematica') {
             // Creating Tematica from Jingle: start=Jingle (fromId), end=Tematica (createdEntity.id)
             startId = fromId;
@@ -252,17 +367,22 @@ export default function AdminDashboard() {
             endId = fromId;
           }
         } else {
-          // Default: from entity is start, created entity is end
+          // Default fallback: from entity is start, created entity is end
+          // This should rarely be reached if all relationship types are handled above
           startId = fromId;
           endId = createdEntity.id;
         }
 
+        // Task 7.3: Create relationship via API
         await adminApi.post(`/relationships/${relType}`, {
           start: startId,
           end: endId,
         });
 
-        // Navigate back to source entity
+        // Task 7.5: Navigate back to source entity with state to trigger refresh
+        // The fromEntityCreation state tells AdminEntityAnalyze to call RelatedEntities.refresh()
+        // after the component loads, ensuring the new relationship is immediately visible
+        //
         // fromType might be a route prefix (single letter) or full entity type name
         let fromRoutePrefix: string;
         if (fromType.length === 1) {
@@ -272,19 +392,26 @@ export default function AdminDashboard() {
           // Full entity type name, need to find route prefix
           fromRoutePrefix = ENTITY_TYPES.find((e) => e.type === fromType)?.routePrefix || fromType.charAt(0);
         }
-        navigate(`/admin/${fromRoutePrefix}/${fromId}`);
+        navigate(`/admin/${fromRoutePrefix}/${fromId}`, {
+          state: { fromEntityCreation: true }
+        });
       } catch (error) {
+        // Task 7.7: Handle relationship creation errors gracefully
+        // Entity was created successfully, but relationship creation failed
+        // We still navigate back to the source entity so the user can manually create the relationship
         console.error('Error creating relationship:', error);
         const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
         showToast(`Entidad creada, pero error al crear la relación: ${errorMessage}`, 'error');
-        // Still navigate back even if relationship creation fails
+        // Still navigate back even if relationship creation fails, with state to trigger refresh
         let fromRoutePrefix: string;
         if (fromType.length === 1) {
           fromRoutePrefix = fromType;
         } else {
           fromRoutePrefix = ENTITY_TYPES.find((e) => e.type === fromType)?.routePrefix || fromType.charAt(0);
         }
-        navigate(`/admin/${fromRoutePrefix}/${fromId}`);
+        navigate(`/admin/${fromRoutePrefix}/${fromId}`, {
+          state: { fromEntityCreation: true }
+        });
       }
     } else {
       // No relationship context, just navigate to the created entity
@@ -311,13 +438,16 @@ export default function AdminDashboard() {
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  // Initialize form data when create form is shown
+  // Task 7.2: Initialize form data when create form is shown
+  // Pre-populate fields from searchText parameter when available
   useEffect(() => {
     if (showCreateForm && createType) {
       const entityType = getEntityTypeFromPrefix(createType);
       if (entityType) {
         const initialData: Record<string, unknown> = {};
         const searchText = searchParams.get('searchText');
+        
+        // Pre-populate title or name field based on entity type
         if (searchText) {
           if (entityType === 'fabricas' || entityType === 'jingles' || entityType === 'canciones') {
             initialData.title = searchText;

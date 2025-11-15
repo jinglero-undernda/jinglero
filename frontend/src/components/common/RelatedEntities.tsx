@@ -2366,6 +2366,7 @@ const RelatedEntities = forwardRef<{
 
                     {/* Task 18: Add blank row for Admin Mode - show even when no entities exist */}
                     {/* Task 5.3: Only show blank rows when isEditing={true} */}
+                    {/* Task 7.8: Pass creationContext to EntitySearchAutocomplete for entity creation flow */}
                     {isAdmin && isEditing && (
                       <div className="related-entities__blank-row">
                         {selectedEntityForRelationship && selectedEntityForRelationship.key === key ? (
@@ -2508,6 +2509,8 @@ const RelatedEntities = forwardRef<{
                                 onSelect={(selectedEntity) => {
                                   handleSelectEntity(key, selectedEntity);
                                 }}
+                                // Task 7.8: Pass creation context so "+" button can navigate to Dashboard
+                                // with full context: create, from, fromId, relType, searchText
                                 creationContext={{
                                   fromType: entityType,
                                   fromId: entity.id,
