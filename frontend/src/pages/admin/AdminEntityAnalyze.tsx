@@ -41,7 +41,7 @@ export default function AdminEntityAnalyze() {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const relatedEntitiesRef = useRef<{ 
-    getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
+    getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, unknown> }>;
     refresh: () => Promise<void>;
     hasUnsavedChanges: () => boolean;
   } | null>(null);
@@ -147,7 +147,7 @@ export default function AdminEntityAnalyze() {
   useEffect(() => {
     // Check if we have location state indicating we came from entity creation
     const fromEntityCreation = location?.state && typeof location.state === 'object' && 'fromEntityCreation' in location.state 
-      ? (location.state as any).fromEntityCreation 
+      ? (location.state as { fromEntityCreation: boolean }).fromEntityCreation 
       : false;
     const shouldRefresh = fromEntityCreation && entity && !loading && relatedEntitiesRef.current;
     
@@ -165,17 +165,10 @@ export default function AdminEntityAnalyze() {
     }
   }, [entity, loading, location]);
 
-  // Helper function to get route prefix for entity type
-  const _getRoutePrefix = (entityType: string): string => {
-    const routeMap: Record<string, string> = {
-      'fabrica': 'f',
-      'jingle': 'j',
-      'cancion': 'c',
-      'artista': 'a',
-      'tematica': 't',
-    };
-    return routeMap[entityType] || entityType.charAt(0);
-  };
+  // Memoize relationships to prevent infinite loops in RelatedEntities useEffect
+  // The relationships array is recreated on every render, which causes the useEffect
+  // in RelatedEntities to run repeatedly, creating an infinite loop
+  const relationships = useMemo(() => entityType ? getRelationshipsForEntityType(entityType) : [], [entityType]);
 
   if (!entityType) {
     return (
@@ -212,11 +205,6 @@ export default function AdminEntityAnalyze() {
       </main>
     );
   }
-
-  // Memoize relationships to prevent infinite loops in RelatedEntities useEffect
-  // The relationships array is recreated on every render, which causes the useEffect
-  // in RelatedEntities to run repeatedly, creating an infinite loop
-  const relationships = useMemo(() => getRelationshipsForEntityType(entityType), [entityType]);
 
   // Debug logging for state
   console.log('AdminEntityAnalyze render - loading:', loading, 'error:', error, 'entity:', entity);
@@ -394,9 +382,9 @@ export default function AdminEntityAnalyze() {
               if (Object.keys(relationshipProps).length > 0) {
                 try {
                   // Save each relationship property update
-                  for (const [_key, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
+                  for (const [, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
                     // Filter out empty/null values
-                    const cleanProperties: Record<string, any> = {};
+                    const cleanProperties: Record<string, unknown> = {};
                     Object.entries(properties).forEach(([propKey, propValue]) => {
                       if (propValue !== null && propValue !== undefined && propValue !== '') {
                         cleanProperties[propKey] = propValue;
@@ -456,7 +444,7 @@ export default function AdminEntityAnalyze() {
       {/* Unsaved Changes Modal */}
       <UnsavedChangesModal
         isOpen={showUnsavedModal}
-        entityName={entity ? (entity as any).title || (entity as any).name || entity.id : 'esta entidad'}
+        entityName={entity ? (entity as { title?: string; name?: string }).title || (entity as { title?: string; name?: string }).name || entity.id : 'esta entidad'}
         onDiscard={() => {
           setShowUnsavedModal(false);
           // Task 5.6: Proceed with navigation after discarding changes

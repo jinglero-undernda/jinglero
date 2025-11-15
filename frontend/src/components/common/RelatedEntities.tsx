@@ -4,6 +4,7 @@ import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 import { useToast } from './ToastContext';
+import EntitySearchAutocomplete from '../admin/EntitySearchAutocomplete';
 
 // Helper to get entity route (duplicated from EntityCard to avoid circular dependency)
 function getEntityRoute(entityType: EntityType, entityId: string): string {
@@ -453,13 +454,6 @@ const RelatedEntities = forwardRef<{
   // Helper to create relationship key (needed for initial data processing)
   const getRelationshipKey = useCallback((rel: RelationshipConfig) => `${rel.label}-${rel.entityType}`, []);
 
-  // State for managing search in blank rows (Admin Mode only)
-  const [activeSearchKey, setActiveSearchKey] = useState<string | null>(null);
-  const [searchQueries, setSearchQueries] = useState<Record<string, string>>({});
-  const [searchResults, setSearchResults] = useState<Record<string, RelatedEntity[]>>({});
-  const [searchLoading, setSearchLoading] = useState<Record<string, boolean>>({});
-  const searchDebounceRef = useRef<Record<string, number>>({});
-  
   // State for relationship property editing
   const [selectedEntityForRelationship, setSelectedEntityForRelationship] = useState<{
     key: string;
@@ -472,64 +466,6 @@ const RelatedEntities = forwardRef<{
   const [relationshipPropsData, setRelationshipPropsData] = useState<Record<string, Record<string, any>>>({});
   // State for timestamp editing (HH, MM, SS) - key: `${entityId}-${relationshipKey}`
   const [timestampTimes, setTimestampTimes] = useState<Record<string, { h: number; m: number; s: number }>>({});
-
-  // Handle search query changes with debouncing
-  const handleSearchChange = useCallback((key: string, query: string) => {
-    setSearchQueries(prev => ({ ...prev, [key]: query }));
-    
-    // Clear existing debounce timer
-    if (searchDebounceRef.current[key]) {
-      clearTimeout(searchDebounceRef.current[key]);
-    }
-
-    if (!query.trim()) {
-      setSearchResults(prev => ({ ...prev, [key]: [] }));
-      setSearchLoading(prev => ({ ...prev, [key]: false }));
-      return;
-    }
-
-    setSearchLoading(prev => ({ ...prev, [key]: true }));
-
-    // Debounce search API call
-    searchDebounceRef.current[key] = window.setTimeout(async () => {
-      try {
-        const response = await publicApi.get<{
-          jingles?: RelatedEntity[];
-          canciones?: RelatedEntity[];
-          artistas?: RelatedEntity[];
-          tematicas?: RelatedEntity[];
-          fabricas?: RelatedEntity[];
-        }>(`/search?q=${encodeURIComponent(query)}`);
-        
-        // Get the target entity type from the relationship config
-        const rel = relationships.find(r => getRelationshipKey(r) === key);
-        if (!rel) {
-          setSearchResults(prev => ({ ...prev, [key]: [] }));
-          setSearchLoading(prev => ({ ...prev, [key]: false }));
-          return;
-        }
-
-        // Filter results by target entity type
-        const entityTypeMap: Record<EntityType, string> = {
-          jingle: 'jingles',
-          cancion: 'canciones',
-          artista: 'artistas',
-          tematica: 'tematicas',
-          fabrica: 'fabricas',
-        };
-        
-        const resultsKey = entityTypeMap[rel.entityType];
-        const filteredResults = (response[resultsKey as keyof typeof response] || []) as RelatedEntity[];
-        
-        setSearchResults(prev => ({ ...prev, [key]: filteredResults }));
-      } catch (error) {
-        console.error('Search error:', error);
-        setSearchResults(prev => ({ ...prev, [key]: [] }));
-      } finally {
-        setSearchLoading(prev => ({ ...prev, [key]: false }));
-      }
-    }, 250);
-  }, [relationships, getRelationshipKey]);
 
   // Get relationship properties schema for a relationship type
   const getRelationshipPropertiesSchema = useCallback((relType: string): Array<{ name: string; type: string; label: string; required?: boolean; options?: string[] }> => {
@@ -716,9 +652,6 @@ const RelatedEntities = forwardRef<{
       // Reset all state
       setSelectedEntityForRelationship(null);
       setRelationshipProperties({});
-      setActiveSearchKey(null);
-      setSearchQueries(prev => ({ ...prev, [key]: '' }));
-      setSearchResults(prev => ({ ...prev, [key]: [] }));
     }
   }, [selectedEntityForRelationship, entity, entityType, relationships, relationshipProperties, getRelationshipKey, getRelationshipTypeForAPI]);
 
@@ -2435,51 +2368,7 @@ const RelatedEntities = forwardRef<{
                     {/* Task 5.3: Only show blank rows when isEditing={true} */}
                     {isAdmin && isEditing && (
                       <div className="related-entities__blank-row">
-                        {activeSearchKey === key ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
-                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <input
-                                type="text"
-                                value={searchQueries[key] || ''}
-                                onChange={(e) => handleSearchChange(key, e.target.value)}
-                                placeholder={`Buscar ${rel.label.toLowerCase()}...`}
-                                autoFocus
-                                style={{
-                                  flex: 1,
-                                  padding: '8px 12px',
-                                  backgroundColor: '#2a2a2a',
-                                  border: '1px solid #444',
-                                  borderRadius: '4px',
-                                  fontSize: '14px',
-                                  color: '#fff',
-                                }}
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveSearchKey(null);
-                                  setSearchQueries(prev => ({ ...prev, [key]: '' }));
-                                  setSearchResults(prev => ({ ...prev, [key]: [] }));
-                                }}
-                                style={{
-                                  padding: '8px 12px',
-                                  backgroundColor: '#666',
-                                  color: '#fff',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                }}
-                              >
-                                Cancelar
-                              </button>
-                            </div>
-                            {searchLoading[key] && (
-                              <div style={{ padding: '8px', color: '#999', fontSize: '14px' }}>
-                                Buscando...
-                              </div>
-                            )}
-                            {selectedEntityForRelationship && selectedEntityForRelationship.key === key ? (
+                        {selectedEntityForRelationship && selectedEntityForRelationship.key === key ? (
                               // Show property form for selected entity
                               <div style={{
                                 border: '1px solid #444',
@@ -2612,96 +2501,21 @@ const RelatedEntities = forwardRef<{
                                   </button>
                                 </div>
                               </div>
-                            ) : !searchLoading[key] && searchResults[key] && searchResults[key].length > 0 && (
-                              <div style={{
-                                maxHeight: '300px',
-                                overflowY: 'auto',
-                                border: '1px solid #444',
-                                borderRadius: '4px',
-                                backgroundColor: '#1a1a1a',
-                              }}>
-                                {searchResults[key].map((resultEntity) => (
-                                  <div
-                                    key={resultEntity.id}
-                                    style={{
-                                      padding: '12px',
-                                      borderBottom: '1px solid #333',
-                                      backgroundColor: '#1a1a1a',
-                                    }}
-                                  >
-                                    <EntityCard
-                                      entity={resultEntity}
-                                      entityType={rel.entityType}
-                                      variant="contents"
-                                      indentationLevel={0}
-                                      onClick={() => handleSelectEntity(key, resultEntity)}
-                                    />
-                                  </div>
-                                ))}
-                              </div>
+                            ) : (
+                              <EntitySearchAutocomplete
+                                entityTypes={[rel.entityType]}
+                                placeholder={`Buscar ${rel.label.toLowerCase()}...`}
+                                onSelect={(selectedEntity) => {
+                                  handleSelectEntity(key, selectedEntity);
+                                }}
+                                creationContext={{
+                                  fromType: entityType,
+                                  fromId: entity.id,
+                                  relType: getRelationshipTypeForAPI(entityType, rel.label, rel.entityType) || '',
+                                }}
+                                autoFocus={false}
+                              />
                             )}
-                            {!searchLoading[key] && searchQueries[key] && searchResults[key] && searchResults[key].length === 0 && (
-                              <div style={{ padding: '8px', color: '#999', fontSize: '14px' }}>
-                                No se encontraron resultados. 
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (!isEditing) return;
-                                    // Navigate to create new entity page using correct route format
-                                    const routePrefixMap: Record<EntityType, string> = {
-                                      jingle: 'j',
-                                      cancion: 'c',
-                                      artista: 'a',
-                                      tematica: 't',
-                                      fabrica: 'f',
-                                    };
-                                    const routePrefix = routePrefixMap[rel.entityType];
-                                    const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
-                                    const searchText = searchQueries[key] || '';
-                                    const params = new URLSearchParams({
-                                      create: routePrefix,
-                                      from: entityType,
-                                      fromId: entity.id,
-                                      relType: relType || '',
-                                    });
-                                    if (searchText) {
-                                      params.set('searchText', searchText);
-                                    }
-                                    window.location.href = `/admin/dashboard?${params.toString()}`;
-                                  }}
-                                  style={{
-                                    marginLeft: '8px',
-                                    padding: '4px 8px',
-                                    backgroundColor: '#4caf50',
-                                    color: '#fff',
-                                    border: 'none',
-                                    borderRadius: '4px',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                  }}
-                                >
-                                  Crear nuevo {rel.label.toLowerCase()}
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        ) : (
-                          <div
-                            className="related-entities__empty"
-                            onClick={() => {
-                              // Enter edit mode if not already editing
-                              if (!isEditing && onEditToggle) {
-                                onEditToggle(true);
-                              }
-                              setActiveSearchKey(key);
-                            }}
-                            style={{ 
-                              cursor: 'pointer',
-                            }}
-                          >
-                            + Agregar {rel.label.toLowerCase()}
-                          </div>
-                        )}
                       </div>
                     )}
                   </div>

@@ -13,6 +13,8 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { adminApi } from '../../lib/api/client';
 import DataIntegrityChecker from '../../components/admin/DataIntegrityChecker';
 import { useToast } from '../../components/common/ToastContext';
+import EntitySearchAutocomplete from '../../components/admin/EntitySearchAutocomplete';
+import type { EntityType } from '../../lib/utils/entityDisplay';
 
 interface EntityCounts {
   fabricas: number;
@@ -827,6 +829,29 @@ export default function AdminDashboard() {
             gap: '1rem',
           }}
         >
+          {/* Quick Search */}
+          <div
+            style={{
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              backgroundColor: 'white',
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>Buscar Entidad</h3>
+            <EntitySearchAutocomplete
+              entityTypes={['fabrica', 'jingle', 'cancion', 'artista', 'tematica']}
+              placeholder="Buscar cualquier entidad..."
+              onSelect={(entity, entityType: EntityType) => {
+                // Map entity type to route prefix
+                const entityTypeInfo = ENTITY_TYPES.find(e => e.singular === entityType);
+                if (entityTypeInfo) {
+                  navigate(`/admin/${entityTypeInfo.routePrefix}/${entity.id}`);
+                }
+              }}
+            />
+          </div>
+
           {/* Create New Entity */}
           <div
             style={{

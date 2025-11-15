@@ -156,12 +156,12 @@ router.get('/', asyncHandler(async (req, res) => {
 
       const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queriesFT);
       // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
-      // and convert Neo4j dates to ISO strings
-      const jingles = jinglesRaw.map((r: any) => convertNeo4jDates(r.j || r));
-      const canciones = cancionesRaw.map((r: any) => convertNeo4jDates(r.c || r));
-      const artistas = artistasRaw.map((r: any) => convertNeo4jDates(r.a || r));
-      const tematicas = tematicasRaw.map((r: any) => convertNeo4jDates(r.t || r));
-      const fabricas = fabricasRaw.map((r: any) => convertNeo4jDates(r.f || r));
+      // and convert Neo4j dates to ISO strings, and add type field for easier handling in frontend
+      const jingles = jinglesRaw.map((r: any) => ({ ...convertNeo4jDates(r.j || r), type: 'jingle' }));
+      const canciones = cancionesRaw.map((r: any) => ({ ...convertNeo4jDates(r.c || r), type: 'cancion' }));
+      const artistas = artistasRaw.map((r: any) => ({ ...convertNeo4jDates(r.a || r), type: 'artista' }));
+      const tematicas = tematicasRaw.map((r: any) => ({ ...convertNeo4jDates(r.t || r), type: 'tematica' }));
+      const fabricas = fabricasRaw.map((r: any) => ({ ...convertNeo4jDates(r.f || r), type: 'fabrica' }));
       return res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'fulltext' } });
     } catch (_err) {
       // Fall back to basic mode below
@@ -241,12 +241,12 @@ router.get('/', asyncHandler(async (req, res) => {
 
   const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queries);
   // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
-  // and convert Neo4j dates to ISO strings
-  const jingles = jinglesRaw.map((r: any) => convertNeo4jDates(r.j || r));
-  const canciones = cancionesRaw.map((r: any) => convertNeo4jDates(r.c || r));
-  const artistas = artistasRaw.map((r: any) => convertNeo4jDates(r.a || r));
-  const tematicas = tematicasRaw.map((r: any) => convertNeo4jDates(r.t || r));
-  const fabricas = fabricasRaw.map((r: any) => convertNeo4jDates(r.f || r));
+  // and convert Neo4j dates to ISO strings, and add type field for easier handling in frontend
+  const jingles = jinglesRaw.map((r: any) => ({ ...convertNeo4jDates(r.j || r), type: 'jingle' }));
+  const canciones = cancionesRaw.map((r: any) => ({ ...convertNeo4jDates(r.c || r), type: 'cancion' }));
+  const artistas = artistasRaw.map((r: any) => ({ ...convertNeo4jDates(r.a || r), type: 'artista' }));
+  const tematicas = tematicasRaw.map((r: any) => ({ ...convertNeo4jDates(r.t || r), type: 'tematica' }));
+  const fabricas = fabricasRaw.map((r: any) => ({ ...convertNeo4jDates(r.f || r), type: 'fabrica' }));
   res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'basic' } });
 }));
 
