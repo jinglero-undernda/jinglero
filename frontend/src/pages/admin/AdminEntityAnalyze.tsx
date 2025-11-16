@@ -40,10 +40,26 @@ export default function AdminEntityAnalyze() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  // State to track metadata changes and force re-render when changes occur
+  const [metadataHasChanges, setMetadataHasChanges] = useState(false);
+  // State to track relationship changes and force re-render when changes occur
+  const [relationshipHasChanges, setRelationshipHasChanges] = useState(false);
+  
+  // Debug: Log edit mode changes
+  useEffect(() => {
+    console.log('[AdminEntityAnalyze] Edit mode changed:', {
+      isEditing,
+      entityType,
+      entityId,
+      timestamp: new Date().toISOString(),
+    });
+  }, [isEditing, entityType, entityId]);
+  
   const relatedEntitiesRef = useRef<{ 
     getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, unknown> }>;
     refresh: () => Promise<void>;
     hasUnsavedChanges: () => boolean;
+    clearUnsavedChanges: () => void;
   } | null>(null);
   const metadataEditorRef = useRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> } | null>(null);
   const [pendingNavigation, setPendingNavigation] = useState<{ entityType: EntityType; entityId: string } | null>(null);
@@ -56,6 +72,13 @@ export default function AdminEntityAnalyze() {
       setError('Tipo de entidad o ID no válido');
       return;
     }
+
+    console.log('[AdminEntityAnalyze] Loading entity:', {
+      entityType,
+      entityId,
+      rawEntityType,
+      timestamp: new Date().toISOString(),
+    });
 
     const fetchEntity = async () => {
       try {
@@ -78,6 +101,8 @@ export default function AdminEntityAnalyze() {
           throw new Error(`Unknown entity type: ${entityType}`);
         }
 
+        console.log(`[AdminEntityAnalyze] Fetching ${apiType} with ID: ${entityId}`);
+
         switch (apiType) {
           case 'fabricas':
             fetchedEntity = await adminApi.getFabrica(entityId);
@@ -98,7 +123,16 @@ export default function AdminEntityAnalyze() {
             throw new Error(`Unknown entity type: ${apiType}`);
         }
 
+        console.log(`[AdminEntityAnalyze] Fetched entity:`, {
+          id: fetchedEntity.id,
+          type: entityType,
+          hasId: !!fetchedEntity.id,
+        });
+
         setEntity(fetchedEntity);
+        // Reset all change tracking when loading new entity
+        setMetadataHasChanges(false);
+        setRelationshipHasChanges(false);
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : 'Error desconocido';
         setError(`Error al cargar la entidad: ${errorMessage}`);
@@ -113,10 +147,12 @@ export default function AdminEntityAnalyze() {
 
   // Task 5.5: Helper function to check for unsaved changes from both metadata and relationships
   const checkUnsavedChanges = useCallback(() => {
-    const metadataHasChanges = metadataEditorRef.current?.hasUnsavedChanges() || false;
-    const relationshipsHaveChanges = relatedEntitiesRef.current?.hasUnsavedChanges() || false;
-    return metadataHasChanges || relationshipsHaveChanges;
-  }, []);
+    // Use state variables for changes (triggers re-renders when changed)
+    // Fall back to ref check if state is not yet updated
+    const metadataEditorHasChanges = metadataHasChanges || (metadataEditorRef.current?.hasUnsavedChanges() || false);
+    const relationshipsHaveChanges = relationshipHasChanges || (relatedEntitiesRef.current?.hasUnsavedChanges() || false);
+    return metadataEditorHasChanges || relationshipsHaveChanges;
+  }, [metadataHasChanges, relationshipHasChanges]);
 
   // Task 5.6: Note: useBlocker requires a data router (createBrowserRouter), but this app uses BrowserRouter.
   // Navigation blocking is handled via:
@@ -357,9 +393,32 @@ export default function AdminEntityAnalyze() {
             </span>
           </div>
         </div>
-        <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
-          Visualización y edición de entidad con todas sus relaciones
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
+            Visualización y edición de entidad con todas sus relaciones
+          </p>
+          {isEditing && (
+            <span style={{
+              padding: '0.25rem 0.75rem',
+              backgroundColor: '#ff9800',
+              color: 'white',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: '600',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              animation: 'pulse 2s infinite',
+            }}>
+              ⚠️ Modo Edición Activo
+            </span>
+          )}
+        </div>
+        <style>{`
+          @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+          }
+        `}</style>
       </div>
 
       {/* Entity Heading Row - matches inspection pages */}
@@ -372,11 +431,120 @@ export default function AdminEntityAnalyze() {
           relationshipData={relationshipData}
           showAdminEditButton={true}
           isEditing={isEditing}
-          onEditClick={() => setIsEditing(!isEditing)}
+          onEditClick={() => {
+            console.log('[AdminEntityAnalyze] Edit button clicked, toggling from', isEditing, 'to', !isEditing);
+            const newEditingState = !isEditing;
+            
+            // ALWAYS reset change tracking when toggling edit mode
+            // This ensures Guardar button is DEACTIVATED when entering edit mode
+            setMetadataHasChanges(false);
+            setRelationshipHasChanges(false);
+            
+            if (isEditing) {
+              // Cancelling edit mode - clear any unsaved changes
+              if (relatedEntitiesRef.current) {
+                relatedEntitiesRef.current.clearUnsavedChanges();
+              }
+            } else {
+              // Entering edit mode - ensure clean state
+              // Clear any stale relationship changes
+              if (relatedEntitiesRef.current) {
+                relatedEntitiesRef.current.clearUnsavedChanges();
+              }
+            }
+            
+            setIsEditing(newEditingState);
+          }}
           onSaveClick={async () => {
+            console.log('[AdminEntityAnalyze] Save button clicked');
             // Phase 1: Entity-level save - trigger metadata save which also saves relationships
-            if (metadataEditorRef.current) {
+            // Always check for relationship properties to save, even if metadata has no changes
+            const hasMetadataChanges = metadataEditorRef.current?.hasUnsavedChanges() || false;
+            const hasRelationshipChanges = relatedEntitiesRef.current?.hasUnsavedChanges() || false;
+            
+            console.log('[AdminEntityAnalyze] Save check:', {
+              hasMetadataChanges,
+              hasRelationshipChanges,
+            });
+            
+            // Save metadata if there are changes
+            if (hasMetadataChanges && metadataEditorRef.current) {
+              console.log('[AdminEntityAnalyze] Saving metadata changes');
               await metadataEditorRef.current.save();
+            }
+            
+            // Save relationship properties if there are changes (even if metadata had no changes)
+            if (hasRelationshipChanges && relatedEntitiesRef.current) {
+              console.log('[AdminEntityAnalyze] Saving relationship property changes');
+              const relationshipProps = relatedEntitiesRef.current.getRelationshipProperties();
+              console.log('[AdminEntityAnalyze] Relationship properties to save:', relationshipProps);
+              console.log('[AdminEntityAnalyze] RelationshipPropsData keys:', Object.keys(relatedEntitiesRef.current ? (relatedEntitiesRef.current as any).relationshipPropsData || {} : {}));
+              
+              if (Object.keys(relationshipProps).length > 0) {
+                try {
+                  // Save each relationship property update
+                  for (const [key, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
+                    console.log(`[AdminEntityAnalyze] Saving relationship property for ${key}:`, {
+                      relType,
+                      startId,
+                      endId,
+                      properties,
+                    });
+                    
+                    // Filter out empty/null values, but keep 0 (valid timestamp value)
+                    const cleanProperties: Record<string, unknown> = {};
+                    Object.entries(properties).forEach(([propKey, propValue]) => {
+                      // Allow 0 as a valid value (timestamp can be 0)
+                      if (propValue !== null && propValue !== undefined && propValue !== '') {
+                        cleanProperties[propKey] = propValue;
+                      } else if (propValue === 0 || propValue === false) {
+                        // Explicitly allow 0 and false as valid values
+                        cleanProperties[propKey] = propValue;
+                      }
+                    });
+                    
+                    console.log(`[AdminEntityAnalyze] Clean properties for ${key}:`, cleanProperties);
+                    
+                    if (Object.keys(cleanProperties).length > 0) {
+                      console.log(`[AdminEntityAnalyze] Calling updateRelationship API for ${key}`);
+                      console.log(`[AdminEntityAnalyze] API call params:`, {
+                        relType,
+                        startId,
+                        endId,
+                        cleanProperties,
+                      });
+                      const result = await adminApi.updateRelationship(relType, startId, endId, cleanProperties);
+                      console.log(`[AdminEntityAnalyze] updateRelationship result for ${key}:`, result);
+                      console.log(`[AdminEntityAnalyze] Result properties:`, result?.properties || result);
+                    } else {
+                      console.warn(`[AdminEntityAnalyze] No clean properties to save for ${key}`);
+                    }
+                  }
+                  
+                  // Clear unsaved changes state BEFORE refresh so the UI updates immediately
+                  console.log('[AdminEntityAnalyze] Clearing unsaved changes state');
+                  relatedEntitiesRef.current.clearUnsavedChanges();
+                  setRelationshipHasChanges(false);
+                  
+                  // Refresh relationships to show updated properties
+                  // This will re-fetch entities, and expanded relationship properties will be re-fetched
+                  // because relationshipPropsData was cleared above
+                  console.log('[AdminEntityAnalyze] Refreshing relationships after save');
+                  await relatedEntitiesRef.current.refresh();
+                  
+                  console.log('[AdminEntityAnalyze] Save completed successfully');
+                } catch (error) {
+                  console.error('[AdminEntityAnalyze] Error saving relationship properties:', error);
+                  alert(`Error al guardar propiedades de relaciones: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+                  throw error; // Re-throw to prevent clearing state on error
+                }
+              } else {
+                console.warn('[AdminEntityAnalyze] No relationship properties to save');
+              }
+            }
+            
+            if (!hasMetadataChanges && !hasRelationshipChanges) {
+              console.warn('[AdminEntityAnalyze] No changes to save');
             }
           }}
           hasUnsavedChanges={checkUnsavedChanges()}
@@ -391,8 +559,12 @@ export default function AdminEntityAnalyze() {
           entityType={entityType}
           isEditing={isEditing}
           onEditToggle={setIsEditing}
+          onChange={(hasChanges) => {
+            setMetadataHasChanges(hasChanges);
+          }}
           onSave={async (updatedEntity) => {
             setEntity(updatedEntity);
+            setMetadataHasChanges(false);
             
             // Save relationship properties if any were modified
             if (relatedEntitiesRef.current) {
@@ -417,6 +589,8 @@ export default function AdminEntityAnalyze() {
                   // Refresh relationships to show updated properties
                   if (relatedEntitiesRef.current) {
                     await relatedEntitiesRef.current.refresh();
+                    // Clear unsaved changes state after successful save
+                    relatedEntitiesRef.current.clearUnsavedChanges();
                   }
                 } catch (error) {
                   console.error('Error saving relationship properties:', error);
@@ -443,6 +617,9 @@ export default function AdminEntityAnalyze() {
           initialRelationshipData={undefined}
           ref={relatedEntitiesRef}
           onCheckUnsavedChanges={checkUnsavedChanges}
+          onChange={(hasChanges) => {
+            setRelationshipHasChanges(hasChanges);
+          }}
           onNavigateToEntity={(targetEntityType, targetEntityId) => {
             // Task 5.8: Check both metadata and relationship unsaved changes
             const hasUnsaved = checkUnsavedChanges();
@@ -473,12 +650,57 @@ export default function AdminEntityAnalyze() {
           }
         }}
         onSave={async () => {
+          console.log('[AdminEntityAnalyze] UnsavedChangesModal: Save and continue clicked');
           // Task 5.5: Save both metadata and relationship changes
-          if (metadataEditorRef.current) {
+          const hasMetadataChanges = metadataEditorRef.current?.hasUnsavedChanges() || false;
+          const hasRelationshipChanges = relatedEntitiesRef.current?.hasUnsavedChanges() || false;
+          
+          // Save metadata if there are changes
+          if (hasMetadataChanges && metadataEditorRef.current) {
+            console.log('[AdminEntityAnalyze] UnsavedChangesModal: Saving metadata changes');
             await metadataEditorRef.current.save();
           }
-          // Relationship properties are saved via the onSave callback in EntityMetadataEditor
-          // which calls getRelationshipProperties and saves them
+          
+          // Save relationship properties if there are changes
+          if (hasRelationshipChanges && relatedEntitiesRef.current) {
+            console.log('[AdminEntityAnalyze] UnsavedChangesModal: Saving relationship property changes');
+            const relationshipProps = relatedEntitiesRef.current.getRelationshipProperties();
+            if (Object.keys(relationshipProps).length > 0) {
+              try {
+                // Save each relationship property update
+                for (const [key, { relType, startId, endId, properties }] of Object.entries(relationshipProps)) {
+                  // Filter out empty/null values, but keep 0 (valid timestamp value)
+                  const cleanProperties: Record<string, unknown> = {};
+                  Object.entries(properties).forEach(([propKey, propValue]) => {
+                    // Allow 0 as a valid value (timestamp can be 0)
+                    if (propValue !== null && propValue !== undefined && propValue !== '') {
+                      cleanProperties[propKey] = propValue;
+                    } else if (propValue === 0 || propValue === false) {
+                      // Explicitly allow 0 and false as valid values
+                      cleanProperties[propKey] = propValue;
+                    }
+                  });
+                  
+                  if (Object.keys(cleanProperties).length > 0) {
+                    console.log(`[AdminEntityAnalyze] UnsavedChangesModal: Saving relationship property for ${key}`);
+                    await adminApi.updateRelationship(relType, startId, endId, cleanProperties);
+                  }
+                }
+                
+                // Refresh relationships to show updated properties
+                await relatedEntitiesRef.current.refresh();
+                // Clear unsaved changes state after successful save
+                relatedEntitiesRef.current.clearUnsavedChanges();
+                setRelationshipHasChanges(false);
+                console.log('[AdminEntityAnalyze] UnsavedChangesModal: Save completed successfully');
+              } catch (error) {
+                console.error('[AdminEntityAnalyze] UnsavedChangesModal: Error saving relationship properties:', error);
+                alert(`Error al guardar propiedades de relaciones: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+                throw error; // Re-throw to prevent navigation on error
+              }
+            }
+          }
+          
           setShowUnsavedModal(false);
           // Task 5.6: Proceed with navigation after saving
           if (pendingNavigation) {

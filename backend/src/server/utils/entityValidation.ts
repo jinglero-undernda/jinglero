@@ -79,7 +79,7 @@ const emailSchema = z
 const optionalEmailSchema = z
   .string()
   .trim()
-  .optional()
+  .nullish()
   .refine((val) => !val || val === '' || isValidEmail(val), 'Debe ser un email válido');
 
 const socialHandleSchema = z
@@ -90,7 +90,7 @@ const socialHandleSchema = z
 const optionalSocialHandleSchema = z
   .string()
   .trim()
-  .optional()
+  .nullish()
   .refine((val) => !val || val === '' || hasNoAtSymbol(val), 'El handle no debe incluir el símbolo @');
 
 const yearSchema = z
@@ -121,8 +121,8 @@ export const fabricaSchema = z.object({
   date: z.string().trim().min(1, 'La fecha es requerida'),
   status: z.enum(['DRAFT', 'PROCESSING', 'COMPLETED']).optional(),
   youtubeUrl: optionalUrlSchema,
-  description: z.string().optional(),
-  contents: z.string().optional(),
+  description: z.string().nullish(),
+  contents: z.string().nullish(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 }).passthrough(); // Allow additional fields
@@ -132,15 +132,15 @@ export const fabricaSchema = z.object({
  * No required fields (all optional)
  */
 export const jingleSchema = z.object({
-  id: z.string().optional(),
-  title: z.string().optional(),
+  id: z.string().nullish(),
+  title: z.string().nullish(),
   isJinglazo: z.boolean().optional(),
   isJinglazoDelDia: z.boolean().optional(),
   isPrecario: z.boolean().optional(),
   isLive: z.boolean().optional(),
   isRepeat: z.boolean().optional(),
-  comment: z.string().optional(),
-  lyrics: z.string().optional(),
+  comment: z.string().nullish(),
+  lyrics: z.string().nullish(),
   status: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED', 'DELETED']).optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
@@ -169,17 +169,17 @@ export const cancionSchema = z.object({
  */
 export const artistaSchema = z
   .object({
-    id: z.string().optional(),
-    name: z.string().trim().optional(),
-    stageName: z.string().trim().optional(),
-    nationality: z.string().optional(),
+    id: z.string().nullish(),
+    name: z.string().trim().nullish(),
+    stageName: z.string().trim().nullish(),
+    nationality: z.string().nullish(),
     isArg: z.boolean().optional(),
     youtubeHandle: optionalSocialHandleSchema,
     instagramHandle: optionalSocialHandleSchema,
     twitterHandle: optionalSocialHandleSchema,
     facebookProfile: optionalUrlSchema,
     website: optionalUrlSchema,
-    bio: z.string().optional(),
+    bio: z.string().nullish(),
     status: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED', 'DELETED']).optional(),
     createdAt: z.string().optional(),
     updatedAt: z.string().optional(),
@@ -187,8 +187,8 @@ export const artistaSchema = z
   .passthrough()
   .refine(
     (data) => {
-      const hasName = data.name && data.name.trim() !== '';
-      const hasStageName = data.stageName && data.stageName.trim() !== '';
+      const hasName = data.name && typeof data.name === 'string' && data.name.trim() !== '';
+      const hasStageName = data.stageName && typeof data.stageName === 'string' && data.stageName.trim() !== '';
       return hasName || hasStageName;
     },
     {
@@ -202,9 +202,9 @@ export const artistaSchema = z
  * Required: name
  */
 export const tematicaSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().nullish(),
   name: z.string().trim().min(1, 'El nombre es requerido'),
-  description: z.string().optional(),
+  description: z.string().nullish(),
   category: z.enum(['ACTUALIDAD', 'CULTURA', 'GELATINA', 'GENTE', 'POLITICA']).optional(),
   status: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED', 'DELETED']).optional(),
   createdAt: z.string().optional(),
@@ -215,9 +215,9 @@ export const tematicaSchema = z.object({
  * Usuario Schema
  */
 export const usuarioSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().nullish(),
   email: optionalEmailSchema,
-  username: z.string().optional(),
+  username: z.string().nullish(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 }).passthrough();

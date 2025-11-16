@@ -22,6 +22,7 @@ interface Props {
   onSave?: (updatedEntity: Entity) => void;
   isEditing?: boolean;
   onEditToggle?: (editing: boolean) => void;
+  onChange?: (hasChanges: boolean) => void;
 }
 
 /**
@@ -90,7 +91,7 @@ function combineDate(day: number, month: number, year: number): string {
   return date.toISOString();
 }
 
-const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> }, Props>(function EntityMetadataEditor({ entity, entityType, onSave, isEditing: externalIsEditing, onEditToggle }, ref) {
+const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> }, Props>(function EntityMetadataEditor({ entity, entityType, onSave, isEditing: externalIsEditing, onEditToggle, onChange }, ref) {
   const { showToast } = useToast();
   const [internalIsEditing, setInternalIsEditing] = useState(false);
   const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
@@ -432,6 +433,17 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       console.error('Error saving entity:', err);
     }
   };
+
+  // Notify parent when hasChanges changes, but only if we're actually in editing mode
+  // This prevents false positives when entering edit mode
+  useEffect(() => {
+    if (onChange && isEditing) {
+      onChange(hasChanges);
+    } else if (onChange && !isEditing) {
+      // When not editing, explicitly notify parent that there are no changes
+      onChange(false);
+    }
+  }, [hasChanges, onChange, isEditing]);
 
   // Expose hasUnsavedChanges and save methods via ref
   useImperativeHandle(ref, () => ({

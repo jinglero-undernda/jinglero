@@ -154,6 +154,10 @@ export interface RelatedEntitiesProps {
    * Callback to handle navigation to a related entity (with unsaved changes check)
    */
   onNavigateToEntity?: (entityType: EntityType, entityId: string) => void;
+  /**
+   * Callback to notify parent when relationship property changes occur
+   */
+  onChange?: (hasChanges: boolean) => void;
 }
 
 
@@ -436,6 +440,7 @@ const RelatedEntities = forwardRef<{
   getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
   refresh: () => Promise<void>;
   hasUnsavedChanges: () => boolean;
+  clearUnsavedChanges: () => void;
 }, RelatedEntitiesProps>(function RelatedEntities({
   entity,
   entityType,
@@ -450,7 +455,18 @@ const RelatedEntities = forwardRef<{
   onGetRelationshipProperties: _onGetRelationshipProperties,
   onCheckUnsavedChanges: _onCheckUnsavedChanges,
   onNavigateToEntity,
+  onChange,
 }, ref) {
+  // Debug: Log isEditing prop changes
+  useEffect(() => {
+    console.log('[RelatedEntities] isEditing prop changed:', {
+      isEditing,
+      isAdmin,
+      entityId: entity?.id,
+      entityType,
+      timestamp: new Date().toISOString(),
+    });
+  }, [isEditing, isAdmin, entity?.id, entityType]);
   const { showToast } = useToast();
   // IMPORTANT: The entity prop is always pre-loaded by the parent component.
   // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
@@ -541,17 +557,37 @@ const RelatedEntities = forwardRef<{
 
   // Handle relationship creation with properties
   const handleCreateRelationship = useCallback(async () => {
-    if (!selectedEntityForRelationship || !entity?.id) return;
+    console.log('[RelatedEntities] handleCreateRelationship called', {
+      selectedEntityForRelationship,
+      entityId: entity?.id,
+      entityType,
+      isEditing,
+      timestamp: new Date().toISOString(),
+    });
+    
+    if (!selectedEntityForRelationship || !entity?.id) {
+      console.warn('[RelatedEntities] Cannot create relationship: missing selectedEntityForRelationship or entity.id');
+      return;
+    }
 
     const { key, entity: selectedEntity } = selectedEntityForRelationship;
     const rel = relationships.find(r => getRelationshipKey(r) === key);
-    if (!rel) return;
+    if (!rel) {
+      console.warn('[RelatedEntities] Cannot create relationship: relationship config not found for key', key);
+      return;
+    }
 
     const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
     if (!relType) {
-      console.error('Could not determine relationship type');
+      console.error('[RelatedEntities] Could not determine relationship type', {
+        entityType,
+        relLabel: rel.label,
+        relEntityType: rel.entityType,
+      });
       return;
     }
+    
+    console.log('[RelatedEntities] Relationship type determined:', relType);
 
     // Determine start and end based on relationship direction
     let startId: string;
@@ -578,9 +614,21 @@ const RelatedEntities = forwardRef<{
         endIsCancionOrJingle: rel.entityType === 'artista' ? entity.id : selectedEntity.id,
       });
     } else if (relType === 'tagged_with') {
-      // Jingle -> Tematica
-      startId = rel.entityType === 'tematica' ? selectedEntity.id : entity.id;
-      endId = rel.entityType === 'tematica' ? entity.id : selectedEntity.id;
+      // TAGGED_WITH: (Jingle)-[TAGGED_WITH]->(Tematica)
+      // Jingle is always the start node, Tematica is always the end node
+      if (entityType === 'jingle') {
+        // We're on a Jingle page, adding a Tematica
+        startId = entity.id; // Jingle (current entity)
+        endId = selectedEntity.id; // Tematica (selected entity)
+      } else if (entityType === 'tematica') {
+        // We're on a Tematica page, adding a Jingle
+        startId = selectedEntity.id; // Jingle (selected entity)
+        endId = entity.id; // Tematica (current entity)
+      } else {
+        // Fallback (shouldn't happen, but just in case)
+        startId = entity.id;
+        endId = selectedEntity.id;
+      }
     } else {
       // Default: current entity is start, selected entity is end
       startId = entity.id;
@@ -603,21 +651,45 @@ const RelatedEntities = forwardRef<{
     });
 
     let relationshipCreated = false;
+    const apiPayload = {
+      start: startId,
+      end: endId,
+      ...properties,
+    };
+    
+    console.log('[RelatedEntities] Creating relationship via API:', {
+      endpoint: `/relationships/${relType}`,
+      payload: apiPayload,
+      timestamp: new Date().toISOString(),
+    });
+    
     try {
-      await adminApi.post(`/relationships/${relType}`, {
-        start: startId,
-        end: endId,
-        ...properties,
+      const response = await adminApi.post(`/relationships/${relType}`, apiPayload);
+      console.log('[RelatedEntities] Relationship created successfully:', {
+        response,
+        relType,
+        startId,
+        endId,
+        timestamp: new Date().toISOString(),
       });
       relationshipCreated = true;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
+      console.error('[RelatedEntities] Error creating relationship:', {
+        error,
+        errorMessage,
+        relType,
+        startId,
+        endId,
+        payload: apiPayload,
+        timestamp: new Date().toISOString(),
+      });
+      
       // If relationship already exists, that's okay - we should still refresh to show it
       if (errorMessage.includes('already exists') || errorMessage.includes('Relationship already exists')) {
-        console.log('Relationship already exists, refreshing to show it');
+        console.log('[RelatedEntities] Relationship already exists, refreshing to show it');
         relationshipCreated = true; // Treat as success for refresh purposes
       } else {
-        console.error('Error creating relationship:', error);
         showToast(`Error al crear la relación: ${errorMessage}`, 'error');
         return; // Don't refresh if there was a real error
       }
@@ -642,10 +714,19 @@ const RelatedEntities = forwardRef<{
 
     // Refresh the relationship data (whether newly created or already existed)
     if (relationshipCreated) {
+      console.log('[RelatedEntities] Starting refresh after relationship creation', {
+        key,
+        relType,
+        entityId: entity.id,
+        entityType,
+        timestamp: new Date().toISOString(),
+      });
+      
       // For jingles, ensure cache is cleared before fetching
       // We already cleared it above, but do it again here to be safe
       if (relType === 'tagged_with' && entityType === 'jingle') {
         clearJingleRelationshipsCache(entity.id);
+        console.log('[RelatedEntities] Cleared jingle relationships cache for', entity.id);
       }
       
       const fetchFn = rel.fetchFn;
@@ -653,14 +734,21 @@ const RelatedEntities = forwardRef<{
       // This is especially important if there are pending requests
       await new Promise(resolve => setTimeout(resolve, 100));
       
+      console.log('[RelatedEntities] Fetching relationship data...', {
+        key,
+        entityId: entity.id,
+        entityType,
+      });
+      
       const entities = await fetchFn(entity.id, entityType);
       
-      console.log(`[DEBUG] Refreshed ${key} relationship data:`, {
+      console.log(`[RelatedEntities] Refreshed ${key} relationship data:`, {
         entityId: entity.id,
         entityType,
         relType,
         entitiesCount: entities.length,
-        entities: entities.map(e => ({ id: e.id, name: (e as any).name || (e as any).title || e.id }))
+        entities: entities.map(e => ({ id: e.id, name: (e as any).name || (e as any).title || e.id })),
+        timestamp: new Date().toISOString(),
       });
       
       dispatch({
@@ -669,6 +757,8 @@ const RelatedEntities = forwardRef<{
         data: entities,
         count: entities.length,
       });
+      
+      console.log('[RelatedEntities] Dispatched LOAD_SUCCESS, relationship should now be visible');
 
       // Reset all state
       setSelectedEntityForRelationship(null);
@@ -698,9 +788,21 @@ const RelatedEntities = forwardRef<{
       startId = relEntityType === 'artista' ? relatedEntityId : entity.id;
       endId = relEntityType === 'artista' ? entity.id : relatedEntityId;
     } else if (relType === 'tagged_with') {
-      // Jingle -> Tematica
-      startId = relEntityType === 'tematica' ? relatedEntityId : entity.id;
-      endId = relEntityType === 'tematica' ? entity.id : relatedEntityId;
+      // TAGGED_WITH: (Jingle)-[TAGGED_WITH]->(Tematica)
+      // Jingle is always the start node, Tematica is always the end node
+      if (entityType === 'jingle') {
+        // We're on a Jingle page, deleting relationship to a Tematica
+        startId = entity.id; // Jingle (current entity)
+        endId = relatedEntityId; // Tematica (related entity)
+      } else if (entityType === 'tematica') {
+        // We're on a Tematica page, deleting relationship from a Jingle
+        startId = relatedEntityId; // Jingle (related entity)
+        endId = entity.id; // Tematica (current entity)
+      } else {
+        // Fallback (shouldn't happen, but just in case)
+        startId = entity.id;
+        endId = relatedEntityId;
+      }
     } else {
       // Default: current entity is start, related entity is end
       startId = entity.id;
@@ -933,55 +1035,94 @@ const RelatedEntities = forwardRef<{
   const getRelationshipProperties = useCallback(() => {
     const result: Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> = {};
     
+    console.log('[RelatedEntities] getRelationshipProperties called:', {
+      relationshipPropsDataKeys: Object.keys(relationshipPropsData),
+      relationshipPropsData,
+      entityType,
+      entityId: entity?.id,
+    });
+    
     Object.entries(relationshipPropsData).forEach(([key, props]) => {
+      console.log(`[RelatedEntities] Processing key: ${key}, props:`, props);
+      
       // Extract entityId and relationshipKey from key format: `${entityId}-${relationshipKey}`
-      const parts = key.split('-');
-      if (parts.length >= 2) {
-        const relatedEntityId = parts[0];
-        const relationshipKey = parts.slice(1).join('-');
+      // Since entity IDs can contain dashes (e.g., "2LbnV-Wss4g"), we need to match from the end
+      // Relationship keys are always in format: `${label}-${entityType}` (e.g., "Fabrica-fabrica")
+      
+      let relatedEntityId: string | null = null;
+      let relationshipKey: string | null = null;
+      let rel: RelationshipConfig | undefined = undefined;
+      
+      // Try to find a matching relationship key by checking if the key ends with any relationship key
+      for (const relConfig of relationships) {
+        const relKey = getRelationshipKey(relConfig);
+        // Check if key ends with the relationship key (preceded by a dash)
+        if (key.endsWith(`-${relKey}`)) {
+          relationshipKey = relKey;
+          rel = relConfig;
+          // Extract entity ID by removing the relationship key and the preceding dash
+          relatedEntityId = key.slice(0, -(relKey.length + 1));
+          console.log(`[RelatedEntities] Matched relationship key: ${relKey}, extracted entityId: ${relatedEntityId}`);
+          break;
+        }
+      }
+      
+      if (!rel || !relatedEntityId || !relationshipKey) {
+        console.warn(`[RelatedEntities] Could not match relationship for key: ${key}`);
+      }
+      
+      if (rel && relatedEntityId && relationshipKey) {
+        const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
+        console.log(`[RelatedEntities] Relationship type: ${relType}, entity.id: ${entity?.id}`);
         
-        // Find the relationship config
-        const rel = relationships.find(r => getRelationshipKey(r) === relationshipKey);
-        if (rel) {
-          const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
-          if (relType && entity?.id) {
-            // Determine start and end based on relationship direction
-            let startId: string;
-            let endId: string;
-            
-            if (relType === 'appears_in') {
-              // Jingle -> Fabrica
-              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
-              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
-            } else if (relType === 'versiona') {
-              // Jingle -> Cancion
-              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
-              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
-            } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-              // Artista -> Jingle/Cancion
-              startId = entityType === 'artista' ? entity.id : relatedEntityId;
-              endId = entityType === 'artista' ? relatedEntityId : entity.id;
-            } else if (relType === 'tagged_with') {
-              // Jingle -> Tematica
-              startId = entityType === 'jingle' ? entity.id : relatedEntityId;
-              endId = entityType === 'jingle' ? relatedEntityId : entity.id;
-            } else {
-              // Default: current entity is start, related entity is end
-              startId = entity.id;
-              endId = relatedEntityId;
-            }
-            
-            result[key] = {
-              relType,
-              startId,
-              endId,
-              properties: props,
-            };
+        if (relType && entity?.id) {
+          // Determine start and end based on relationship direction
+          let startId: string;
+          let endId: string;
+          
+          if (relType === 'appears_in') {
+            // Jingle -> Fabrica
+            startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+            endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+          } else if (relType === 'versiona') {
+            // Jingle -> Cancion
+            startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+            endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+          } else if (relType === 'jinglero_de' || relType === 'autor_de') {
+            // Artista -> Jingle/Cancion
+            startId = entityType === 'artista' ? entity.id : relatedEntityId;
+            endId = entityType === 'artista' ? relatedEntityId : entity.id;
+          } else if (relType === 'tagged_with') {
+            // Jingle -> Tematica
+            startId = entityType === 'jingle' ? entity.id : relatedEntityId;
+            endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+          } else {
+            // Default: current entity is start, related entity is end
+            startId = entity.id;
+            endId = relatedEntityId;
           }
+          
+          console.log(`[RelatedEntities] Adding to result:`, {
+            key,
+            relType,
+            startId,
+            endId,
+            properties: props,
+          });
+          
+          result[key] = {
+            relType,
+            startId,
+            endId,
+            properties: props,
+          };
+        } else {
+          console.warn(`[RelatedEntities] Missing relType or entity.id:`, { relType, entityId: entity?.id });
         }
       }
     });
     
+    console.log('[RelatedEntities] getRelationshipProperties result:', result);
     return result;
   }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey]);
 
@@ -1020,12 +1161,43 @@ const RelatedEntities = forwardRef<{
     return false;
   }, [relationshipPropsData, timestampTimes, selectedEntityForRelationship]);
 
-  // Expose getter, refresh, and hasUnsavedChanges to parent via ref
+  // Notify parent when relationship changes occur, but only if we're actually in editing mode
+  // This prevents false positives when entering edit mode
+  useEffect(() => {
+    if (onChange && isEditing) {
+      const hasChanges = hasUnsavedChanges();
+      onChange(hasChanges);
+    } else if (onChange && !isEditing) {
+      // When not editing, explicitly notify parent that there are no changes
+      onChange(false);
+    }
+  }, [relationshipPropsData, timestampTimes, selectedEntityForRelationship, hasUnsavedChanges, onChange, isEditing]);
+
+  // Clear all unsaved relationship changes (called after successful save)
+  const clearUnsavedChanges = useCallback(() => {
+    console.log('[RelatedEntities] clearUnsavedChanges called');
+    // Clear the relationship props data - this will trigger re-fetch for expanded relationships
+    // The component will re-fetch properties when it detects relationshipPropsData is empty
+    // but expandedRelationshipProps still has the key
+    setRelationshipPropsData({});
+    setTimestampTimes({});
+    setSelectedEntityForRelationship(null);
+    // Explicitly notify parent that there are no changes after clearing
+    // This ensures the Guardar button deactivates immediately
+    if (onChange) {
+      onChange(false);
+    }
+    // Note: We don't clear expandedRelationshipProps here because we want the properties
+    // panel to stay expanded and re-fetch the updated properties
+  }, [onChange]);
+
+  // Expose getter, refresh, hasUnsavedChanges, and clearUnsavedChanges to parent via ref
   useImperativeHandle(ref, () => ({
     getRelationshipProperties,
     refresh,
     hasUnsavedChanges,
-  }), [getRelationshipProperties, refresh, hasUnsavedChanges]);
+    clearUnsavedChanges,
+  }), [getRelationshipProperties, refresh, hasUnsavedChanges, clearUnsavedChanges]);
 
   // Check if we've exceeded max depth
   const currentDepth = entityPath.length;
@@ -1753,6 +1925,11 @@ const RelatedEntities = forwardRef<{
                                   showAdminNavButton={isAdmin}
                                   adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${relatedEntity.id}`}
                                   onAdminNavClick={() => {
+                                    console.log('[RelatedEntities] Admin nav clicked:', {
+                                      entityType: rel.entityType,
+                                      entityId: relatedEntity.id,
+                                      entity: relatedEntity,
+                                    });
                                     if (onNavigateToEntity) {
                                       onNavigateToEntity(rel.entityType, relatedEntity.id);
                                     }
@@ -1887,9 +2064,18 @@ const RelatedEntities = forwardRef<{
                                 
                                 const timestampTime = getTimestampTime();
                                 
+                                // Ensure timestampTime values are always valid numbers (not NaN)
+                                const safeTimestampTime = {
+                                  h: isNaN(timestampTime.h) ? 0 : Math.max(0, Math.min(23, timestampTime.h)),
+                                  m: isNaN(timestampTime.m) ? 0 : Math.max(0, Math.min(59, timestampTime.m)),
+                                  s: isNaN(timestampTime.s) ? 0 : Math.max(0, Math.min(59, timestampTime.s)),
+                                };
+                                
                                 const handleTimestampChange = (field: 'h' | 'm' | 's', value: number) => {
                                   const currentTime = timestampTimes[relationshipPropsKey] || secondsToTime(propsData.timestamp);
-                                  const newTime = { ...currentTime, [field]: Math.max(0, Math.min(field === 'h' ? 23 : 59, value)) };
+                                  // Ensure value is a valid number
+                                  const numValue = isNaN(value) ? 0 : value;
+                                  const newTime = { ...currentTime, [field]: Math.max(0, Math.min(field === 'h' ? 23 : 59, numValue)) };
                                   setTimestampTimes(prev => ({ ...prev, [relationshipPropsKey]: newTime }));
                                   const seconds = timeToSeconds(newTime.h, newTime.m, newTime.s);
                                   setRelationshipPropsData(prev => ({
@@ -1938,8 +2124,11 @@ const RelatedEntities = forwardRef<{
                                                 type="number"
                                                 min="0"
                                                 max="23"
-                                                value={timestampTime.h}
-                                                onChange={(e) => handleTimestampChange('h', parseInt(e.target.value) || 0)}
+                                                value={safeTimestampTime.h}
+                                                onChange={(e) => {
+                                                  const val = parseInt(e.target.value, 10);
+                                                  handleTimestampChange('h', isNaN(val) ? 0 : val);
+                                                }}
                                                 style={{
                                                   width: '50px',
                                                   padding: '4px 6px',
@@ -1956,8 +2145,11 @@ const RelatedEntities = forwardRef<{
                                                 type="number"
                                                 min="0"
                                                 max="59"
-                                                value={timestampTime.m}
-                                                onChange={(e) => handleTimestampChange('m', parseInt(e.target.value) || 0)}
+                                                value={safeTimestampTime.m}
+                                                onChange={(e) => {
+                                                  const val = parseInt(e.target.value, 10);
+                                                  handleTimestampChange('m', isNaN(val) ? 0 : val);
+                                                }}
                                                 style={{
                                                   width: '50px',
                                                   padding: '4px 6px',
@@ -1974,8 +2166,11 @@ const RelatedEntities = forwardRef<{
                                                 type="number"
                                                 min="0"
                                                 max="59"
-                                                value={timestampTime.s}
-                                                onChange={(e) => handleTimestampChange('s', parseInt(e.target.value) || 0)}
+                                                value={safeTimestampTime.s}
+                                                onChange={(e) => {
+                                                  const val = parseInt(e.target.value, 10);
+                                                  handleTimestampChange('s', isNaN(val) ? 0 : val);
+                                                }}
                                                 style={{
                                                   width: '50px',
                                                   padding: '4px 6px',
@@ -2493,7 +2688,19 @@ const RelatedEntities = forwardRef<{
                     {/* Phase 3: Hide blank row when maxCardinality is reached */}
                     {/* Phase 5: Hide blank row for read-only relationships */}
                     {/* Task 7.8: Pass creationContext to EntitySearchAutocomplete for entity creation flow */}
-                    {isAdmin && isEditing && !rel.isReadOnly && (!rel.maxCardinality || entities.length < rel.maxCardinality) && (
+                    {(() => {
+                      const shouldShowBlankRow = isAdmin && isEditing && !rel.isReadOnly && (!rel.maxCardinality || entities.length < rel.maxCardinality);
+                      if (isAdmin && !shouldShowBlankRow) {
+                        console.log('[RelatedEntities] Blank row hidden for', key, {
+                          isAdmin,
+                          isEditing,
+                          isReadOnly: rel.isReadOnly,
+                          maxCardinality: rel.maxCardinality,
+                          currentCount: entities.length,
+                        });
+                      }
+                      return shouldShowBlankRow;
+                    })() && (
                       <div className="related-entities__blank-row">
                         {selectedEntityForRelationship && selectedEntityForRelationship.key === key ? (
                               // Show property form for selected entity
