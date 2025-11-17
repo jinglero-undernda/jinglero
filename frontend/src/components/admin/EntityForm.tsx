@@ -5,7 +5,7 @@ import { useToast } from '../common/ToastContext';
 import { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
 import { getEntityWarnings } from '../../lib/validation/schemas';
 import { validateEntityField, validateEntityForm } from '../../lib/validation/entityValidation';
-import { sanitizeNumericField, sanitizeBooleanField } from '../../lib/utils/dataTypeSafety';
+import { sanitizeNumericField } from '../../lib/utils/dataTypeSafety';
 import { FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
 
 // Import the type separately to avoid module resolution issues
@@ -70,7 +70,7 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
       
       if (isBooleanField) {
         // For boolean fields, always include them (default to false)
-        payload[f.name] = v === 'true' || v === true;
+        payload[f.name] = v === 'true';
       } else if (v === undefined || v === '') {
         payload[f.name] = null;
       } else {
@@ -238,7 +238,7 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <input
                   type="checkbox"
-                  checked={form[f.name] === 'true' || form[f.name] === true}
+                  checked={form[f.name] === 'true'}
                   onChange={(e) => handleFieldChange(f.name, e.target.checked ? 'true' : 'false')}
                   style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />

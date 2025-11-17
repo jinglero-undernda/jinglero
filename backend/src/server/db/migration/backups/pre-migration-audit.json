@@ -1,0 +1,404 @@
+{
+  "timestamp": "2025-11-17T22:40:34.297Z",
+  "entityCounts": {
+    "Jingle": {
+      "low": 29,
+      "high": 0
+    },
+    "Cancion": {
+      "low": 28,
+      "high": 0
+    },
+    "Artista": {
+      "low": 37,
+      "high": 0
+    },
+    "Tematica": {
+      "low": 20,
+      "high": 0
+    },
+    "Usuario": {
+      "low": 3,
+      "high": 0
+    },
+    "Fabrica": {
+      "low": 6,
+      "high": 0
+    }
+  },
+  "idFormats": [
+    {
+      "entityType": "Jingle",
+      "sampleIds": [
+        "j28nwqyzo",
+        "j28uvuzh8",
+        "j1mvf6htv",
+        "j12fdsh6f",
+        "j95ixwnum"
+      ],
+      "currentFormat": "PREFIX{8-char-base36}"
+    },
+    {
+      "entityType": "Cancion",
+      "sampleIds": [
+        "c2lgbes4s",
+        "clz30wskt",
+        "cubspd2lh",
+        "c1pyuqnip",
+        "c2nqwmhxp"
+      ],
+      "currentFormat": "PREFIX{8-char-base36}"
+    },
+    {
+      "entityType": "Artista",
+      "sampleIds": [
+        "a15d2c6zn",
+        "a163axcg8",
+        "a16gvyq59",
+        "a17x7z4t1",
+        "a180jj4qa"
+      ],
+      "currentFormat": "PREFIX{8-char-base36}"
+    },
+    {
+      "entityType": "Tematica",
+      "sampleIds": [
+        "t104ajike",
+        "t1bqeluxk",
+        "t1f96htzg",
+        "t1fr6i97z",
+        "t1y2dulfs"
+      ],
+      "currentFormat": "PREFIX{8-char-base36}"
+    },
+    {
+      "entityType": "Usuario",
+      "sampleIds": [
+        "u3jgvtyd9",
+        "u3gcao3jh",
+        "u2qppcsbi"
+      ],
+      "currentFormat": "PREFIX{8-char-base36}"
+    },
+    {
+      "entityType": "Fabrica",
+      "sampleIds": [
+        "0hmxZPp0xq0",
+        "DBbyI99TtIM",
+        "7JJuJ59DxUw",
+        "t4xLg702Yn0",
+        "2LbnV-Wss4g"
+      ],
+      "currentFormat": "PREFIX{8-char-base36}"
+    }
+  ],
+  "relationshipCounts": [
+    {
+      "type": "APPEARS_IN",
+      "count": {
+        "low": 27,
+        "high": 0
+      }
+    },
+    {
+      "type": "VERSIONA",
+      "count": {
+        "low": 27,
+        "high": 0
+      }
+    },
+    {
+      "type": "AUTOR_DE",
+      "count": {
+        "low": 28,
+        "high": 0
+      }
+    },
+    {
+      "type": "TAGS",
+      "count": {
+        "low": 0,
+        "high": 0
+      }
+    },
+    {
+      "type": "UPLOADED_BY",
+      "count": {
+        "low": 0,
+        "high": 0
+      }
+    }
+  ],
+  "redundantPropertyStatus": [
+    {
+      "entityType": "Jingle",
+      "entityId": "j28nwqyzo",
+      "property": "fabricaId",
+      "value": "0hmxZPp0xq0"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j28nwqyzo",
+      "property": "cancionId",
+      "value": "c2lgbes4s"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j28uvuzh8",
+      "property": "fabricaId",
+      "value": "0hmxZPp0xq0"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j28uvuzh8",
+      "property": "cancionId",
+      "value": "clz30wskt"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j1mvf6htv",
+      "property": "fabricaId",
+      "value": "0hmxZPp0xq0"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j1mvf6htv",
+      "property": "cancionId",
+      "value": "cubspd2lh"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j12fdsh6f",
+      "property": "fabricaId",
+      "value": "0hmxZPp0xq0"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j12fdsh6f",
+      "property": "cancionId",
+      "value": "c1pyuqnip"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j95ixwnum",
+      "property": "fabricaId",
+      "value": "DBbyI99TtIM"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j95ixwnum",
+      "property": "cancionId",
+      "value": "c2nqwmhxp"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j29ejr960",
+      "property": "fabricaId",
+      "value": "7JJuJ59DxUw"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j29ejr960",
+      "property": "cancionId",
+      "value": "cg0i7utzn"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "jhvcqfy6i",
+      "property": "fabricaId",
+      "value": "7JJuJ59DxUw"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "jhvcqfy6i",
+      "property": "cancionId",
+      "value": "c1i50dgbx"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j355hbbnu",
+      "property": "fabricaId",
+      "value": "7JJuJ59DxUw"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j355hbbnu",
+      "property": "cancionId",
+      "value": "c2ppaoj9q"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j1gt3d6d3",
+      "property": "fabricaId",
+      "value": "7JJuJ59DxUw"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j1gt3d6d3",
+      "property": "cancionId",
+      "value": "c27jzw2f9"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j1yvs1izu",
+      "property": "fabricaId",
+      "value": "7JJuJ59DxUw"
+    },
+    {
+      "entityType": "Jingle",
+      "entityId": "j1yvs1izu",
+      "property": "cancionId",
+      "value": "c92xpioah"
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c2lgbes4s",
+      "property": "autorIds",
+      "value": [
+        "ART-001"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "clz30wskt",
+      "property": "autorIds",
+      "value": [
+        "ART-002"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "cubspd2lh",
+      "property": "autorIds",
+      "value": [
+        "ART-002"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c1pyuqnip",
+      "property": "autorIds",
+      "value": [
+        "ART-003"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c2nqwmhxp",
+      "property": "autorIds",
+      "value": [
+        "ART_4aDL_H9Vs"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "cg0i7utzn",
+      "property": "autorIds",
+      "value": [
+        "ART-d31514e2-a21b-4fcc-a263-46aec8cde514"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c1i50dgbx",
+      "property": "autorIds",
+      "value": [
+        "ART-f840d8b9-b2c5-41c2-bcc6-8fe2dcbe71e6"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c1kotwhd2",
+      "property": "autorIds",
+      "value": [
+        "ART-af37b03c-3025-458f-8f04-5ee18bf352ec"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c27jzw2f9",
+      "property": "autorIds",
+      "value": [
+        "ART-af37b03c-3025-458f-8f04-5ee18bf352ec"
+      ]
+    },
+    {
+      "entityType": "Cancion",
+      "entityId": "c92xpioah",
+      "property": "autorIds",
+      "value": [
+        "ART-39aa2811-998e-438c-8b8b-3bd2060459d6"
+      ]
+    }
+  ],
+  "appearsInOrders": [
+    {
+      "fabricaId": "7JJuJ59DxUw",
+      "jingleCount": 8,
+      "hasConsistentOrdering": false,
+      "orderValues": [
+        2,
+        1,
+        3,
+        5,
+        6,
+        7,
+        8,
+        4
+      ]
+    },
+    {
+      "fabricaId": "2LbnV-Wss4g",
+      "jingleCount": 7,
+      "hasConsistentOrdering": true,
+      "orderValues": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "fabricaId": "0hmxZPp0xq0",
+      "jingleCount": 4,
+      "hasConsistentOrdering": true,
+      "orderValues": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "fabricaId": "DLe3hojAro0",
+      "jingleCount": 4,
+      "hasConsistentOrdering": true,
+      "orderValues": [
+        1,
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "fabricaId": "DBbyI99TtIM",
+      "jingleCount": 2,
+      "hasConsistentOrdering": true,
+      "orderValues": [
+        1,
+        2
+      ]
+    },
+    {
+      "fabricaId": "t4xLg702Yn0",
+      "jingleCount": 1,
+      "hasConsistentOrdering": true,
+      "orderValues": [
+        1
+      ]
+    }
+  ]
+}

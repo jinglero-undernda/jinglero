@@ -8,7 +8,11 @@
     "start": "node dist/server/index.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server/index.ts",
     "lint": "eslint . --ext .ts",
-    "test": "jest"
+    "test": "jest",
+    "migrate:pre-audit": "ts-node src/server/db/migration/pre-migration-audit.ts",
+    "migrate:ids": "ts-node src/server/db/migration/migrate-entity-ids.ts",
+    "migrate:ids:dry-run": "ts-node src/server/db/migration/migrate-entity-ids.ts --dry-run",
+    "db:export-csv": "ts-node src/server/db/migration/export-to-csv.ts"
   },
   "dependencies": {
     "axios": "^1.13.2",

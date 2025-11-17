@@ -1,6 +1,79 @@
 /*
 Graph Schema Documentation
 
+================================================================================
+ID FORMAT SPECIFICATION
+================================================================================
+
+Entity IDs follow the format: {prefix}{8-chars}
+- Prefix: Single character indicating entity type
+- 8-chars: Base36 alphanumeric characters (0-9, a-z), lowercase
+- Collision detection: IDs are checked for uniqueness before assignment
+
+Prefixes:
+- a: Artista (e.g., a1b2c3d4, ax9y8z7w6)
+- c: Cancion (e.g., c9f0a1b2, cx7y6z5w4)
+- j: Jingle (e.g., j5e6f7g8, j9f0a1b2c)
+- t: Tematica (e.g., t3k8m2n1, tx5y4z3w2)
+- u: Usuario (e.g., u1a2b3c4d, ux7y4z9w0)
+
+Special case - Fabrica:
+- Fabricas use external YouTube video IDs (11 characters)
+- Example: 0hmxZPp0xq0, DBbyI99TtIM
+- NOT subject to ID migration
+
+================================================================================
+REDUNDANT PROPERTIES (DENORMALIZED DATA)
+================================================================================
+
+Purpose: Improve query performance by storing frequently accessed relationship 
+data directly on entities, eliminating the need for relationship traversals.
+
+Maintenance Rules:
+1. Relationships are the source of truth
+2. Redundant properties are automatically synced when relationships change
+3. On conflict, redundant properties are updated to match relationships
+4. CRUD operations auto-sync redundant properties with relationships
+
+Redundant Properties by Entity:
+
+Jingle:
+- fabricaId: ID of related Fabrica (from APPEARS_IN relationship)
+- fabricaDate: Date of related Fabrica (from APPEARS_IN->Fabrica.date)
+- cancionId: ID of related Cancion (from VERSIONA relationship)
+
+Cancion:
+- autorIds: Array of Artista IDs (from AUTOR_DE relationships)
+
+Auto-Sync Behavior:
+- Entity CREATE: If redundant properties provided, auto-create relationships
+- Entity UPDATE: If redundant properties changed, auto-update relationships
+- Relationship CREATE: Auto-update redundant properties
+- Relationship DELETE: Auto-update redundant properties (or clear if none remain)
+- Validation: Auto-fix discrepancies after CRUD operations
+
+================================================================================
+APPEARS_IN ORDER MANAGEMENT
+================================================================================
+
+The 'order' property in APPEARS_IN relationships is system-managed and READ-ONLY.
+
+Calculation:
+- Based on 'timestamp' property (HH:MM:SS format)
+- Timestamps converted to seconds and sorted ascending
+- Sequential order assigned: 1, 2, 3, 4, ...
+- Auto-recalculated on create/update/delete of APPEARS_IN relationships
+
+Default timestamp: '00:00:00' if not provided
+
+Conflict handling:
+- If multiple relationships have same timestamp, order assigned arbitrarily
+- Warning logged for timestamp conflicts
+
+User cannot manually set 'order' - any provided value is ignored with warning.
+
+================================================================================
+
 Nodes:
 ------
 1. Usuario
@@ -120,10 +193,15 @@ Relationships:
    End Node: Fabrica
    Import file: rel-Jingle-APPEARS_IN-Fabrica-YYYY-MM-DD.csv
    Properties:
-   - order: number
-   - timestamp: number
+   - order: number (READ-ONLY, system-managed, calculated from timestamp)
+   - timestamp: string (HH:MM:SS format, defaults to '00:00:00')
    - status: string (enum: DRAFT, CONFIRMED, default: DRAFT)
    - createdAt: datetime
+   
+   Note: The 'order' property is automatically calculated and maintained based on the 
+   'timestamp' property. Timestamps are converted to seconds and relationships are 
+   sorted ascending to assign sequential order (1, 2, 3, ...). The 'order' property 
+   cannot be manually set and any provided value will be ignored with a warning.
 
 2. JINGLERO_DE
    Start Node: Artista

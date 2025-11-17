@@ -1,6 +1,78 @@
 # Database Schema Refinement Notes
 
 **Generated:** Task 5.1 - Document schema issues and improvement opportunities identified during Tasks 1-4
+**Updated:** Task 5.0 - Implementation status
+
+---
+
+## IMPLEMENTATION STATUS (Task 5.0)
+
+### ✅ Completed
+
+**Phase 0: APPEARS_IN Order Management**
+- ✅ Created `updateAppearsInOrder()` utility function for automatic order calculation
+- ✅ Integrated automatic order management into APPEARS_IN CRUD endpoints (POST/PUT/DELETE)
+- ✅ Made `order` property system-managed and read-only
+- ✅ Updated schema documentation to mark `order` as READ-ONLY
+
+**Phase 1: ID Generation Standardization**
+- ✅ Updated `generateId()` function to use new format: `{prefix}{8-chars}`
+  - Format: Single char prefix (a, c, j, t, u) + 8 base36 alphanumeric characters
+  - Examples: a1b2c3d4, j5e6f7g8, c9f0a1b2
+  - Fabricas EXCLUDED (retain external YouTube video IDs)
+- ✅ Added collision detection with retry logic
+- ✅ Created `migrate-entity-ids.ts` migration script with dry-run support
+
+**Phase 2: Enhanced CRUD for Redundant Properties**
+- ✅ Enhanced `updateRedundantPropertiesOnRelationshipChange()` with comprehensive handling
+  - Transaction support for atomicity
+  - Handles all relationship types (APPEARS_IN, VERSIONA, AUTOR_DE)
+  - Edge case coverage (multiple relationships, deletions)
+- ✅ Added entity CRUD handlers to auto-sync redundant properties with relationships
+  - `syncJingleRedundantProperties()`: Auto-creates APPEARS_IN/VERSIONA relationships
+  - `syncCancionRedundantProperties()`: Auto-syncs AUTOR_DE relationships
+- ✅ Enhanced validation middleware with auto-fix capabilities
+  - `validateAndFixRedundantProperties()`: Validates after CRUD operations
+  - Relationships are source of truth
+  - Auto-fixes discrepancies with logging
+
+**Phase 3: Type Definitions and Documentation**
+- ✅ Updated backend `types.ts` with comprehensive JSDoc documentation
+  - ID format specifications for all entity types
+  - Redundant property documentation
+- ✅ Updated frontend `types/index.ts` with matching documentation
+- ✅ Updated `schema.ts` with comprehensive documentation:
+  - ID format specification section
+  - Redundant properties section
+  - APPEARS_IN order management section
+
+### ⏳ Pending Execution
+
+**Phase 4: Migration Execution** (To be executed by user)
+- ⏳ Pre-migration: Database backup, audit current state, dry-run migration report
+- ⏳ Execute migration: Run `migrate-entity-ids.ts` on development database
+- ⏳ Post-migration: Validation of all entity IDs, relationships, redundant properties
+- ⏳ Update seed data: Export database state with new IDs, update `seed.yaml` and CSV files
+
+**Phase 5: Testing and Final Documentation**
+- ⏳ Write comprehensive automated tests
+- ⏳ Update API documentation (`docs/api.md`)
+- ⏳ Create migration guide (`backend/src/server/db/migration/README.md`)
+
+### Key Implementation Notes
+
+1. **ID Format Migration**: Migration script ready, awaits execution. Fabricas explicitly excluded.
+
+2. **Redundant Properties**: Fully implemented with automatic synchronization:
+   - Relationships → Redundant Properties: Auto-updated on relationship CRUD
+   - Redundant Properties → Relationships: Auto-creates relationships on entity CRUD
+   - Validation: Auto-fixes discrepancies after operations
+
+3. **APPEARS_IN Order**: Fully automated, read-only, based on timestamp sorting.
+
+4. **Data Integrity**: Relationships are always the source of truth. Redundant properties are convenience copies that auto-sync.
+
+---
 
 ## Executive Summary
 

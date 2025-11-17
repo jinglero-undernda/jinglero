@@ -20,8 +20,11 @@ This task list outlines the implementation steps for the MVP version of the Jing
 - `backend/src/server/db/types.ts` - TypeScript type definitions (complete, will be refined in Task 5)
 - `backend/src/server/db/migration/` - Schema migration scripts (to be created for Task 5 changes)
 - `backend/src/server/middleware/errorHandler.ts` - Error handling middleware
-- `backend/src/server/middleware/auth.ts` - Authentication middleware (to be created for admin password protection)
-- `backend/src/server/db/import/csvImporter.ts` - CSV import utilities (to be created)
+- `backend/src/server/middleware/auth.ts` - Authentication middleware (✅ complete - JWT-based admin auth)
+- `backend/src/server/utils/validation.ts` - Data validation utilities (✅ complete - validates entities, relationships, data integrity)
+- `backend/src/server/db/import/` - CSV import files directory (✅ CSV files exist)
+- `backend/src/server/db/schema/seed.ts` - CSV parsing utilities (`importNodesFromCSV`, `importRelationshipsFromCSV`) (✅ complete - used for seed script)
+- `backend/src/server/db/import/csvImporter.ts` - CSV import utilities for admin UI (✅ NOT NEEDED - CSV import via admin UI not required; seed script utilities in `seed.ts` are sufficient)
 
 ### Frontend Files (Major Work Needed)
 
@@ -29,12 +32,21 @@ This task list outlines the implementation steps for the MVP version of the Jing
 - `frontend/src/pages/JinglePage.tsx` - Jingle detail page with relationships (rebuild needed)
 - `frontend/src/pages/CancionPage.tsx` - Cancion detail page with Jingles list (rebuild needed)
 - `frontend/src/pages/Home.tsx` - Home page with search and Fabricas list (rebuild needed)
-- `frontend/src/pages/AdminPage.tsx` - Admin area (add password protection)
-- `frontend/src/pages/admin/AdminDashboard.tsx` - Admin dashboard (complete rebuild for knowledge graph validation)
-- `frontend/src/components/admin/KnowledgeGraphValidator.tsx` - Knowledge graph validation interface (to be created)
-- `frontend/src/components/admin/RelationshipValidator.tsx` - Relationship validation component (to be created)
-- `frontend/src/components/admin/CSVImporter.tsx` - CSV import interface (to be created)
-- `frontend/src/components/admin/DataIntegrityChecker.tsx` - Data integrity checker (to be created)
+- `frontend/src/pages/AdminPage.tsx` - Admin area with password protection (✅ complete - JWT-based auth)
+- `frontend/src/pages/admin/AdminLogin.tsx` - Admin login page (✅ complete)
+- `frontend/src/pages/admin/AdminDashboard.tsx` - Admin dashboard with entity counts, validation status, and entity creation flow (✅ complete)
+- `frontend/src/pages/admin/AdminEntityAnalyze.tsx` - Unified admin entity page at `/admin/:entityType/:entityId` (✅ complete - replaces old entity-specific pages)
+- `frontend/src/pages/admin/AdminEntityList.tsx` - Entity list pages at `/admin/:entityType` (✅ complete)
+- `frontend/src/pages/admin/AdminHome.tsx` - Entity selection/search page (✅ complete)
+- `frontend/src/components/admin/EntityMetadataEditor.tsx` - Entity metadata editing component (✅ complete)
+- `frontend/src/components/admin/EntityList.tsx` - Entity listing component (✅ complete)
+- `frontend/src/components/admin/EntitySearchAutocomplete.tsx` - Entity search/creation component (✅ complete)
+- `frontend/src/components/admin/KnowledgeGraphValidator.tsx` - Knowledge graph validation interface (✅ complete)
+- `frontend/src/components/admin/RelationshipValidator.tsx` - Relationship validation component (✅ complete)
+- `frontend/src/components/admin/DataIntegrityChecker.tsx` - Data integrity checker (✅ complete)
+- `frontend/src/components/admin/CSVImporter.tsx` - CSV import interface (✅ NOT NEEDED - CSV import via admin UI not required; seed script and direct AuraDB uploads sufficient)
+- `frontend/src/components/admin/BulkActions.tsx` - Bulk actions component (✅ exists but not needed for MVP - database can be accessed directly for bulk operations)
+- `frontend/src/hooks/useAdminAuth.ts` - Admin authentication hook (✅ complete)
 - `frontend/src/components/player/YouTubePlayer.tsx` - YouTube IFrame Player component (loads API dynamically, exposes controls via ref, handles events)
 - `frontend/src/types/youtube.d.ts` - TypeScript definitions for YouTube IFrame API
 - `frontend/src/components/player/JingleTimeline.tsx` - Jingle timeline component (collapsed horizontal view, expandable to full metadata, auto-expands when active, handles missing data with "A CONFIRMAR" and "Anonimo")
@@ -159,26 +171,34 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [ ] 5.10 Update CSV seed files in `backend/src/server/db/import/` if schema changes require it
   - [ ] 5.11 Document migration steps for production deployment
 
-- [ ] 6.0 Rebuild Admin Portal with Knowledge Graph Validation Tools (PENDING - Future Implementation)
+- [x] 6.0 Rebuild Admin Portal with Knowledge Graph Validation Tools (COMPLETE)
 
-  **Note:** Admin CRUD pages exist (`AdminJingle`, `AdminFabrica`, `AdminArtista`, `AdminCancion`, `AdminTematica`, `AdminHome`, `AdminEntityAnalyze`) with basic forms (`EntityForm`, `EntityList`, `RelationshipForm`). The rebuild will leverage `RelatedEntities` component in Admin mode (which already supports `isAdmin` prop for immediate relationship visibility and cycle prevention disabled).
+  **Current Status:** Admin portal has been rebuilt with unified architecture, authentication, validation tools, and comprehensive CRUD operations. CSV import via admin UI is not required - one-off uploads can be performed directly in AuraDB. Bulk import is only for initial database population, not a core long-term feature.
 
-  - [ ] 6.1 Create `backend/src/server/middleware/auth.ts` with password protection middleware for admin routes
-  - [ ] 6.2 Add admin password authentication endpoint `/api/admin/login` (simple password check)
-  - [ ] 6.3 Create `frontend/src/pages/admin/AdminLogin.tsx` for password entry
-  - [ ] 6.4 Update `frontend/src/pages/AdminPage.tsx` to require authentication
-  - [ ] 6.5 Create `backend/src/server/db/schema/validation.ts` with data validation utilities (orphaned nodes, missing required relationships, data integrity checks)
-  - [ ] 6.6 Add validation API endpoints: `/api/admin/validate/orphans`, `/api/admin/validate/relationships`, `/api/admin/validate/integrity`
-  - [ ] 6.7 Create `frontend/src/components/admin/KnowledgeGraphValidator.tsx` to display validation results and issues
-  - [ ] 6.8 Create `frontend/src/components/admin/RelationshipValidator.tsx` to check and fix relationship issues
-  - [ ] 6.9 Create `frontend/src/components/admin/DataIntegrityChecker.tsx` to verify data consistency (e.g., Jingles have Fabricas, Canciones have Autores)
-  - [ ] 6.10 Create `backend/src/server/db/import/csvImporter.ts` utilities for CSV parsing and import
-  - [ ] 6.11 Add CSV import endpoint `/api/admin/import/csv` with support for all entity types
-  - [ ] 6.12 Create `frontend/src/components/admin/CSVImporter.tsx` interface for uploading and importing CSV files
-  - [ ] 6.13 Rebuild `frontend/src/pages/admin/AdminDashboard.tsx` with barebone layout showing entity counts, validation status, and quick actions (will use RelatedEntities in Admin mode)
-  - [ ] 6.14 Update admin CRUD forms to include validation feedback
-  - [ ] 6.15 Add bulk actions (delete multiple entities, bulk relationship creation)
-  - [ ] 6.16 Test admin workflows: login, validation, CSV import, CRUD operations
+  - [x] 6.1 Create `backend/src/server/middleware/auth.ts` with password protection middleware for admin routes - ✅ **COMPLETE:** JWT-based authentication middleware implemented
+  - [x] 6.2 Add admin password authentication endpoint `/api/admin/login` (simple password check) - ✅ **COMPLETE:** JWT-based login endpoint implemented
+  - [x] 6.3 Create `frontend/src/pages/admin/AdminLogin.tsx` for password entry - ✅ **COMPLETE:** Login page implemented
+  - [x] 6.4 Update `frontend/src/pages/AdminPage.tsx` to require authentication - ✅ **COMPLETE:** Protected routes implemented using `useAdminAuth` hook
+  - [x] 6.5 Create `backend/src/server/db/schema/validation.ts` with data validation utilities (orphaned nodes, missing required relationships, data integrity checks) - ✅ **COMPLETE:** Validation utilities exist in `backend/src/server/utils/validation.ts` (not in schema folder, but functionality exists)
+  - [x] 6.6 Add validation API endpoints: `/api/admin/validate/orphans`, `/api/admin/validate/relationships`, `/api/admin/validate/integrity` - ✅ **COMPLETE:** Validation endpoints implemented (`/api/admin/validate/entity/:type/:id`, `/api/admin/validate/entity/:type`, `/api/admin/validate/relationship/:relType`, `/api/admin/validate/fix`)
+  - [x] 6.7 Create `frontend/src/components/admin/KnowledgeGraphValidator.tsx` to display validation results and issues - ✅ **COMPLETE:** Component implemented
+  - [x] 6.8 Create `frontend/src/components/admin/RelationshipValidator.tsx` to check and fix relationship issues - ✅ **COMPLETE:** Component implemented
+  - [x] 6.9 Create `frontend/src/components/admin/DataIntegrityChecker.tsx` to verify data consistency (e.g., Jingles have Fabricas, Canciones have Autores) - ✅ **COMPLETE:** Component implemented
+  - [x] 6.10 Create `backend/src/server/db/import/csvImporter.ts` utilities for CSV parsing and import - ✅ **NOT NEEDED:** CSV parsing utilities exist in `backend/src/server/db/schema/seed.ts` for seed script. CSV import via admin UI not required - one-off uploads can be performed directly in AuraDB.
+  - [x] 6.11 Add CSV import endpoint `/api/admin/import/csv` with support for all entity types - ✅ **NOT NEEDED:** CSV import via admin UI not required for MVP. Bulk import is only for initial database population via seed script or direct AuraDB upload.
+  - [x] 6.12 Create `frontend/src/components/admin/CSVImporter.tsx` interface for uploading and importing CSV files - ✅ **NOT NEEDED:** CSV import via admin UI not required for MVP.
+  - [x] 6.13 Rebuild `frontend/src/pages/admin/AdminDashboard.tsx` with barebone layout showing entity counts, validation status, and quick actions (will use RelatedEntities in Admin mode) - ✅ **COMPLETE:** Comprehensive dashboard implemented with entity creation flow, entity counts, and validation integration
+  - [x] 6.14 Update admin CRUD forms to include validation feedback - ✅ **COMPLETE:** `EntityMetadataEditor` includes validation, validation components integrated into admin pages
+  - [x] 6.15 Add bulk actions (delete multiple entities, bulk relationship creation) - ✅ **NOT NEEDED:** Bulk actions not required for MVP. Database can be accessed directly for bulk operations if needed. `BulkActions` component exists but is not a priority.
+  - [x] 6.16 Test admin workflows: login, validation, CSV import, CRUD operations - ✅ **COMPLETE:** Login, validation, and CRUD workflows tested and functional
+
+  **Architecture Notes:**
+
+  - Unified admin entity page: `/admin/:entityType/:entityId` uses `AdminEntityAnalyze` component
+  - Entity list pages: `/admin/:entityType` uses `AdminEntityList` component
+  - `RelatedEntities` component used with `isAdmin={true}` prop for immediate relationship visibility
+  - Old entity-specific pages (`AdminJingle`, `AdminFabrica`, etc.) still exist but are superseded by unified architecture
+  - CSV import: Not required via admin UI - seed script and direct AuraDB uploads are sufficient for initial data population
 
 - [ ] 7.0 UX Design and Visual Refinement (Look & Feel) (PENDING - Future Implementation)
 
@@ -239,3 +259,26 @@ This task list outlines the implementation steps for the MVP version of the Jing
   - [ ] 9.15 Verify all CSV seed data is loaded correctly
   - [ ] 9.16 Perform final user acceptance testing with target audience
   - [ ] 9.17 Prepare MVP release notes and documentation
+
+- [ ] 10.0 Database and Codebase Audit and Cleanup (PENDING - Post-MVP Maintenance)
+
+  **Purpose:** Clean up database and codebase after Admin development phase. Address data degradation that may have occurred during development/debugging, and remove legacy components and excessive logging.
+
+  - [ ] 10.1 Perform one-off CSV data upload to AuraDB
+    - [ ] 10.1.1 Format CSV files according to AuraDB import requirements (verify format matches Neo4j import format: `node-{Label}-*.csv`, `rel-{StartLabel}-{RelType}-{EndLabel}-*.csv`)
+    - [ ] 10.1.2 Prepare CSV files in `backend/src/server/db/import/` for AuraDB upload (ensure proper encoding, column headers, data types)
+    - [ ] 10.1.3 Use AuraDB import interface or Neo4j Browser to upload CSV files directly
+    - [ ] 10.1.4 Verify data import success (check entity counts, sample relationships, data integrity)
+    - [ ] 10.1.5 Document AuraDB upload process and any issues encountered for future reference
+  - [ ] 10.2 Audit database for data integrity issues (orphaned nodes, missing relationships, inconsistent data)
+  - [ ] 10.3 Run validation tools (`DataIntegrityChecker`, `KnowledgeGraphValidator`) across all entity types
+  - [ ] 10.4 Fix identified data issues (missing relationships, duplicate entities, invalid properties)
+  - [ ] 10.5 Document database cleanup procedures and findings
+  - [ ] 10.6 Identify and remove legacy admin components (old entity-specific pages: `AdminJingle`, `AdminFabrica`, `AdminArtista`, `AdminCancion`, `AdminTematica` if no longer needed)
+  - [ ] 10.7 Remove or consolidate duplicate/unused components
+  - [ ] 10.8 Audit and remove excessive logging operations (console.log statements, debug logging)
+  - [ ] 10.9 Replace debug logging with proper logging framework if needed
+  - [ ] 10.10 Clean up unused imports and dependencies
+  - [ ] 10.11 Document codebase cleanup decisions and removed components
+  - [ ] 10.12 Verify application functionality after cleanup
+  - [ ] 10.13 Update documentation to reflect cleaned codebase structure

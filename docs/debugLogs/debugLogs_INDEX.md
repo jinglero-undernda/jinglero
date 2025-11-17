@@ -44,3 +44,5 @@ In previous sessions we have addressed individual bugs in the UX/UI or backend. 
 ## BUGS FOUND
 
 [x] BUG_0001: Fabrica metadata editor hides empty configured fields (see `BUG_0001.md`)
+[ ] BUG_0002: Admin edit mode marks relationships dirty on expand (see `BUG_0002.md`)
+[x] BUG_0003: Admin page fetching wrong entity type on navigation (see `BUG_0003.md`)

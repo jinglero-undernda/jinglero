@@ -59,7 +59,7 @@ export default function AdminEntityAnalyze() {
     getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, unknown> }>;
     refresh: () => Promise<void>;
     hasUnsavedChanges: () => boolean;
-    clearUnsavedChanges: () => void;
+    clearUnsavedChanges: (options?: { commit?: boolean }) => void;
   } | null>(null);
   const metadataEditorRef = useRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> } | null>(null);
   const [pendingNavigation, setPendingNavigation] = useState<{ entityType: EntityType; entityId: string } | null>(null);
@@ -102,6 +102,9 @@ export default function AdminEntityAnalyze() {
 
     const fetchEntity = async () => {
       try {
+        // CRITICAL: Clear the entity state immediately when starting to load a new entity
+        // This prevents RelatedEntities from using stale entity data with mismatched entityType
+        setEntity(null);
         setLoading(true);
         setError(null);
 
@@ -517,8 +520,11 @@ export default function AdminEntityAnalyze() {
                       // Allow 0 as a valid value (timestamp can be 0)
                       if (propValue !== null && propValue !== undefined && propValue !== '') {
                         cleanProperties[propKey] = propValue;
-                      } else if (propValue === 0 || propValue === false) {
-                        // Explicitly allow 0 and false as valid values
+                      } else if (typeof propValue === 'number' && propValue === 0) {
+                        // Explicitly allow 0 as a valid value
+                        cleanProperties[propKey] = propValue;
+                      } else if (typeof propValue === 'boolean' && propValue === false) {
+                        // Explicitly allow false as a valid value
                         cleanProperties[propKey] = propValue;
                       }
                     });
@@ -543,7 +549,7 @@ export default function AdminEntityAnalyze() {
                   
                   // Clear unsaved changes state BEFORE refresh so the UI updates immediately
                   console.log('[AdminEntityAnalyze] Clearing unsaved changes state');
-                  relatedEntitiesRef.current.clearUnsavedChanges();
+                  relatedEntitiesRef.current.clearUnsavedChanges({ commit: true });
                   setRelationshipHasChanges(false);
                   
                   // Refresh relationships to show updated properties
@@ -610,7 +616,7 @@ export default function AdminEntityAnalyze() {
                   if (relatedEntitiesRef.current) {
                     await relatedEntitiesRef.current.refresh();
                     // Clear unsaved changes state after successful save
-                    relatedEntitiesRef.current.clearUnsavedChanges();
+                    relatedEntitiesRef.current.clearUnsavedChanges({ commit: true });
                   }
                 } catch (error) {
                   console.error('Error saving relationship properties:', error);
@@ -695,8 +701,11 @@ export default function AdminEntityAnalyze() {
                     // Allow 0 as a valid value (timestamp can be 0)
                     if (propValue !== null && propValue !== undefined && propValue !== '') {
                       cleanProperties[propKey] = propValue;
-                    } else if (propValue === 0 || propValue === false) {
-                      // Explicitly allow 0 and false as valid values
+                    } else if (typeof propValue === 'number' && propValue === 0) {
+                      // Explicitly allow 0 as a valid value
+                      cleanProperties[propKey] = propValue;
+                    } else if (typeof propValue === 'boolean' && propValue === false) {
+                      // Explicitly allow false as a valid value
                       cleanProperties[propKey] = propValue;
                     }
                   });
@@ -710,7 +719,7 @@ export default function AdminEntityAnalyze() {
                 // Refresh relationships to show updated properties
                 await relatedEntitiesRef.current.refresh();
                 // Clear unsaved changes state after successful save
-                relatedEntitiesRef.current.clearUnsavedChanges();
+                relatedEntitiesRef.current.clearUnsavedChanges({ commit: true });
                 setRelationshipHasChanges(false);
                 console.log('[AdminEntityAnalyze] UnsavedChangesModal: Save completed successfully');
               } catch (error) {

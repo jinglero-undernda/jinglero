@@ -60,6 +60,33 @@ function getRelationshipTypeForAPI(
   return mapping[currentEntityType]?.[targetEntityType] || null;
 }
 
+type RelationshipPropsMap = Record<string, Record<string, any>>;
+type TimestampMap = Record<string, { h: number; m: number; s: number }>;
+
+function cloneRelationshipPropsMap(source: RelationshipPropsMap): RelationshipPropsMap {
+  const result: RelationshipPropsMap = {};
+  Object.entries(source).forEach(([key, props]) => {
+    result[key] = { ...props };
+  });
+  return result;
+}
+
+function buildTimestampTimesFromProps(source: RelationshipPropsMap): TimestampMap {
+  const result: TimestampMap = {};
+  Object.entries(source).forEach(([key, props]) => {
+    const timestamp = props.timestamp;
+    if (timestamp !== undefined && timestamp !== null && !Number.isNaN(Number(timestamp))) {
+      const totalSeconds = Math.floor(Number(timestamp));
+      result[key] = {
+        h: Math.floor(totalSeconds / 3600),
+        m: Math.floor((totalSeconds % 3600) / 60),
+        s: totalSeconds % 60,
+      };
+    }
+  });
+  return result;
+}
+
 // State management types for useReducer
 export type RelatedEntitiesState = {
   expandedRelationships: Set<string>; // Only used in User Mode
@@ -440,7 +467,7 @@ const RelatedEntities = forwardRef<{
   getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
   refresh: () => Promise<void>;
   hasUnsavedChanges: () => boolean;
-  clearUnsavedChanges: () => void;
+  clearUnsavedChanges: (options?: { commit?: boolean }) => void;
 }, RelatedEntitiesProps>(function RelatedEntities({
   entity,
   entityType,
@@ -485,9 +512,10 @@ const RelatedEntities = forwardRef<{
   
   // State for expanded relationship properties in admin mode (key: `${entityId}-${relationshipKey}`)
   const [expandedRelationshipProps, setExpandedRelationshipProps] = useState<Set<string>>(new Set());
-  const [relationshipPropsData, setRelationshipPropsData] = useState<Record<string, Record<string, any>>>({});
+  const [relationshipPropsData, setRelationshipPropsData] = useState<RelationshipPropsMap>({});
+  const [relationshipPropsInitialData, setRelationshipPropsInitialData] = useState<RelationshipPropsMap>({});
   // State for timestamp editing (HH, MM, SS) - key: `${entityId}-${relationshipKey}`
-  const [timestampTimes, setTimestampTimes] = useState<Record<string, { h: number; m: number; s: number }>>({});
+  const [timestampTimes, setTimestampTimes] = useState<TimestampMap>({});
   
   // Phase 6: State for delete relationship modal
   const [deleteModalState, setDeleteModalState] = useState<{
@@ -1031,7 +1059,72 @@ const RelatedEntities = forwardRef<{
     }
   }, [deleteModalState, entity, entityType, refresh, showToast]);
 
-  // Create relationship properties getter function
+  // (getRelationshipProperties moved below dirty-state helpers)
+
+  // Populate cache with initial relationship data to avoid unnecessary fetches
+  useEffect(() => {
+    if (entity?.id && Object.keys(processedInitialData.loadedData).length > 0) {
+      relationships.forEach((rel) => {
+        const key = getRelationshipKey(rel);
+        const initialData = processedInitialData.loadedData[key];
+        if (initialData && initialData.length > 0) {
+          const cacheKey = `${entity.id}-${entityType}-${key}`;
+          requestCacheRef.current[cacheKey] = initialData;
+        }
+      });
+    }
+  }, [entity?.id, entityType, relationships, processedInitialData.loadedData, getRelationshipKey]);
+
+  // Task 5.4: Check for unsaved changes in relationships
+  // Tracks: relationship property edits, pending timestamp edits, selected entities in blank rows
+  const arePropsEqual = useCallback((a: Record<string, any> | undefined, b: Record<string, any> | undefined) => {
+    const aEntries = Object.entries(a || {});
+    const bEntries = Object.entries(b || {});
+    
+    if (aEntries.length !== bEntries.length) {
+      return false;
+    }
+    
+    for (const [key, value] of aEntries) {
+      const other = b ? b[key] : undefined;
+      if (value !== other) {
+        return false;
+      }
+    }
+    
+    return true;
+  }, []);
+  
+  const isRelationshipPropsDirty = useCallback((key: string) => {
+    const currentProps = relationshipPropsData[key];
+    if (!currentProps) {
+      return false;
+    }
+    const initialProps = relationshipPropsInitialData[key];
+    if (!initialProps) {
+      return Object.values(currentProps).some(
+        (value) => value !== null && value !== undefined && value !== ''
+      );
+    }
+    return !arePropsEqual(initialProps, currentProps);
+  }, [relationshipPropsData, relationshipPropsInitialData, arePropsEqual]);
+  
+  const hasUnsavedChanges = useCallback(() => {
+    // Check for pending relationship property edits (only count diffs vs initial data)
+    const hasDirtyRelationshipProps = Object.keys(relationshipPropsData).some(isRelationshipPropsDirty);
+    if (hasDirtyRelationshipProps) {
+      return true;
+    }
+    
+    // Check for selected entity in blank row (pending relationship creation)
+    if (selectedEntityForRelationship !== null) {
+      return true;
+    }
+    
+    return false;
+  }, [relationshipPropsData, selectedEntityForRelationship, isRelationshipPropsDirty]);
+
+  // Create relationship properties getter function (only returns dirty entries)
   const getRelationshipProperties = useCallback(() => {
     const result: Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> = {};
     
@@ -1043,24 +1136,21 @@ const RelatedEntities = forwardRef<{
     });
     
     Object.entries(relationshipPropsData).forEach(([key, props]) => {
+      if (!isRelationshipPropsDirty(key)) {
+        return;
+      }
       console.log(`[RelatedEntities] Processing key: ${key}, props:`, props);
       
       // Extract entityId and relationshipKey from key format: `${entityId}-${relationshipKey}`
-      // Since entity IDs can contain dashes (e.g., "2LbnV-Wss4g"), we need to match from the end
-      // Relationship keys are always in format: `${label}-${entityType}` (e.g., "Fabrica-fabrica")
-      
       let relatedEntityId: string | null = null;
       let relationshipKey: string | null = null;
       let rel: RelationshipConfig | undefined = undefined;
       
-      // Try to find a matching relationship key by checking if the key ends with any relationship key
       for (const relConfig of relationships) {
         const relKey = getRelationshipKey(relConfig);
-        // Check if key ends with the relationship key (preceded by a dash)
         if (key.endsWith(`-${relKey}`)) {
           relationshipKey = relKey;
           rel = relConfig;
-          // Extract entity ID by removing the relationship key and the preceding dash
           relatedEntityId = key.slice(0, -(relKey.length + 1));
           console.log(`[RelatedEntities] Matched relationship key: ${relKey}, extracted entityId: ${relatedEntityId}`);
           break;
@@ -1081,23 +1171,18 @@ const RelatedEntities = forwardRef<{
           let endId: string;
           
           if (relType === 'appears_in') {
-            // Jingle -> Fabrica
             startId = entityType === 'jingle' ? entity.id : relatedEntityId;
             endId = entityType === 'jingle' ? relatedEntityId : entity.id;
           } else if (relType === 'versiona') {
-            // Jingle -> Cancion
             startId = entityType === 'jingle' ? entity.id : relatedEntityId;
             endId = entityType === 'jingle' ? relatedEntityId : entity.id;
           } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-            // Artista -> Jingle/Cancion
             startId = entityType === 'artista' ? entity.id : relatedEntityId;
             endId = entityType === 'artista' ? relatedEntityId : entity.id;
           } else if (relType === 'tagged_with') {
-            // Jingle -> Tematica
             startId = entityType === 'jingle' ? entity.id : relatedEntityId;
             endId = entityType === 'jingle' ? relatedEntityId : entity.id;
           } else {
-            // Default: current entity is start, related entity is end
             startId = entity.id;
             endId = relatedEntityId;
           }
@@ -1124,42 +1209,7 @@ const RelatedEntities = forwardRef<{
     
     console.log('[RelatedEntities] getRelationshipProperties result:', result);
     return result;
-  }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey]);
-
-  // Populate cache with initial relationship data to avoid unnecessary fetches
-  useEffect(() => {
-    if (entity?.id && Object.keys(processedInitialData.loadedData).length > 0) {
-      relationships.forEach((rel) => {
-        const key = getRelationshipKey(rel);
-        const initialData = processedInitialData.loadedData[key];
-        if (initialData && initialData.length > 0) {
-          const cacheKey = `${entity.id}-${entityType}-${key}`;
-          requestCacheRef.current[cacheKey] = initialData;
-        }
-      });
-    }
-  }, [entity?.id, entityType, relationships, processedInitialData.loadedData, getRelationshipKey]);
-
-  // Task 5.4: Check for unsaved changes in relationships
-  // Tracks: relationship property edits, pending timestamp edits, selected entities in blank rows
-  const hasUnsavedChanges = useCallback(() => {
-    // Check for pending relationship property edits
-    if (Object.keys(relationshipPropsData).length > 0) {
-      return true;
-    }
-    
-    // Check for pending timestamp edits
-    if (Object.keys(timestampTimes).length > 0) {
-      return true;
-    }
-    
-    // Check for selected entity in blank row (pending relationship creation)
-    if (selectedEntityForRelationship !== null) {
-      return true;
-    }
-    
-    return false;
-  }, [relationshipPropsData, timestampTimes, selectedEntityForRelationship]);
+  }, [relationshipPropsData, relationships, entity, entityType, getRelationshipKey, isRelationshipPropsDirty]);
 
   // Notify parent when relationship changes occur, but only if we're actually in editing mode
   // This prevents false positives when entering edit mode
@@ -1171,25 +1221,33 @@ const RelatedEntities = forwardRef<{
       // When not editing, explicitly notify parent that there are no changes
       onChange(false);
     }
-  }, [relationshipPropsData, timestampTimes, selectedEntityForRelationship, hasUnsavedChanges, onChange, isEditing]);
+  }, [relationshipPropsData, selectedEntityForRelationship, hasUnsavedChanges, onChange, isEditing]);
 
-  // Clear all unsaved relationship changes (called after successful save)
-  const clearUnsavedChanges = useCallback(() => {
-    console.log('[RelatedEntities] clearUnsavedChanges called');
-    // Clear the relationship props data - this will trigger re-fetch for expanded relationships
-    // The component will re-fetch properties when it detects relationshipPropsData is empty
-    // but expandedRelationshipProps still has the key
-    setRelationshipPropsData({});
-    setTimestampTimes({});
+  // Clear all unsaved relationship changes (called after save or cancel)
+  const clearUnsavedChanges = useCallback((options?: { commit?: boolean }) => {
+    const commit = options?.commit ?? false;
+    console.log('[RelatedEntities] clearUnsavedChanges called', { commit });
+    
+    if (commit) {
+      const committedSnapshot = cloneRelationshipPropsMap(relationshipPropsData);
+      setRelationshipPropsInitialData(committedSnapshot);
+      setRelationshipPropsData(committedSnapshot);
+      // Retain timestampTimes since they already reflect the committed values
+    } else {
+      const baselineSnapshot = cloneRelationshipPropsMap(relationshipPropsInitialData);
+      setRelationshipPropsData(baselineSnapshot);
+      setTimestampTimes(buildTimestampTimesFromProps(relationshipPropsInitialData));
+    }
+    
     setSelectedEntityForRelationship(null);
+    
     // Explicitly notify parent that there are no changes after clearing
-    // This ensures the Guardar button deactivates immediately
     if (onChange) {
       onChange(false);
     }
     // Note: We don't clear expandedRelationshipProps here because we want the properties
-    // panel to stay expanded and re-fetch the updated properties
-  }, [onChange]);
+    // panel to stay expanded
+  }, [relationshipPropsData, relationshipPropsInitialData, onChange]);
 
   // Expose getter, refresh, hasUnsavedChanges, and clearUnsavedChanges to parent via ref
   useImperativeHandle(ref, () => ({
@@ -1215,6 +1273,24 @@ const RelatedEntities = forwardRef<{
   // Auto-load first level relationships on mount when expanded
   useEffect(() => {
     if (entityPath.length <= 1 && entity?.id) {
+      // CRITICAL: Validate that entity.id matches entityType to prevent race conditions
+      // during navigation where entityType might change before entity state is updated
+      const detectedType = entity.id.startsWith('JIN-') ? 'jingle' 
+        : entity.id.startsWith('CAN-') ? 'cancion'
+        : entity.id.startsWith('ART-') ? 'artista'
+        : entity.id.startsWith('TEM-') ? 'tematica'
+        : 'fabrica'; // No prefix = Fabrica (YouTube ID)
+      
+      if (detectedType !== entityType) {
+        console.warn('[RelatedEntities] Entity ID/Type mismatch detected, skipping load:', {
+          entityId: entity.id,
+          detectedType,
+          expectedType: entityType,
+          entityPath,
+        });
+        return; // Skip loading relationships until entity and entityType are synchronized
+      }
+      
       // This is the top level - auto-load all relationships that are expanded
       const loadRelationships = async () => {
         for (const rel of relationships) {
@@ -1880,9 +1956,14 @@ const RelatedEntities = forwardRef<{
                                       }
                                     }
                                     
+                                    const propsCopy = { ...props };
                                     setRelationshipPropsData(prev => ({
                                       ...prev,
-                                      [relationshipPropsKey]: props,
+                                      [relationshipPropsKey]: propsCopy,
+                                    }));
+                                    setRelationshipPropsInitialData(prev => ({
+                                      ...prev,
+                                      [relationshipPropsKey]: propsCopy,
                                     }));
                                     
                                     // Initialize timestamp time

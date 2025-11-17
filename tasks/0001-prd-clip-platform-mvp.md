@@ -73,10 +73,18 @@ The absolute minimum features required to launch the MVP:
 ### 4. Admin Content Management (CORE)
 
 - Basic CRUD interface for all entity types (Fabrica, Jingle, Cancion, Artista, Tematica) and relationships
-- CSV import for initial data seeding
+- CSV import for initial data seeding (via seed script or direct AuraDB upload - not via admin UI)
 - Password-protected admin route
 
-**Current Status:** Basic Admin CRUD pages and forms exist (`AdminJingle`, `AdminFabrica`, `AdminArtista`, `AdminCancion`, `AdminTematica`, `AdminHome`, `AdminEntityAnalyze` with `EntityForm`, `EntityList`, `RelationshipForm`). Password protection, validation tools, and CSV import are pending future implementation. The rebuild will leverage `RelatedEntities` component in Admin mode (already supports `isAdmin` prop).
+**Current Status:** 
+- ✅ **Authentication:** JWT-based password protection implemented (`AdminLogin.tsx`, `/api/admin/login`, protected routes via `useAdminAuth` hook)
+- ✅ **Unified Admin Architecture:** Single unified entity page (`AdminEntityAnalyze.tsx`) at `/admin/:entityType/:entityId` route, entity list pages (`AdminEntityList.tsx`) at `/admin/:entityType`, comprehensive dashboard (`AdminDashboard.tsx`) with entity creation flow
+- ✅ **CRUD Operations:** Full CRUD API endpoints for all entity types and relationships (`/api/admin/:type`, `/api/admin/relationships/:relType`)
+- ✅ **Entity Management:** `EntityMetadataEditor` component for editing entity properties, `EntityList` for listing entities, `EntitySearchAutocomplete` for searching/creating entities
+- ✅ **Relationship Management:** `RelatedEntities` component used with `isAdmin={true}` prop for immediate relationship visibility and management
+- ✅ **Validation Tools:** `KnowledgeGraphValidator`, `DataIntegrityChecker`, and `RelationshipValidator` components implemented with backend validation API endpoints (`/api/admin/validate/*`)
+- ⚠️ **Legacy Pages:** Old entity-specific admin pages (`AdminJingle`, `AdminFabrica`, `AdminArtista`, `AdminCancion`, `AdminTematica`) still exist but are superseded by unified `AdminEntityAnalyze` page
+- ✅ **CSV Import:** CSV files exist in `backend/src/server/db/import/` and parsing utilities exist in `seed.ts` for initial data seeding. CSV import via admin UI is not required for MVP - one-off uploads can be performed directly in AuraDB. Bulk import is only for initial database population, not a core long-term feature.
 
 ### MVP Success Criteria
 

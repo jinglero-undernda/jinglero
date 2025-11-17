@@ -200,6 +200,200 @@ This document describes the public and admin API endpoints for Jinglero. All res
 
 ## Admin API
 
+### ID Format Specification
+
+All entities use a standardized ID format for consistency and brevity:
+
+**Format**: `{prefix}{8-char-alphanumeric}`
+
+- **Single-character prefix** identifies entity type:
+
+  - `j` - Jingle (e.g., `j1a2b3c4`)
+  - `c` - Cancion (e.g., `c5d6e7f8`)
+  - `a` - Artista (e.g., `a9g0h1i2`)
+  - `t` - Tematica (e.g., `t3j4k5l6`)
+  - `u` - Usuario (e.g., `u7m8n9o0`)
+
+- **8-character alphanumeric** string uses base36 encoding (0-9, a-z)
+- IDs are **case-insensitive** for compatibility
+- IDs are **globally unique** with collision detection
+- **Total length**: 9 characters (1 prefix + 8 alphanumeric)
+
+**Special Case - Fabrica IDs**:
+
+- Fabricas use **external YouTube video IDs** (11 characters)
+- Example: `DBbyI99TtIM`, `0hmxZPp0xq0`
+- These IDs are **NOT** modified by the system
+
+**Auto-Generation**:
+
+- When creating entities via POST, the `id` field is **optional**
+- If omitted, the system auto-generates a unique ID following the format above
+- Custom IDs can be provided but must follow the format specification
+- Collision detection ensures uniqueness with up to 10 retry attempts
+
+**Examples**:
+
+```json
+{
+  "jingle": { "id": "j1a2b3c4", "title": "My Jingle" },
+  "cancion": { "id": "c5d6e7f8", "title": "Original Song" },
+  "artista": { "id": "a9g0h1i2", "stageName": "Artist Name" },
+  "fabrica": { "id": "DBbyI99TtIM", "title": "YouTube Video" }
+}
+```
+
+### Redundant Properties (Denormalized Data)
+
+For performance optimization, certain frequently-accessed relationships are also stored as **redundant properties** directly on entity nodes. These properties are **automatically managed** by the system and should be treated as **read-only** in most cases.
+
+**Purpose**:
+
+- Improve read performance by avoiding expensive relationship traversals
+- Simplify common queries and reduce query complexity
+- Enable faster filtering and sorting operations
+
+**Maintenance Rules**:
+
+1. **Relationships are the source of truth** - redundant properties reflect relationship state
+2. **Auto-sync on CRUD operations** - system automatically updates redundant properties when relationships change
+3. **Auto-fix on validation** - validation endpoints detect and correct any discrepancies
+4. **Transactional consistency** - all updates occur within database transactions
+
+**Redundant Properties by Entity**:
+
+#### Jingle
+
+- **`fabricaId`** (string | null)
+
+  - Reflects the Fabrica ID from the `APPEARS_IN` relationship
+  - Updated automatically when `APPEARS_IN` relationships are created/deleted
+  - If multiple Fabricas, stores the most recent by `fabricaDate`
+  - Set to `null` if no `APPEARS_IN` relationships exist
+
+- **`fabricaDate`** (Date | null)
+
+  - The date of the Fabrica referenced by `fabricaId`
+  - Used to select the "primary" Fabrica when multiple relationships exist
+  - Updated automatically with `fabricaId`
+
+- **`cancionId`** (string | null)
+  - Reflects the Cancion ID from the `VERSIONA` relationship
+  - Updated automatically when `VERSIONA` relationships are created/deleted
+  - If multiple Canciones, stores the first one found
+  - Set to `null` if no `VERSIONA` relationships exist
+
+#### Cancion
+
+- **`autorIds`** (string[] | null)
+  - Reflects all Artista IDs from `AUTOR_DE` relationships
+  - Array of author IDs in no particular order
+  - Updated automatically when `AUTOR_DE` relationships are created/deleted
+  - Set to `null` or empty array if no `AUTOR_DE` relationships exist
+
+**API Behavior**:
+
+When **creating** or **updating** entities via POST/PUT/PATCH:
+
+- You **MAY** provide redundant properties in the payload
+- If provided, the system will **auto-create** corresponding relationships (if they don't exist)
+- If relationships already exist, they take precedence over the provided redundant properties
+- After creation/update, the system validates and auto-fixes any discrepancies
+
+Example - Creating a Jingle with redundant properties:
+
+```json
+POST /api/admin/jingle
+{
+  "title": "My Jingle",
+  "fabricaId": "DBbyI99TtIM",
+  "cancionId": "c5d6e7f8"
+}
+```
+
+→ System auto-creates `APPEARS_IN` relationship to Fabrica `DBbyI99TtIM`
+→ System auto-creates `VERSIONA` relationship to Cancion `c5d6e7f8`
+→ Both redundant properties are stored on the Jingle node
+
+**Validation**:
+
+- Use `POST /api/admin/validate/:entityType/:entityId` to check consistency
+- System reports any `redundant_field_mismatch` issues
+- Use `POST /api/admin/validate/:entityType/:entityId/fix?issueType=redundant_field_mismatch` to auto-fix
+- Fixes are applied automatically after CRUD operations
+
+### APPEARS_IN Order Management
+
+The `APPEARS_IN` relationship (Jingle → Fabrica) includes special properties for managing the sequence of Jingles within a Fabrica:
+
+**Properties**:
+
+- **`timestamp`** (string): HH:MM:SS format (e.g., "00:02:50")
+  - Represents when the Jingle appears in the video
+  - Used as the basis for calculating `order`
+  - Defaults to "00:00:00" if not provided
+- **`order`** (number): Sequential integer (1, 2, 3, ...)
+  - **READ-ONLY, system-managed**
+  - Automatically calculated based on `timestamp` sorting
+  - Recalculated whenever `APPEARS_IN` relationships are created, updated, or deleted
+  - Provides a stable, sequential ordering even when timestamps are not perfectly sequential
+
+**Auto-Calculation Behavior**:
+
+1. **On relationship creation** (POST `/api/admin/relationships/APPEARS_IN`):
+
+   - If `timestamp` is omitted, defaults to "00:00:00"
+   - System immediately recalculates all `order` values for that Fabrica
+   - Orders are assigned sequentially based on timestamp sort (ascending)
+
+2. **On relationship update** (PUT `/api/admin/relationships/APPEARS_IN`):
+
+   - If `timestamp` is changed, system recalculates all `order` values
+   - If `timestamp` is unchanged, `order` remains stable
+   - **Note**: Do NOT attempt to set `order` manually - it will be ignored
+
+3. **On relationship deletion** (DELETE `/api/admin/relationships/APPEARS_IN`):
+   - System recalculates `order` for remaining Jingles in that Fabrica
+   - Orders are re-sequenced to fill gaps (e.g., 1, 3, 4 becomes 1, 2, 3)
+
+**Timestamp Conflict Handling**:
+
+- If multiple Jingles have the **same timestamp** in a Fabrica, system logs a warning
+- Orders are still assigned sequentially, but the specific ordering is undefined
+- **Best practice**: Ensure unique timestamps or offset by 1 second
+
+**Example Workflow**:
+
+```json
+# Step 1: Create first APPEARS_IN
+POST /api/admin/relationships/APPEARS_IN
+{ "start": "j1a2b3c4", "end": "DBbyI99TtIM", "timestamp": "00:05:30" }
+→ order = 1
+
+# Step 2: Create second APPEARS_IN with earlier timestamp
+POST /api/admin/relationships/APPEARS_IN
+{ "start": "j5e6f7g8", "end": "DBbyI99TtIM", "timestamp": "00:02:15" }
+→ order = 1 (j5e6f7g8)
+→ order = 2 (j1a2b3c4) [recalculated]
+
+# Step 3: Update timestamp of first Jingle
+PUT /api/admin/relationships/APPEARS_IN
+{ "start": "j1a2b3c4", "end": "DBbyI99TtIM", "timestamp": "00:01:00" }
+→ order = 1 (j1a2b3c4) [recalculated]
+→ order = 2 (j5e6f7g8) [recalculated]
+
+# Step 4: Delete a Jingle
+DELETE /api/admin/relationships/APPEARS_IN
+{ "start": "j5e6f7g8", "end": "DBbyI99TtIM" }
+→ order = 1 (j1a2b3c4) [recalculated, no gap]
+```
+
+**Querying**:
+
+- Use `GET /api/public/fabricas/:id/jingles` to get Jingles ordered by `order` property
+- Each Jingle includes both `timestamp` and `order` in the response
+- `order` provides a stable sort key even if timestamps are edited
+
 ### Schema
 
 - GET `/api/admin/schema`

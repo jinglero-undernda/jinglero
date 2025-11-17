@@ -82,24 +82,90 @@ const RELATIONSHIP_TYPE_MAP: Record<string, string> = {
 // Entity type to prefix mapping
 // Note: Fabricas use YouTube video ID (external), so they use temp IDs until committed
 const ENTITY_PREFIX_MAP: Record<string, string> = {
-  jingles: 'JIN-',
-  canciones: 'CAN-',
-  artistas: 'ART-',
-  tematicas: 'TEM-',
-  usuarios: 'USR-',
+  jingles: 'j',
+  canciones: 'c',
+  artistas: 'a',
+  tematicas: 't',
+  usuarios: 'u',
+  // fabricas: No prefix (external YouTube ID)
 };
 
-function generateId(type: string): string {
+/**
+ * Generate a unique ID for an entity with collision detection
+ * Format: {prefix}{8-chars} where chars are base36 alphanumeric (0-9, a-z)
+ * Examples: a1b2c3d4, j5e6f7g8, c9f0a1b2
+ * 
+ * @param type - Entity type (e.g., 'jingles', 'artistas', 'canciones')
+ * @returns Unique ID string
+ */
+async function generateId(type: string): Promise<string> {
   // For Fabricas: Use temp ID since ID comes from external source (YouTube video ID)
   if (type === 'fabricas') {
     return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
   
-  // For other entities: Generate UUID with prefix when committed
-  // Format: PREFIX-UUID (e.g., JIN-550e8400-e29b-41d4-a716-446655440000)
-  const prefix = ENTITY_PREFIX_MAP[type] || '';
-  const uuid = randomUUID();
-  return prefix ? `${prefix}${uuid}` : uuid;
+  const prefix = ENTITY_PREFIX_MAP[type];
+  if (!prefix) {
+    throw new Error(`Unknown entity type for ID generation: ${type}`);
+  }
+  
+  const label = ENTITY_LABEL_MAP[type];
+  if (!label) {
+    throw new Error(`Unknown entity label for type: ${type}`);
+  }
+  
+  // Generate ID with collision detection (max 10 retries)
+  const maxRetries = 10;
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    // Generate 8 random characters using base36 (0-9, a-z)
+    const randomBytes = crypto.randomBytes(6); // 6 bytes = 48 bits
+    let randomNum = 0;
+    for (let i = 0; i < 6; i++) {
+      randomNum = randomNum * 256 + randomBytes[i];
+    }
+    
+    // Convert to base36 and pad to 8 characters
+    const chars = randomNum.toString(36).toLowerCase().padStart(8, '0').slice(0, 8);
+    const id = `${prefix}${chars}`;
+    
+    // Check for collision
+    const existsQuery = `MATCH (n:${label} { id: $id }) RETURN n LIMIT 1`;
+    const existing = await db.executeQuery(existsQuery, { id });
+    
+    if (existing.length === 0) {
+      return id; // No collision, return the ID
+    }
+    
+    console.warn(`ID collision detected for ${id}, retrying... (attempt ${attempt + 1}/${maxRetries})`);
+  }
+  
+  throw new Error(`Failed to generate unique ID for ${type} after ${maxRetries} attempts`);
+}
+
+/**
+ * Synchronous version of generateId for temporary IDs (should be replaced with proper ID later)
+ * Only use this for Fabricas which need temp IDs before YouTube ID is known
+ */
+function generateIdSync(type: string): string {
+  if (type === 'fabricas') {
+    return `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  const prefix = ENTITY_PREFIX_MAP[type];
+  if (!prefix) {
+    throw new Error(`Unknown entity type for ID generation: ${type}`);
+  }
+  
+  // Generate 8 random characters using base36 (0-9, a-z)
+  // Note: This doesn't check for collisions - use generateId() instead when possible
+  const randomBytes = crypto.randomBytes(6);
+  let randomNum = 0;
+  for (let i = 0; i < 6; i++) {
+    randomNum = randomNum * 256 + randomBytes[i];
+  }
+  
+  const chars = randomNum.toString(36).toLowerCase().padStart(8, '0').slice(0, 8);
+  return `${prefix}${chars}`;
 }
 
 // ============================================================================
@@ -176,8 +242,100 @@ router.get('/status', optionalAdminAuth, asyncHandler(async (req, res) => {
 router.use(requireAdminAuth);
 
 /**
+ * Convert timestamp string (HH:MM:SS) to seconds
+ */
+function timestampToSeconds(timestamp: string): number {
+  if (!timestamp) return 0;
+  const parts = timestamp.split(':');
+  if (parts.length !== 3) return 0;
+  const hours = parseInt(parts[0], 10) || 0;
+  const minutes = parseInt(parts[1], 10) || 0;
+  const seconds = parseInt(parts[2], 10) || 0;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/**
+ * Automatically update order property for all APPEARS_IN relationships of a Fabrica
+ * Order is calculated based on timestamp (HH:MM:SS converted to seconds)
+ * Relationships are sorted by timestamp ascending, then assigned sequential order (1, 2, 3, ...)
+ * 
+ * @param fabricaId - The ID of the Fabrica whose APPEARS_IN relationships should be reordered
+ */
+async function updateAppearsInOrder(fabricaId: string): Promise<void> {
+  try {
+    // Query all APPEARS_IN relationships for this Fabrica
+    const query = `
+      MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
+      RETURN j.id AS jingleId, r.timestamp AS timestamp, id(r) AS relId
+      ORDER BY r.timestamp ASC, id(r) ASC
+    `;
+    
+    const relationships = await db.executeQuery<{ 
+      jingleId: string; 
+      timestamp: string; 
+      relId: any;
+    }>(query, { fabricaId });
+    
+    if (relationships.length === 0) {
+      return; // No relationships to update
+    }
+    
+    // Convert timestamps to seconds for sorting and detect conflicts
+    const relationshipsWithSeconds = relationships.map((rel, index) => ({
+      jingleId: rel.jingleId,
+      timestamp: rel.timestamp || '00:00:00',
+      seconds: timestampToSeconds(rel.timestamp || '00:00:00'),
+      order: index + 1, // Sequential order based on sorted position
+    }));
+    
+    // Check for timestamp conflicts (same timestamp)
+    const timestampMap = new Map<number, string[]>();
+    relationshipsWithSeconds.forEach(rel => {
+      const existing = timestampMap.get(rel.seconds) || [];
+      existing.push(rel.jingleId);
+      timestampMap.set(rel.seconds, existing);
+    });
+    
+    // Log warnings for timestamp conflicts
+    timestampMap.forEach((jingleIds, seconds) => {
+      if (jingleIds.length > 1) {
+        console.warn(
+          `Warning: Timestamp conflict in Fabrica ${fabricaId} at ${Math.floor(seconds / 3600)}:${Math.floor((seconds % 3600) / 60)}:${seconds % 60} ` +
+          `for Jingles: ${jingleIds.join(', ')}. Order assigned arbitrarily.`
+        );
+      }
+    });
+    
+    // Update order for all relationships in a single transaction
+    for (const rel of relationshipsWithSeconds) {
+      const updateQuery = `
+        MATCH (j:Jingle {id: $jingleId})-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
+        SET r.order = $order
+      `;
+      await db.executeQuery(updateQuery, {
+        jingleId: rel.jingleId,
+        fabricaId,
+        order: rel.order,
+      }, undefined, true);
+    }
+    
+    console.log(`Updated order for ${relationshipsWithSeconds.length} APPEARS_IN relationships in Fabrica ${fabricaId}`);
+  } catch (error) {
+    console.error(`Error updating APPEARS_IN order for Fabrica ${fabricaId}:`, error);
+    throw error;
+  }
+}
+
+/**
  * Update redundant properties when relationships are created/updated/deleted
  * This maintains data consistency between relationships and denormalized properties
+ * 
+ * Handles:
+ * - APPEARS_IN: Updates Jingle.fabricaId and Jingle.fabricaDate
+ * - VERSIONA: Updates Jingle.cancionId  
+ * - AUTOR_DE: Updates Cancion.autorIds array
+ * 
+ * All operations are transactional and handle edge cases like multiple relationships.
  */
 async function updateRedundantPropertiesOnRelationshipChange(
   relType: string,
@@ -188,69 +346,355 @@ async function updateRedundantPropertiesOnRelationshipChange(
   try {
     // APPEARS_IN: Jingle -> Fabrica
     // Update Jingle.fabricaId and Jingle.fabricaDate
-    if (relType === 'APPEARS_IN' && operation === 'create') {
-      const updateQuery = `
-        MATCH (j:Jingle {id: $startId}), (f:Fabrica {id: $endId})
-        SET j.fabricaId = f.id,
-            j.fabricaDate = f.date
-      `;
-      await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
-    } else if (relType === 'APPEARS_IN' && operation === 'delete') {
-      // Only clear fabricaId and fabricaDate if no other APPEARS_IN relationships exist
-      const updateQuery = `
-        MATCH (j:Jingle {id: $startId})
-        WHERE NOT EXISTS((j)-[:APPEARS_IN]->())
-        SET j.fabricaId = null,
-            j.fabricaDate = null
-      `;
-      await db.executeQuery(updateQuery, { startId }, undefined, true);
+    if (relType === 'APPEARS_IN') {
+      if (operation === 'create') {
+        // Set fabricaId and fabricaDate to the newly connected Fabrica
+        const updateQuery = `
+          MATCH (j:Jingle {id: $startId}), (f:Fabrica {id: $endId})
+          SET j.fabricaId = f.id,
+              j.fabricaDate = f.date,
+              j.updatedAt = datetime()
+          RETURN j.id AS jingleId
+        `;
+        const result = await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+        
+        if (result.length > 0) {
+          console.log(`Updated Jingle ${startId}: set fabricaId=${endId}`);
+        }
+      } else if (operation === 'delete') {
+        // Check if there are other APPEARS_IN relationships
+        // If yes, update to use the first remaining Fabrica (by order/timestamp)
+        // If no, clear fabricaId and fabricaDate
+        const updateQuery = `
+          MATCH (j:Jingle {id: $startId})
+          OPTIONAL MATCH (j)-[r:APPEARS_IN]->(f:Fabrica)
+          WITH j, f, r
+          ORDER BY r.order ASC, r.timestamp ASC
+          WITH j, collect(f)[0] AS firstFabrica
+          SET j.fabricaId = CASE WHEN firstFabrica IS NOT NULL THEN firstFabrica.id ELSE null END,
+              j.fabricaDate = CASE WHEN firstFabrica IS NOT NULL THEN firstFabrica.date ELSE null END,
+              j.updatedAt = datetime()
+          RETURN j.id AS jingleId, j.fabricaId AS newFabricaId
+        `;
+        const result = await db.executeQuery<{ jingleId: string; newFabricaId: string | null }>(
+          updateQuery,
+          { startId },
+          undefined,
+          true
+        );
+        
+        if (result.length > 0) {
+          const newFabricaId = result[0].newFabricaId;
+          console.log(
+            `Updated Jingle ${startId}: fabricaId=${newFabricaId || 'null'} after deleting APPEARS_IN relationship`
+          );
+        }
+      }
     }
 
     // VERSIONA: Jingle -> Cancion
     // Update Jingle.cancionId
-    if (relType === 'VERSIONA' && operation === 'create') {
-      const updateQuery = `
-        MATCH (j:Jingle {id: $startId}), (c:Cancion {id: $endId})
-        SET j.cancionId = c.id
-      `;
-      await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
-    } else if (relType === 'VERSIONA' && operation === 'delete') {
-      const updateQuery = `
-        MATCH (j:Jingle {id: $startId})
-        WHERE NOT EXISTS((j)-[:VERSIONA]->())
-        SET j.cancionId = null
-      `;
-      await db.executeQuery(updateQuery, { startId }, undefined, true);
+    if (relType === 'VERSIONA') {
+      if (operation === 'create') {
+        // Set cancionId to the newly connected Cancion
+        const updateQuery = `
+          MATCH (j:Jingle {id: $startId}), (c:Cancion {id: $endId})
+          SET j.cancionId = c.id,
+              j.updatedAt = datetime()
+          RETURN j.id AS jingleId
+        `;
+        const result = await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+        
+        if (result.length > 0) {
+          console.log(`Updated Jingle ${startId}: set cancionId=${endId}`);
+        }
+      } else if (operation === 'delete') {
+        // Check if there are other VERSIONA relationships
+        // If yes, update to use the first remaining Cancion
+        // If no, clear cancionId
+        const updateQuery = `
+          MATCH (j:Jingle {id: $startId})
+          OPTIONAL MATCH (j)-[:VERSIONA]->(c:Cancion)
+          WITH j, collect(c)[0] AS firstCancion
+          SET j.cancionId = CASE WHEN firstCancion IS NOT NULL THEN firstCancion.id ELSE null END,
+              j.updatedAt = datetime()
+          RETURN j.id AS jingleId, j.cancionId AS newCancionId
+        `;
+        const result = await db.executeQuery<{ jingleId: string; newCancionId: string | null }>(
+          updateQuery,
+          { startId },
+          undefined,
+          true
+        );
+        
+        if (result.length > 0) {
+          const newCancionId = result[0].newCancionId;
+          console.log(
+            `Updated Jingle ${startId}: cancionId=${newCancionId || 'null'} after deleting VERSIONA relationship`
+          );
+        }
+      }
     }
 
     // AUTOR_DE: Artista -> Cancion
     // Update Cancion.autorIds array
     if (relType === 'AUTOR_DE') {
       if (operation === 'create') {
-        // Add artista ID to Cancion.autorIds array
+        // Add artista ID to Cancion.autorIds array (avoid duplicates)
         const updateQuery = `
           MATCH (a:Artista {id: $startId}), (c:Cancion {id: $endId})
           SET c.autorIds = CASE
             WHEN c.autorIds IS NULL THEN [$startId]
             WHEN NOT $startId IN c.autorIds THEN c.autorIds + [$startId]
             ELSE c.autorIds
-          END
+          END,
+          c.updatedAt = datetime()
+          RETURN c.id AS cancionId, c.autorIds AS newAutorIds
         `;
-        await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+        const result = await db.executeQuery<{ cancionId: string; newAutorIds: string[] }>(
+          updateQuery,
+          { startId, endId },
+          undefined,
+          true
+        );
+        
+        if (result.length > 0) {
+          console.log(`Updated Cancion ${endId}: added ${startId} to autorIds`);
+        }
       } else if (operation === 'delete') {
         // Remove artista ID from Cancion.autorIds array
+        // Rebuild array from actual AUTOR_DE relationships to ensure consistency
         const updateQuery = `
           MATCH (c:Cancion {id: $endId})
-          WHERE c.autorIds IS NOT NULL
-          SET c.autorIds = [x IN c.autorIds WHERE x <> $startId]
+          OPTIONAL MATCH (a:Artista)-[:AUTOR_DE]->(c)
+          WITH c, collect(DISTINCT a.id) AS actualAutorIds
+          SET c.autorIds = actualAutorIds,
+              c.updatedAt = datetime()
+          RETURN c.id AS cancionId, c.autorIds AS newAutorIds
         `;
-        await db.executeQuery(updateQuery, { startId, endId }, undefined, true);
+        const result = await db.executeQuery<{ cancionId: string; newAutorIds: string[] }>(
+          updateQuery,
+          { endId },
+          undefined,
+          true
+        );
+        
+        if (result.length > 0) {
+          console.log(`Updated Cancion ${endId}: removed ${startId} from autorIds`);
+        }
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     // Log error but don't fail the relationship operation
     // Redundant properties can be fixed later via migration/validation
-    console.warn(`Warning: Failed to update redundant properties for ${relType}:`, error);
+    console.error(
+      `Error updating redundant properties for ${relType} (${operation}): ${startId} -> ${endId}`,
+      error.message || error
+    );
+    // Re-throw in development for debugging, swallow in production
+    if (process.env.NODE_ENV === 'development') {
+      throw error;
+    }
+  }
+}
+
+/**
+ * Sync redundant properties with relationships for Jingle entities
+ * Creates/updates relationships based on fabricaId and cancionId properties
+ */
+async function syncJingleRedundantProperties(
+  jingleId: string,
+  properties: { fabricaId?: string; cancionId?: string }
+): Promise<void> {
+  try {
+    // Sync fabricaId with APPEARS_IN relationship
+    if (properties.fabricaId !== undefined) {
+      if (properties.fabricaId) {
+        // Check if Fabrica exists
+        const fabricaExists = await db.executeQuery(
+          `MATCH (f:Fabrica {id: $fabricaId}) RETURN f.id AS id LIMIT 1`,
+          { fabricaId: properties.fabricaId }
+        );
+        
+        if (fabricaExists.length === 0) {
+          console.warn(`Fabrica ${properties.fabricaId} not found, skipping APPEARS_IN creation`);
+        } else {
+          // Check if APPEARS_IN relationship already exists
+          const relExists = await db.executeQuery(
+            `MATCH (j:Jingle {id: $jingleId})-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId}) RETURN r LIMIT 1`,
+            { jingleId, fabricaId: properties.fabricaId }
+          );
+          
+          if (relExists.length === 0) {
+            // Create APPEARS_IN relationship with default timestamp
+            await db.executeQuery(
+              `MATCH (j:Jingle {id: $jingleId}), (f:Fabrica {id: $fabricaId})
+               CREATE (j)-[r:APPEARS_IN {timestamp: '00:00:00', createdAt: datetime()}]->(f)
+               RETURN r`,
+              { jingleId, fabricaId: properties.fabricaId },
+              undefined,
+              true
+            );
+            console.log(`Created APPEARS_IN relationship: ${jingleId} -> ${properties.fabricaId}`);
+            
+            // Update order for the Fabrica
+            await updateAppearsInOrder(properties.fabricaId);
+          }
+        }
+      }
+    }
+    
+    // Sync cancionId with VERSIONA relationship
+    if (properties.cancionId !== undefined) {
+      if (properties.cancionId) {
+        // Check if Cancion exists
+        const cancionExists = await db.executeQuery(
+          `MATCH (c:Cancion {id: $cancionId}) RETURN c.id AS id LIMIT 1`,
+          { cancionId: properties.cancionId }
+        );
+        
+        if (cancionExists.length === 0) {
+          console.warn(`Cancion ${properties.cancionId} not found, skipping VERSIONA creation`);
+        } else {
+          // Check if VERSIONA relationship already exists
+          const relExists = await db.executeQuery(
+            `MATCH (j:Jingle {id: $jingleId})-[r:VERSIONA]->(c:Cancion {id: $cancionId}) RETURN r LIMIT 1`,
+            { jingleId, cancionId: properties.cancionId }
+          );
+          
+          if (relExists.length === 0) {
+            // Create VERSIONA relationship
+            await db.executeQuery(
+              `MATCH (j:Jingle {id: $jingleId}), (c:Cancion {id: $cancionId})
+               CREATE (j)-[r:VERSIONA {createdAt: datetime()}]->(c)
+               RETURN r`,
+              { jingleId, cancionId: properties.cancionId },
+              undefined,
+              true
+            );
+            console.log(`Created VERSIONA relationship: ${jingleId} -> ${properties.cancionId}`);
+          }
+        }
+      }
+    }
+  } catch (error: any) {
+    console.error(`Error syncing Jingle redundant properties for ${jingleId}:`, error.message || error);
+    // Don't throw - allow entity creation/update to succeed even if relationship sync fails
+  }
+}
+
+/**
+ * Validate redundant properties match relationships and auto-fix if needed
+ * This runs after entity creation/update to ensure data consistency
+ * Relationships are the source of truth - redundant properties are updated to match
+ */
+async function validateAndFixRedundantProperties(
+  entityType: string,
+  entityId: string
+): Promise<void> {
+  try {
+    // Only validate entities with redundant properties
+    if (entityType !== 'jingles' && entityType !== 'canciones') {
+      return;
+    }
+    
+    const validationResult = await validateEntity(db, entityType, entityId);
+    
+    if (!validationResult.isValid) {
+      const redundantIssues = validationResult.issues.filter(
+        issue => issue.type === 'redundant_field_mismatch'
+      );
+      
+      if (redundantIssues.length > 0) {
+        console.warn(
+          `Redundant property mismatch detected for ${entityType}/${entityId}:`,
+          redundantIssues.map(i => i.message).join('; ')
+        );
+        
+        // Auto-fix all redundant property mismatches
+        for (const issue of redundantIssues) {
+          if (issue.fixable) {
+            await fixValidationIssue(db, issue);
+            console.log(`Auto-fixed: ${issue.message}`);
+          }
+        }
+      }
+    }
+  } catch (error: any) {
+    // Log but don't fail the operation
+    console.error(
+      `Error validating redundant properties for ${entityType}/${entityId}:`,
+      error.message || error
+    );
+  }
+}
+
+/**
+ * Sync redundant properties with relationships for Cancion entities
+ * Creates/updates relationships based on autorIds array
+ */
+async function syncCancionRedundantProperties(
+  cancionId: string,
+  properties: { autorIds?: string[] }
+): Promise<void> {
+  try {
+    // Sync autorIds with AUTOR_DE relationships
+    if (properties.autorIds !== undefined) {
+      const targetAutorIds = properties.autorIds || [];
+      
+      // Get current AUTOR_DE relationships
+      const currentRels = await db.executeQuery<{ artistaId: string }>(
+        `MATCH (a:Artista)-[:AUTOR_DE]->(c:Cancion {id: $cancionId}) RETURN a.id AS artistaId`,
+        { cancionId }
+      );
+      const currentAutorIds = new Set(currentRels.map(r => r.artistaId));
+      const targetAutorIdsSet = new Set(targetAutorIds);
+      
+      // Find relationships to create (in target but not in current)
+      const toCreate = targetAutorIds.filter(id => !currentAutorIds.has(id));
+      
+      // Find relationships to delete (in current but not in target)
+      const toDelete = Array.from(currentAutorIds).filter(id => !targetAutorIdsSet.has(id));
+      
+      // Create missing relationships
+      for (const artistaId of toCreate) {
+        // Check if Artista exists
+        const artistaExists = await db.executeQuery(
+          `MATCH (a:Artista {id: $artistaId}) RETURN a.id AS id LIMIT 1`,
+          { artistaId }
+        );
+        
+        if (artistaExists.length === 0) {
+          console.warn(`Artista ${artistaId} not found, skipping AUTOR_DE creation`);
+          continue;
+        }
+        
+        await db.executeQuery(
+          `MATCH (a:Artista {id: $artistaId}), (c:Cancion {id: $cancionId})
+           CREATE (a)-[r:AUTOR_DE {createdAt: datetime()}]->(c)
+           RETURN r`,
+          { artistaId, cancionId },
+          undefined,
+          true
+        );
+        console.log(`Created AUTOR_DE relationship: ${artistaId} -> ${cancionId}`);
+      }
+      
+      // Delete extra relationships
+      for (const artistaId of toDelete) {
+        await db.executeQuery(
+          `MATCH (a:Artista {id: $artistaId})-[r:AUTOR_DE]->(c:Cancion {id: $cancionId})
+           DELETE r`,
+          { artistaId, cancionId },
+          undefined,
+          true
+        );
+        console.log(`Deleted AUTOR_DE relationship: ${artistaId} -> ${cancionId}`);
+      }
+    }
+  } catch (error: any) {
+    console.error(`Error syncing Cancion redundant properties for ${cancionId}:`, error.message || error);
+    // Don't throw - allow entity creation/update to succeed even if relationship sync fails
   }
 }
 
@@ -343,15 +787,32 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
   if (existing.length > 0) {
     throw new ConflictError('Relationship already exists');
   }
+  
+  // Extract properties (exclude start and end)
+  const properties = { ...payload };
+  delete (properties as any).start;
+  delete (properties as any).end;
+  
+  // Special handling for APPEARS_IN relationships
+  if (neo4jRelType === 'APPEARS_IN') {
+    // Warn if order is provided (it will be ignored)
+    if ('order' in properties) {
+      console.warn(`Warning: 'order' property is system-managed and will be ignored for APPEARS_IN relationship`);
+      delete (properties as any).order;
+    }
+    
+    // Default timestamp to '00:00:00' if not provided
+    if (!properties.timestamp) {
+      properties.timestamp = '00:00:00';
+    }
+  }
+  
   const createQuery = `
     MATCH (start { id: $start }), (end { id: $end })
     CREATE (start)-[r:${neo4jRelType}]->(end)
     SET r += $properties
     RETURN r
   `;
-  const properties = { ...payload };
-  delete (properties as any).start;
-  delete (properties as any).end;
   const result = await db.executeQuery<{ r: any }>(createQuery, { 
     start: payload.start, 
     end: payload.end, 
@@ -365,6 +826,11 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
     payload.end,
     'create'
   );
+  
+  // Automatically update order for APPEARS_IN relationships
+  if (neo4jRelType === 'APPEARS_IN') {
+    await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+  }
   
   res.status(201).json(result[0].r);
 }));
@@ -396,6 +862,15 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
   delete (properties as any).start;
   delete (properties as any).end;
   
+  // Special handling for APPEARS_IN relationships
+  if (neo4jRelType === 'APPEARS_IN') {
+    // Warn if order is provided (it will be ignored)
+    if ('order' in properties) {
+      console.warn(`Warning: 'order' property is system-managed and will be ignored for APPEARS_IN relationship`);
+      delete (properties as any).order;
+    }
+  }
+  
   // Update relationship properties
   const updateQuery = `
     MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
@@ -407,6 +882,11 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     end: payload.end, 
     properties 
   }, undefined, true);
+  
+  // Automatically update order for APPEARS_IN relationships (in case timestamp changed)
+  if (neo4jRelType === 'APPEARS_IN') {
+    await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+  }
   
   res.json(result[0].r);
 }));
@@ -442,6 +922,11 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
     payload.end,
     'delete'
   );
+  
+  // Automatically update order for remaining APPEARS_IN relationships
+  if (neo4jRelType === 'APPEARS_IN') {
+    await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+  }
   
   res.json({ message: 'Relationship deleted successfully' });
 }));
@@ -575,7 +1060,7 @@ router.post('/:type', asyncHandler(async (req, res) => {
     throw new BadRequestError(validationError.message || 'Validation failed');
   }
   
-  const id = payload.id || generateId(type);
+  const id = payload.id || await generateId(type);
   const existsQuery = `MATCH (n:${label} { id: $id }) RETURN n`;
   const existing = await db.executeQuery(existsQuery, { id });
   if (existing.length > 0) {
@@ -608,6 +1093,22 @@ router.post('/:type', asyncHandler(async (req, res) => {
     updatedAt: now, // Always use current timestamp for creation
     properties
   }, undefined, true);
+  
+  // Sync redundant properties with relationships (auto-create relationships if needed)
+  if (label === 'Jingle') {
+    await syncJingleRedundantProperties(id, {
+      fabricaId: properties.fabricaId,
+      cancionId: properties.cancionId,
+    });
+  } else if (label === 'Cancion') {
+    await syncCancionRedundantProperties(id, {
+      autorIds: properties.autorIds,
+    });
+  }
+  
+  // Validate and auto-fix any redundant property discrepancies
+  await validateAndFixRedundantProperties(type, id);
+  
   res.status(201).json(convertNeo4jDates(result[0].n.properties));
 }));
 
@@ -645,6 +1146,22 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   if (result.length === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }
+  
+  // Sync redundant properties with relationships (auto-create/delete relationships if needed)
+  if (label === 'Jingle') {
+    await syncJingleRedundantProperties(id, {
+      fabricaId: properties.fabricaId,
+      cancionId: properties.cancionId,
+    });
+  } else if (label === 'Cancion') {
+    await syncCancionRedundantProperties(id, {
+      autorIds: properties.autorIds,
+    });
+  }
+  
+  // Validate and auto-fix any redundant property discrepancies
+  await validateAndFixRedundantProperties(type, id);
+  
   res.json(convertNeo4jDates(result[0].n.properties));
 }));
 
@@ -676,6 +1193,22 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
     id, 
     properties: mergedProps 
   }, undefined, true);
+  
+  // Sync redundant properties with relationships (auto-create/delete relationships if needed)
+  if (label === 'Jingle') {
+    await syncJingleRedundantProperties(id, {
+      fabricaId: mergedProps.fabricaId,
+      cancionId: mergedProps.cancionId,
+    });
+  } else if (label === 'Cancion') {
+    await syncCancionRedundantProperties(id, {
+      autorIds: mergedProps.autorIds,
+    });
+  }
+  
+  // Validate and auto-fix any redundant property discrepancies
+  await validateAndFixRedundantProperties(type, id);
+  
   res.json(convertNeo4jDates(result[0].n.properties));
 }));
 

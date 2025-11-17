@@ -48,20 +48,110 @@ const getAdminRoutePrefix = (type: string): string => {
   return routeMap[type] || '';
 };
 
+const normalizeString = (value?: string | null) => (value ?? '').trim().toLowerCase();
+
+const compareStrings = (a?: string | null, b?: string | null) =>
+  normalizeString(a).localeCompare(normalizeString(b));
+
+const toTimestamp = (value?: string | number | null): number | null => {
+  if (value === null || value === undefined) {
+    return null;
+  }
+
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const normalized = value.trim();
+
+  // Handle dd/mm/yyyy format (e.g., 30/10/2025)
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(normalized)) {
+    const [dayStr, monthStr, yearStr] = normalized.split('/');
+    const day = Number(dayStr);
+    const month = Number(monthStr) - 1;
+    const year = Number(yearStr);
+
+    if (
+      Number.isInteger(day) &&
+      Number.isInteger(month) &&
+      Number.isInteger(year) &&
+      day >= 1 &&
+      day <= 31 &&
+      month >= 0 &&
+      month <= 11
+    ) {
+      return Date.UTC(year, month, day);
+    }
+  }
+
+  const parsed = Date.parse(normalized);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 // Sort entities based on entity type
 const sortEntities = (data: EntityType[], type: string): EntityType[] => {
-  if (type === 'artistas') {
-    // Sort artistas by stageName (primary) or name (fallback), case-insensitive
-    return [...data].sort((a, b) => {
-      const artA = a as Artista;
-      const artB = b as Artista;
-      const nameA = (artA.stageName || artA.name || '').toLowerCase();
-      const nameB = (artB.stageName || artB.name || '').toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
+  switch (type) {
+    case 'artistas':
+      // Sort artistas by stageName (primary) or name (fallback), case-insensitive
+      return [...data].sort((a, b) => {
+        const artA = a as Artista;
+        const artB = b as Artista;
+        return compareStrings(artA.stageName || artA.name, artB.stageName || artB.name);
+      });
+    case 'fabricas':
+      // Latest Fabrica first (date desc, fallback to createdAt)
+      return [...data].sort((a, b) => {
+        const fabA = a as Fabrica;
+        const fabB = b as Fabrica;
+        const dateA = toTimestamp(fabA.date || fabA.createdAt);
+        const dateB = toTimestamp(fabB.date || fabB.createdAt);
+
+        if (dateA !== null && dateB !== null && dateA !== dateB) {
+          return dateB - dateA;
+        }
+        if (dateA === null && dateB !== null) return 1;
+        if (dateA !== null && dateB === null) return -1;
+        return compareStrings(fabA.title, fabB.title);
+      });
+    case 'jingles':
+      // Alphabetical by title; identical titles sorted by earliest date first
+      return [...data].sort((a, b) => {
+        const jingA = a as Jingle;
+        const jingB = b as Jingle;
+        const titleCompare = compareStrings(jingA.title || jingA.songTitle, jingB.title || jingB.songTitle);
+        if (titleCompare !== 0) {
+          return titleCompare;
+        }
+
+        const dateA = toTimestamp(jingA.fabricaDate || jingA.createdAt);
+        const dateB = toTimestamp(jingB.fabricaDate || jingB.createdAt);
+
+        if (dateA === null && dateB === null) return 0;
+        if (dateA === null) return 1;
+        if (dateB === null) return -1;
+        return dateA - dateB;
+      });
+    case 'tematicas':
+      // By category, then alphabetical by name
+      return [...data].sort((a, b) => {
+        const temA = a as Tematica;
+        const temB = b as Tematica;
+        const categoryCompare = compareStrings(temA.category, temB.category);
+        if (categoryCompare !== 0) {
+          return categoryCompare;
+        }
+        return compareStrings(temA.name, temB.name);
+      });
+    case 'canciones':
+      // Alphabetical by title
+      return [...data].sort((a, b) => {
+        const songA = a as Cancion;
+        const songB = b as Cancion;
+        return compareStrings(songA.title, songB.title);
+      });
+    default:
+      return data;
   }
-  // No sorting for other entity types (yet)
-  return data;
 };
 
 export default function EntityList({ type, title }: Props) {
