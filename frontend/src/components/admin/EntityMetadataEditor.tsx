@@ -439,11 +439,10 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     });
   } else if (entityType === 'fabrica' && FIELD_ORDER.fabrica) {
     editableFields = FIELD_ORDER.fabrica.filter((key) => {
-      // Only include fields that exist in the entity
-      if (!(key in entity)) return false;
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
-      const value = (entity as any)[key];
+      // Use formData value if available, otherwise entity value, otherwise undefined
+      const value = formData[key] ?? (entity as any)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -456,11 +455,10 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     });
   } else if (entityType === 'cancion' && FIELD_ORDER.cancion) {
     editableFields = FIELD_ORDER.cancion.filter((key) => {
-      // Only include fields that exist in the entity
-      if (!(key in entity)) return false;
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
-      const value = (entity as any)[key];
+      // Use formData value if available, otherwise entity value, otherwise undefined
+      const value = formData[key] ?? (entity as any)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
