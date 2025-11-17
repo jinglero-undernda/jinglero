@@ -5,6 +5,8 @@ import { useToast } from '../common/ToastContext';
 import { FieldErrorDisplay, getFieldErrorStyle } from '../common/ErrorDisplay';
 import { getEntityWarnings } from '../../lib/validation/schemas';
 import { validateEntityField, validateEntityForm } from '../../lib/validation/entityValidation';
+import { sanitizeNumericField, sanitizeBooleanField } from '../../lib/utils/dataTypeSafety';
+import { FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
 
 // Import the type separately to avoid module resolution issues
 type ValidationResult = {
@@ -42,7 +44,13 @@ type Props = {
 
 export default function EntityForm({ type, fields, idFirst, mode = 'create', initialData, onSave, submitLabel }: Props) {
   const { showToast } = useToast();
-  const initialState = fields.reduce((acc, f) => ({ ...acc, [f.name]: initialData && initialData[f.name] != null ? String(initialData[f.name]) : '' }), {} as Record<string, string>);
+  const initialState = fields.reduce((acc, f) => {
+    const isBooleanField = f.name.startsWith('is') || f.name.startsWith('has');
+    if (initialData && initialData[f.name] != null) {
+      return { ...acc, [f.name]: isBooleanField ? String(initialData[f.name]) : String(initialData[f.name]) };
+    }
+    return { ...acc, [f.name]: isBooleanField ? 'false' : '' };
+  }, {} as Record<string, string>);
   const [form, setForm] = useState<Record<string, string>>(initialState);
   const [id, setId] = useState(initialData && initialData.id ? String(initialData.id) : '');
   const [loading, setLoading] = useState(false);
@@ -58,13 +66,31 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
     const payload: Record<string, unknown> = {};
     fields.forEach((f) => {
       const v = form[f.name];
-      if (v === undefined || v === '') {
+      const isBooleanField = f.name.startsWith('is') || f.name.startsWith('has');
+      
+      if (isBooleanField) {
+        // For boolean fields, always include them (default to false)
+        payload[f.name] = v === 'true' || v === true;
+      } else if (v === undefined || v === '') {
         payload[f.name] = null;
       } else {
         payload[f.name] = v;
       }
     });
     if (id) payload.id = id;
+    
+    // Sanitize numeric fields by entity type
+    if (type === 'fabrica') {
+      if (payload.visualizations !== null && payload.visualizations !== undefined) {
+        payload.visualizations = sanitizeNumericField(payload.visualizations, null);
+      }
+      if (payload.likes !== null && payload.likes !== undefined) {
+        payload.likes = sanitizeNumericField(payload.likes, null);
+      }
+    }
+    if (type === 'cancion' && payload.year !== null && payload.year !== undefined) {
+      payload.year = sanitizeNumericField(payload.year, null);
+    }
     
     // Validate the payload before submission
     const validationErrors = validateEntityForm(type, payload as Record<string, any>);
@@ -191,27 +217,106 @@ export default function EntityForm({ type, fields, idFirst, mode = 'create', ini
           </label>
         </div>
       )}
-      {fields.map((f) => (
-        <div key={f.name}>
-          <label>
-            {f.label || f.name}
-            {f.required && <span style={{ color: 'red' }}> *</span>}
-            <input
-              value={form[f.name] || ''}
-              onChange={(e) => handleFieldChange(f.name, e.target.value)}
-              onBlur={(e) => {
-                const error = validateField(f.name, e.target.value);
-                if (error) {
-                  setFieldErrors({ ...fieldErrors, [f.name]: error });
-                }
-              }}
-              required={!!f.required}
-              style={getFieldErrorStyle(!!fieldErrors[f.name])}
-            />
-            <FieldErrorDisplay error={fieldErrors[f.name]} fieldName={f.name} />
-          </label>
-        </div>
-      ))}
+      {fields.map((f) => {
+        // Detect boolean fields by name pattern (is*, has*)
+        const isBooleanField = f.name.startsWith('is') || f.name.startsWith('has');
+        
+        // Convert entity type plural to singular for field options lookup
+        const singularType = type.endsWith('s') ? type.slice(0, -1) : type;
+        
+        // Check if field has enumerated options (dropdown)
+        const fieldOptions = FIELD_OPTIONS[singularType]?.[f.name];
+        const isDropdown = !!fieldOptions;
+        
+        // Check if field should be textarea
+        const entityTextareaFields = TEXTAREA_FIELDS[singularType] || [];
+        const isTextarea = entityTextareaFields.includes(f.name);
+        
+        return (
+          <div key={f.name}>
+            {isBooleanField ? (
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="checkbox"
+                  checked={form[f.name] === 'true' || form[f.name] === true}
+                  onChange={(e) => handleFieldChange(f.name, e.target.checked ? 'true' : 'false')}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span>
+                  {f.label || f.name}
+                  {f.required && <span style={{ color: 'red' }}> *</span>}
+                </span>
+              </label>
+            ) : isDropdown ? (
+              <label>
+                {f.label || f.name}
+                {f.required && <span style={{ color: 'red' }}> *</span>}
+                <select
+                  value={form[f.name] || ''}
+                  onChange={(e) => handleFieldChange(f.name, e.target.value)}
+                  onBlur={(e) => {
+                    const error = validateField(f.name, e.target.value);
+                    if (error) {
+                      setFieldErrors({ ...fieldErrors, [f.name]: error });
+                    }
+                  }}
+                  required={!!f.required}
+                  style={getFieldErrorStyle(!!fieldErrors[f.name])}
+                >
+                  <option value="">-- Seleccionar --</option>
+                  {fieldOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+                <FieldErrorDisplay error={fieldErrors[f.name]} fieldName={f.name} />
+              </label>
+            ) : isTextarea ? (
+              <label>
+                {f.label || f.name}
+                {f.required && <span style={{ color: 'red' }}> *</span>}
+                <textarea
+                  value={form[f.name] || ''}
+                  onChange={(e) => handleFieldChange(f.name, e.target.value)}
+                  onBlur={(e) => {
+                    const error = validateField(f.name, e.target.value);
+                    if (error) {
+                      setFieldErrors({ ...fieldErrors, [f.name]: error });
+                    }
+                  }}
+                  required={!!f.required}
+                  style={{
+                    ...getFieldErrorStyle(!!fieldErrors[f.name]),
+                    minHeight: '80px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                  }}
+                />
+                <FieldErrorDisplay error={fieldErrors[f.name]} fieldName={f.name} />
+              </label>
+            ) : (
+              <label>
+                {f.label || f.name}
+                {f.required && <span style={{ color: 'red' }}> *</span>}
+                <input
+                  value={form[f.name] || ''}
+                  onChange={(e) => handleFieldChange(f.name, e.target.value)}
+                  onBlur={(e) => {
+                    const error = validateField(f.name, e.target.value);
+                    if (error) {
+                      setFieldErrors({ ...fieldErrors, [f.name]: error });
+                    }
+                  }}
+                  required={!!f.required}
+                  style={getFieldErrorStyle(!!fieldErrors[f.name])}
+                />
+                <FieldErrorDisplay error={fieldErrors[f.name]} fieldName={f.name} />
+              </label>
+            )}
+          </div>
+        );
+      })}
       {!idFirst && (
         <div>
           <label>

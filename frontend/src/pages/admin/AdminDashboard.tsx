@@ -82,6 +82,7 @@ import DataIntegrityChecker from '../../components/admin/DataIntegrityChecker';
 import { useToast } from '../../components/common/ToastContext';
 import EntitySearchAutocomplete from '../../components/admin/EntitySearchAutocomplete';
 import type { EntityType } from '../../lib/utils/entityDisplay';
+import { FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
 
 interface EntityCounts {
   fabricas: number;
@@ -437,6 +438,15 @@ export default function AdminDashboard() {
       if (entityType) {
         const initialData: Record<string, unknown> = {};
         const searchText = searchParams.get('searchText');
+        const fields = getFieldsForEntityType(entityType);
+        
+        // Initialize all fields with proper defaults
+        fields.forEach(field => {
+          const isBooleanField = field.name.startsWith('is') || field.name.startsWith('has');
+          if (isBooleanField) {
+            initialData[field.name] = false; // Boolean fields default to false
+          }
+        });
         
         // Pre-populate title or name field based on entity type
         if (searchText) {
@@ -504,7 +514,12 @@ export default function AdminDashboard() {
         const payload: Record<string, unknown> = {};
         fields.forEach((f) => {
           const v = formData[f.name];
-          if (v === undefined || v === '') {
+          const isBooleanField = f.name.startsWith('is') || f.name.startsWith('has');
+          
+          if (isBooleanField) {
+            // For boolean fields, always include them as boolean (default to false)
+            payload[f.name] = v === true || v === 'true';
+          } else if (v === undefined || v === '') {
             payload[f.name] = null;
           } else {
             payload[f.name] = v;
@@ -696,12 +711,20 @@ export default function AdminDashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {fields.map((field) => {
                 const value = formData[field.name] ?? '';
-                const fieldType = typeof value === 'number' ? 'number' : typeof value === 'boolean' ? 'boolean' : 'string';
-                const isBoolean = fieldType === 'boolean';
+                // Detect boolean fields by name pattern (is*, has*), not by value type
+                const isBoolean = field.name.startsWith('is') || field.name.startsWith('has');
+                const fieldType = isBoolean ? 'boolean' : (typeof value === 'number' ? 'number' : 'string');
+                
+                // Get singular entity type for field options lookup
+                const singularType = ENTITY_TYPES.find(e => e.type === entityType)?.singular || entityType;
+                
+                // Check if field has enumerated options (dropdown)
+                const fieldOptions = FIELD_OPTIONS[singularType]?.[field.name];
+                const isDropdown = !!fieldOptions;
                 
                 // Fields that should be textareas (multi-line, word-wrapping)
-                const textareaFields = ['title', 'description', 'contents', 'comment', 'lyrics', 'bio'];
-                const isTextarea = textareaFields.includes(field.name);
+                const entityTextareaFields = TEXTAREA_FIELDS[singularType] || [];
+                const isTextarea = entityTextareaFields.includes(field.name);
 
                 return (
                   <div
@@ -763,7 +786,31 @@ export default function AdminDashboard() {
                           {field.label || field.name}:
                           {field.required && <span style={{ color: '#f44336', marginLeft: '4px' }}>*</span>}
                         </label>
-                        {isTextarea ? (
+                        {isDropdown ? (
+                          <select
+                            value={value ?? ''}
+                            onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                            required={field.required}
+                            style={{
+                              flex: 1,
+                              padding: '4px 8px',
+                              backgroundColor: '#2a2a2a',
+                              border: fieldErrors[field.name] ? '1px solid #f44336' : '1px solid #444',
+                              borderRadius: '4px',
+                              fontSize: '14px',
+                              color: '#fff',
+                              minWidth: 0,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            <option value="">-- Seleccionar --</option>
+                            {fieldOptions.map((option) => (
+                              <option key={option} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        ) : isTextarea ? (
                           <textarea
                             value={value ?? ''}
                             onChange={(e) => handleFieldChange(field.name, e.target.value)}

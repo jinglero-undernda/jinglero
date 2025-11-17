@@ -2018,7 +2018,15 @@ const RelatedEntities = forwardRef<{
                               </div>
                               {/* Render relationship properties in admin mode when expanded */}
                               {isAdmin && isRelationshipPropsExpanded && relType && (() => {
-                                const propsData = relationshipPropsData[relationshipPropsKey] || {};
+                                // Try to get props from state, or fall back to relatedEntity properties
+                                const stateProps = relationshipPropsData[relationshipPropsKey];
+                                const entityProps = relatedEntity && typeof relatedEntity === 'object' ? {
+                                  order: 'order' in relatedEntity ? relatedEntity.order : undefined,
+                                  timestamp: 'timestamp' in relatedEntity ? relatedEntity.timestamp : undefined,
+                                  status: 'status' in relatedEntity ? relatedEntity.status : undefined,
+                                  isPrimary: 'isPrimary' in relatedEntity ? relatedEntity.isPrimary : undefined,
+                                } : {};
+                                const propsData = stateProps || entityProps;
                                 const schema = getRelationshipPropertiesSchema(relType);
                                 
                                 if (schema.length === 0) return null;
@@ -2054,9 +2062,13 @@ const RelatedEntities = forwardRef<{
                                   if (timestampTimes[relationshipPropsKey]) {
                                     return timestampTimes[relationshipPropsKey];
                                   }
-                                  const time = secondsToTime(propsData.timestamp);
+                                  // Only use propsData.timestamp if it's a valid number
+                                  const timestamp = propsData.timestamp;
+                                  const time = (timestamp !== null && timestamp !== undefined && !isNaN(Number(timestamp))) 
+                                    ? secondsToTime(timestamp) 
+                                    : { h: 0, m: 0, s: 0 };
                                   // Initialize synchronously (this is safe since we're in render)
-                                  if (!timestampTimes[relationshipPropsKey]) {
+                                  if (!timestampTimes[relationshipPropsKey] && timestamp !== undefined) {
                                     setTimestampTimes(prev => ({ ...prev, [relationshipPropsKey]: time }));
                                   }
                                   return time;

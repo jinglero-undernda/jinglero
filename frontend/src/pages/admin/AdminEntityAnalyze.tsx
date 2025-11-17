@@ -13,7 +13,7 @@ import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { adminApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
-import { normalizeEntityType } from '../../lib/utils/entityTypeUtils';
+import { normalizeEntityType, getEntityTypeFromId, getEntityTypeAbbreviation } from '../../lib/utils/entityTypeUtils';
 import EntityCard from '../../components/common/EntityCard';
 import EntityMetadataEditor from '../../components/admin/EntityMetadataEditor';
 import UnsavedChangesModal from '../../components/admin/UnsavedChangesModal';
@@ -71,6 +71,26 @@ export default function AdminEntityAnalyze() {
       setLoading(false);
       setError('Tipo de entidad o ID no válido');
       return;
+    }
+
+    // Detect entity type from ID and check if it matches the URL
+    const detectedType = getEntityTypeFromId(entityId);
+    if (detectedType && detectedType !== entityType) {
+      console.warn('[AdminEntityAnalyze] Entity type mismatch detected:', {
+        urlEntityType: entityType,
+        detectedEntityType: detectedType,
+        entityId,
+        redirecting: true,
+      });
+      
+      // Redirect to the correct entity type URL
+      const correctAbbrev = getEntityTypeAbbreviation(detectedType);
+      if (correctAbbrev) {
+        const correctPath = `/admin/${correctAbbrev}/${entityId}`;
+        console.log('[AdminEntityAnalyze] Redirecting to:', correctPath);
+        navigate(correctPath, { replace: true });
+        return;
+      }
     }
 
     console.log('[AdminEntityAnalyze] Loading entity:', {

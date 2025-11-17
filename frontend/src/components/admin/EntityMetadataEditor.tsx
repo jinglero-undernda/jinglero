@@ -13,6 +13,9 @@ import { useToast } from '../common/ToastContext';
 import { validateEntityField, validateEntityForm, getEntityFormWarnings } from '../../lib/validation/entityValidation';
 import { FieldErrorDisplay } from '../common/ErrorDisplay';
 import { EXCLUDED_FIELDS, FIELD_ORDER, FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
+import DatePickerField from '../common/DatePickerField';
+import { formatDateDisplay, isValidISODate } from '../../lib/utils/dateUtils';
+import { sanitizeNumericField, sanitizeBooleanField } from '../../lib/utils/dataTypeSafety';
 
 type Entity = Artista | Cancion | Fabrica | Jingle | Tematica;
 
@@ -23,72 +26,6 @@ interface Props {
   isEditing?: boolean;
   onEditToggle?: (editing: boolean) => void;
   onChange?: (hasChanges: boolean) => void;
-}
-
-/**
- * Format date string to dd/mm/yyyy format
- */
-function formatDateDDMMYYYY(dateInput: string | Date | null | undefined): string {
-  if (!dateInput) return '';
-  try {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    if (isNaN(date.getTime())) return String(dateInput);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  } catch {
-    return String(dateInput);
-  }
-}
-
-/**
- * Parse date string (ISO or dd/mm/yyyy) to Date object
- */
-function parseDate(dateString: string | null | undefined): Date | null {
-  if (!dateString) return null;
-  try {
-    // Try ISO format first
-    const isoDate = new Date(dateString);
-    if (!isNaN(isoDate.getTime())) return isoDate;
-    
-    // Try dd/mm/yyyy format
-    const parts = dateString.split('/');
-    if (parts.length === 3) {
-      const day = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-      const year = parseInt(parts[2], 10);
-      const date = new Date(year, month, day);
-      if (!isNaN(date.getTime())) return date;
-    }
-    
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Split date into day, month, year components
- */
-function splitDate(date: Date | null): { day: number; month: number; year: number } {
-  if (!date || isNaN(date.getTime())) {
-    const now = new Date();
-    return { day: now.getDate(), month: now.getMonth() + 1, year: now.getFullYear() };
-  }
-  return {
-    day: date.getDate(),
-    month: date.getMonth() + 1,
-    year: date.getFullYear(),
-  };
-}
-
-/**
- * Combine day, month, year into ISO date string
- */
-function combineDate(day: number, month: number, year: number): string {
-  const date = new Date(year, month - 1, day);
-  return date.toISOString();
 }
 
 const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save: () => Promise<void> }, Props>(function EntityMetadataEditor({ entity, entityType, onSave, isEditing: externalIsEditing, onEditToggle, onChange }, ref) {
@@ -106,8 +43,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   const [formData, setFormData] = useState<Record<string, any>>({});
   // Phase 1: loading state removed - save button now in EntityCard heading
   const [hasChanges, setHasChanges] = useState(false);
-  // Separate state for date components (day, month, year) for Fabricas
-  const [dateComponents, setDateComponents] = useState<{ day: number; month: number; year: number } | null>(null);
   // Validation state
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [formWarnings, setFormWarnings] = useState<Record<string, string>>({});
@@ -129,40 +64,36 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       if (entityType === 'jingle' && FIELD_ORDER.jingle) {
         FIELD_ORDER.jingle.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else if (entityType === 'fabrica' && FIELD_ORDER.fabrica) {
         FIELD_ORDER.fabrica.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
         // Auto-generate youtubeUrl from id if it doesn't exist or id changed
         if (data.id && !data.youtubeUrl) {
           data.youtubeUrl = `https://www.youtube.com/watch?v=${data.id}`;
         }
-        // Initialize date components for editing
-        if (data.date) {
-          const parsedDate = parseDate(data.date);
-          setDateComponents(splitDate(parsedDate));
-        } else {
-          setDateComponents(null);
-        }
       } else if (entityType === 'cancion' && FIELD_ORDER.cancion) {
         FIELD_ORDER.cancion.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else if (entityType === 'artista' && FIELD_ORDER.artista) {
         FIELD_ORDER.artista.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else {
         // For other entity types, use the original logic but include 'id'
@@ -195,40 +126,36 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       if (entityType === 'jingle' && FIELD_ORDER.jingle) {
         FIELD_ORDER.jingle.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else if (entityType === 'fabrica' && FIELD_ORDER.fabrica) {
         FIELD_ORDER.fabrica.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
         // Auto-generate youtubeUrl from id if it doesn't exist
         if (data.id && !data.youtubeUrl) {
           data.youtubeUrl = `https://www.youtube.com/watch?v=${data.id}`;
         }
-        // Reset date components
-        if (data.date) {
-          const parsedDate = parseDate(data.date);
-          setDateComponents(splitDate(parsedDate));
-        } else {
-          setDateComponents(null);
-        }
       } else if (entityType === 'cancion' && FIELD_ORDER.cancion) {
         FIELD_ORDER.cancion.forEach((key) => {
-          if (key in entity) {
-            data[key] = (entity as any)[key];
-          }
+          // Include all fields from FIELD_ORDER, even if they don't exist in entity
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else if (entityType === 'artista' && FIELD_ORDER.artista) {
         FIELD_ORDER.artista.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
-          data[key] = (entity as any)[key] ?? undefined;
+          const isBooleanField = key.startsWith('is') || key.startsWith('has');
+          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
         });
       } else {
         // For other entity types, use the original logic but include 'id'
@@ -304,16 +231,6 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     }
   };
 
-  const handleDateComponentChange = (component: 'day' | 'month' | 'year', value: number) => {
-    const current = dateComponents || { day: 1, month: 1, year: new Date().getFullYear() };
-    const updated = { ...current, [component]: value };
-    setDateComponents(updated);
-    
-    // Combine into ISO date string and update formData
-    const isoDate = combineDate(updated.day, updated.month, updated.year);
-    handleFieldChange('date', isoDate);
-  };
-
   const handleSave = async () => {
     // Mark all fields as touched for validation
     const allFields = new Set(Object.keys(formData));
@@ -340,7 +257,40 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     }
 
     try {
-      const updatePayload: Partial<Entity> = { ...formData };
+      // Sanitize numeric fields to prevent NaN
+      const sanitizedData = { ...formData };
+
+      if (entityType === 'fabrica') {
+        sanitizedData.visualizations = sanitizeNumericField(formData.visualizations, null);
+        sanitizedData.likes = sanitizeNumericField(formData.likes, null);
+        
+        // Validate date
+        if (formData.date && !isValidISODate(formData.date)) {
+          setFieldErrors({ ...fieldErrors, date: 'Fecha inválida' });
+          showToast('La fecha no es válida', 'error');
+          return;
+        }
+      }
+
+      if (entityType === 'cancion') {
+        sanitizedData.year = sanitizeNumericField(formData.year, null);
+      }
+
+      if (entityType === 'jingle') {
+        // Sanitize boolean fields
+        sanitizedData.isJinglazo = sanitizeBooleanField(formData.isJinglazo, false);
+        sanitizedData.isJinglazoDelDia = sanitizeBooleanField(formData.isJinglazoDelDia, false);
+        sanitizedData.isPrecario = sanitizeBooleanField(formData.isPrecario, false);
+        sanitizedData.isLive = sanitizeBooleanField(formData.isLive, false);
+        sanitizedData.isRepeat = sanitizeBooleanField(formData.isRepeat, false);
+      }
+
+      if (entityType === 'artista') {
+        // Sanitize boolean field
+        sanitizedData.isArg = sanitizeBooleanField(formData.isArg, false);
+      }
+
+      const updatePayload: Partial<Entity> = sanitizedData;
       let updated: Entity;
 
       // Map entity type to API method
@@ -612,8 +562,9 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {editableFields.map((fieldName) => {
           const value = formData[fieldName];
-          const fieldType = typeof value;
-          const isBoolean = fieldType === 'boolean';
+          // Detect boolean fields by name pattern (is*, has*), not by value type
+          const isBoolean = fieldName.startsWith('is') || fieldName.startsWith('has');
+          const fieldType = isBoolean ? 'boolean' : typeof value;
           const isTextareaField = (TEXTAREA_FIELDS[entityType] || []).includes(fieldName);
 
           return (
@@ -685,7 +636,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </span>
                     </>
                   ) : fieldName === 'date' && entityType === 'fabrica' ? (
-                    // Date field with separate day/month/year inputs for Fabricas
+                    // Date field with date picker for Fabricas
                     <>
                       <label
                         style={{
@@ -699,67 +650,12 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                         {fieldName}:
                       </label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <input
-                            type="number"
-                            min="1"
-                            max="31"
-                            value={dateComponents?.day || ''}
-                            onChange={(e) => handleDateComponentChange('day', parseInt(e.target.value) || 1)}
-                            onBlur={() => handleFieldBlur('date')}
-                            placeholder="DD"
-                            style={{
-                              width: '50px',
-                              padding: '4px 8px',
-                              backgroundColor: '#2a2a2a',
-                              border: fieldErrors.date ? '2px solid #d32f2f' : '1px solid #444',
-                              borderRadius: '4px',
-                              fontSize: '14px',
-                              color: '#fff',
-                              textAlign: 'center',
-                            }}
-                          />
-                          <span style={{ color: '#999', fontSize: '14px' }}>/</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="12"
-                            value={dateComponents?.month || ''}
-                            onChange={(e) => handleDateComponentChange('month', parseInt(e.target.value) || 1)}
-                            onBlur={() => handleFieldBlur('date')}
-                            placeholder="MM"
-                            style={{
-                              width: '50px',
-                              padding: '4px 8px',
-                              backgroundColor: '#2a2a2a',
-                              border: fieldErrors.date ? '2px solid #d32f2f' : '1px solid #444',
-                              borderRadius: '4px',
-                              fontSize: '14px',
-                              color: '#fff',
-                              textAlign: 'center',
-                            }}
-                          />
-                          <span style={{ color: '#999', fontSize: '14px' }}>/</span>
-                          <input
-                            type="number"
-                            min="2000"
-                            max="2100"
-                            value={dateComponents?.year || ''}
-                            onChange={(e) => handleDateComponentChange('year', parseInt(e.target.value) || new Date().getFullYear())}
-                            onBlur={() => handleFieldBlur('date')}
-                            placeholder="YYYY"
-                            style={{
-                              width: '80px',
-                              padding: '4px 8px',
-                              backgroundColor: '#2a2a2a',
-                              border: fieldErrors.date ? '2px solid #d32f2f' : '1px solid #444',
-                              borderRadius: '4px',
-                              fontSize: '14px',
-                              color: '#fff',
-                              textAlign: 'center',
-                            }}
-                          />
-                        </div>
+                        <DatePickerField
+                          value={formData.date || null}
+                          onChange={(isoDate) => handleFieldChange('date', isoDate)}
+                          onBlur={() => handleFieldBlur('date')}
+                          hasError={!!fieldErrors.date}
+                        />
                         {fieldErrors.date && <FieldErrorDisplay error={fieldErrors.date} fieldName="date" />}
                       </div>
                     </>
@@ -1075,7 +971,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                           flex: 1,
                         }}
                       >
-                        {value === null || value === undefined ? '(vacío)' : formatDateDDMMYYYY(value)}
+                        {value === null || value === undefined ? '(vacío)' : formatDateDisplay(value)}
                       </span>
                     </>
                   ) : (

@@ -74,7 +74,7 @@ export interface Tematica {
 export interface Jingle {
   id: string;
   youtubeUrl?: string;
-  timestamp: string;
+  timestamp: string | number; // Can be HH:MM:SS string or seconds number (from APPEARS_IN relationship)
   youtubeClipUrl?: string;
   title?: string;
   comment?: string;
@@ -92,6 +92,8 @@ export interface Jingle {
   // NEW: UX identification props
   isLive?: boolean; // Indicates if Jingle was performed live
   isRepeat?: boolean; // Indicates if this song was performed on the show before
+  // Relationship properties (present when fetched in relationship context)
+  order?: number | null; // From APPEARS_IN relationship
   createdAt: string;
   updatedAt: string;
 }

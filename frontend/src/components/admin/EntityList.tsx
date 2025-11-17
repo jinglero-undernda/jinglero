@@ -48,6 +48,22 @@ const getAdminRoutePrefix = (type: string): string => {
   return routeMap[type] || '';
 };
 
+// Sort entities based on entity type
+const sortEntities = (data: EntityType[], type: string): EntityType[] => {
+  if (type === 'artistas') {
+    // Sort artistas by stageName (primary) or name (fallback), case-insensitive
+    return [...data].sort((a, b) => {
+      const artA = a as Artista;
+      const artB = b as Artista;
+      const nameA = (artA.stageName || artA.name || '').toLowerCase();
+      const nameB = (artB.stageName || artB.name || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }
+  // No sorting for other entity types (yet)
+  return data;
+};
+
 export default function EntityList({ type, title }: Props) {
   const [items, setItems] = useState<EntityType[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +97,7 @@ export default function EntityList({ type, title }: Props) {
           default:
             throw new Error(`Unknown entity type: ${type}`);
         }
-        setItems(data || []);
+        setItems(sortEntities(data || [], type));
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -143,7 +159,7 @@ export default function EntityList({ type, title }: Props) {
           default:
             throw new Error(`Unknown entity type: ${type}`);
         }
-        setItems(data || []);
+        setItems(sortEntities(data || [], type));
       } catch (e: any) {
         setError(e.message);
       } finally {
