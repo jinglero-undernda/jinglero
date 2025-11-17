@@ -1279,14 +1279,18 @@ const RelatedEntities = forwardRef<{
       // Uses getEntityTypeFromId to support both old and new ID formats
       const detectedType = getEntityTypeFromId(entity.id);
       
+      // If there's a mismatch, trust the detectedType from the entity ID (more reliable)
+      // This handles redirect scenarios and React Strict Mode double-renders gracefully
+      let effectiveEntityType = entityType;
       if (detectedType && detectedType !== entityType) {
-        console.warn('[RelatedEntities] Entity ID/Type mismatch detected, skipping load:', {
+        console.warn('[RelatedEntities] Entity ID/Type mismatch detected, using detected type:', {
           entityId: entity.id,
           detectedType,
-          expectedType: entityType,
+          propEntityType: entityType,
           entityPath,
+          action: 'Using detectedType for relationship loading',
         });
-        return; // Skip loading relationships until entity and entityType are synchronized
+        effectiveEntityType = detectedType; // Use detected type instead of blocking
       }
       
       // This is the top level - auto-load all relationships that are expanded
@@ -1303,7 +1307,8 @@ const RelatedEntities = forwardRef<{
           const currentState = stateRef.current;
           
           // Define cacheKey here so it's available in both branches
-          const cacheKey = getCacheKey(entity.id, entityType, key);
+          // Use effectiveEntityType to ensure cache key matches the actual entity type
+          const cacheKey = getCacheKey(entity.id, effectiveEntityType, key);
           
           if (!isAdmin) {
             // User mode: skip if already loaded
@@ -1362,7 +1367,7 @@ const RelatedEntities = forwardRef<{
           const fetchPromise = (async () => {
             try {
               // Fetch entities
-              const entities = await rel.fetchFn(entity.id, entityType);
+              const entities = await rel.fetchFn(entity.id, effectiveEntityType);
               
               // Check if request was aborted
               if (abortController.signal.aborted) {
