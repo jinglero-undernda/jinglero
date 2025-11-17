@@ -6,6 +6,7 @@ import { clearJingleRelationshipsCache } from '../../lib/services/relationshipSe
 import { useToast } from './ToastContext';
 import EntitySearchAutocomplete from '../admin/EntitySearchAutocomplete';
 import DeleteRelationshipModal from '../admin/DeleteRelationshipModal';
+import { getEntityTypeFromId } from '../../lib/utils/entityTypeUtils';
 
 // Helper to get entity route (duplicated from EntityCard to avoid circular dependency)
 function getEntityRoute(entityType: EntityType, entityId: string): string {
@@ -1275,13 +1276,10 @@ const RelatedEntities = forwardRef<{
     if (entityPath.length <= 1 && entity?.id) {
       // CRITICAL: Validate that entity.id matches entityType to prevent race conditions
       // during navigation where entityType might change before entity state is updated
-      const detectedType = entity.id.startsWith('JIN-') ? 'jingle' 
-        : entity.id.startsWith('CAN-') ? 'cancion'
-        : entity.id.startsWith('ART-') ? 'artista'
-        : entity.id.startsWith('TEM-') ? 'tematica'
-        : 'fabrica'; // No prefix = Fabrica (YouTube ID)
+      // Uses getEntityTypeFromId to support both old and new ID formats
+      const detectedType = getEntityTypeFromId(entity.id);
       
-      if (detectedType !== entityType) {
+      if (detectedType && detectedType !== entityType) {
         console.warn('[RelatedEntities] Entity ID/Type mismatch detected, skipping load:', {
           entityId: entity.id,
           detectedType,

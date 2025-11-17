@@ -655,7 +655,7 @@ export default function AdminEntityAnalyze() {
               setShowUnsavedModal(true);
             } else {
               // Navigate immediately if no unsaved changes
-              const routePrefix = targetEntityType === 'jingle' ? 'j' : targetEntityType === 'cancion' ? 'c' : targetEntityType === 'artista' ? 'a' : targetEntityType === 'fabrica' ? 'f' : 't';
+              const routePrefix = getEntityTypeAbbreviation(targetEntityType) || 'f';
               navigate(`/admin/${routePrefix}/${targetEntityId}`);
             }
           }}
