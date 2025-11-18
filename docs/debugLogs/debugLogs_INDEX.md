@@ -51,3 +51,4 @@ In previous sessions we have addressed individual bugs in the UX/UI or backend. 
 [x] BUG_0006: Relationship creation creates wrong direction for versiona, entity not visible after creation (see `BUG_0006.md`)
 [x] BUG_0007: Audit all existing relationships to validate correct direction (see `BUG_0007.md`)
 [ ] BUG_0008: APPEARS_IN order update script throws error causing relationship creation/update to fail (see `BUG_0008.md`)
+[ ] BUG_0009: RelatedEntities uses wrong entity ID when mismatch detected, causing "Jingle not found" error (see `BUG_0009.md`)
