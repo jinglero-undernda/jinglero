@@ -624,9 +624,18 @@ const RelatedEntities = forwardRef<{
     let endId: string;
     
     if (relType === 'appears_in') {
-      // Jingle -> Fabrica
-      startId = rel.entityType === 'fabrica' ? selectedEntity.id : entity.id;
-      endId = rel.entityType === 'fabrica' ? entity.id : selectedEntity.id;
+      // APPEARS_IN: (Jingle)-[APPEARS_IN]->(Fabrica)
+      // Jingle is always start, Fabrica is always end
+      if (entityType === 'jingle') {
+        startId = entity.id; // Jingle (current entity)
+        endId = selectedEntity.id; // Fabrica (selected entity)
+      } else if (entityType === 'fabrica') {
+        startId = selectedEntity.id; // Jingle (selected entity)
+        endId = entity.id; // Fabrica (current entity)
+      } else {
+        startId = entity.id;
+        endId = selectedEntity.id;
+      }
     } else if (relType === 'versiona') {
       // VERSIONA: (Jingle)-[VERSIONA]->(Cancion)
       // Jingle is always start, Cancion is always end
@@ -953,13 +962,29 @@ const RelatedEntities = forwardRef<{
     let endId: string;
     
     if (relType === 'appears_in') {
-      // Jingle -> Fabrica
-      startId = relEntityType === 'fabrica' ? relatedEntityId : entity.id;
-      endId = relEntityType === 'fabrica' ? entity.id : relatedEntityId;
+      // APPEARS_IN: (Jingle)-[APPEARS_IN]->(Fabrica)
+      if (entityType === 'jingle') {
+        startId = entity.id; // Jingle (current entity)
+        endId = relatedEntityId; // Fabrica (related entity)
+      } else if (entityType === 'fabrica') {
+        startId = relatedEntityId; // Jingle (related entity)
+        endId = entity.id; // Fabrica (current entity)
+      } else {
+        startId = entity.id;
+        endId = relatedEntityId;
+      }
     } else if (relType === 'versiona') {
-      // Jingle -> Cancion
-      startId = relEntityType === 'cancion' ? relatedEntityId : entity.id;
-      endId = relEntityType === 'cancion' ? entity.id : relatedEntityId;
+      // VERSIONA: (Jingle)-[VERSIONA]->(Cancion)
+      if (entityType === 'jingle') {
+        startId = entity.id; // Jingle (current entity)
+        endId = relatedEntityId; // Cancion (related entity)
+      } else if (entityType === 'cancion') {
+        startId = relatedEntityId; // Jingle (related entity)
+        endId = entity.id; // Cancion (current entity)
+      } else {
+        startId = entity.id;
+        endId = relatedEntityId;
+      }
     } else if (relType === 'jinglero_de' || relType === 'autor_de') {
       // Artista -> Jingle/Cancion
       startId = relEntityType === 'artista' ? relatedEntityId : entity.id;
