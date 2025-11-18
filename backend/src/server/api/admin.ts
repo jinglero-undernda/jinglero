@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
 import { Neo4jClient } from '../db';
 import { 
   getSchemaInfo, 
@@ -118,10 +118,10 @@ async function generateId(type: string): Promise<string> {
   const maxRetries = 10;
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     // Generate 8 random characters using base36 (0-9, a-z)
-    const randomBytes = crypto.randomBytes(6); // 6 bytes = 48 bits
+    const randomBytesBuffer = randomBytes(6); // 6 bytes = 48 bits
     let randomNum = 0;
     for (let i = 0; i < 6; i++) {
-      randomNum = randomNum * 256 + randomBytes[i];
+      randomNum = randomNum * 256 + randomBytesBuffer[i];
     }
     
     // Convert to base36 and pad to 8 characters
@@ -158,10 +158,10 @@ function generateIdSync(type: string): string {
   
   // Generate 8 random characters using base36 (0-9, a-z)
   // Note: This doesn't check for collisions - use generateId() instead when possible
-  const randomBytes = crypto.randomBytes(6);
+  const randomBytesBuffer = randomBytes(6);
   let randomNum = 0;
   for (let i = 0; i < 6; i++) {
-    randomNum = randomNum * 256 + randomBytes[i];
+    randomNum = randomNum * 256 + randomBytesBuffer[i];
   }
   
   const chars = randomNum.toString(36).toLowerCase().padStart(8, '0').slice(0, 8);

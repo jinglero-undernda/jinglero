@@ -77,74 +77,105 @@ function toCsvLine(row: Record<string, any>, headers: string[]): string {
 }
 
 /**
+ * Get all property keys for a given label
+ */
+async function getAllProperties(db: Neo4jClient, label: string): Promise<string[]> {
+  const query = `
+    MATCH (n:${label})
+    WITH keys(n) as keys
+    UNWIND keys as key
+    RETURN DISTINCT key as property
+    ORDER BY property
+  `;
+  
+  const results = await db.executeQuery<{ property: string }>(query, {});
+  return results.map(r => r.property);
+}
+
+/**
+ * Convert property name to CSV header format
+ */
+function toCsvHeader(prop: string): string {
+  // Add type hints for common types
+  if (prop === 'id') {
+    return 'id:ID';
+  }
+  if (prop === 'isJinglazo' || prop === 'isJinglazoDelDia' || prop === 'isPrecario' || 
+      prop === 'isLive' || prop === 'isRepeat' || prop === 'isArg' || prop === 'isJinglero' ||
+      prop === 'isPrimary' || prop === 'isVerified') {
+    return `${prop}:boolean`;
+  }
+  if (prop === 'order' || prop === 'visualizations' || prop === 'likes' || prop === 'year' ||
+      prop === 'releaseYear' || prop === 'contributionsCount') {
+    return `${prop}:int`;
+  }
+  return prop;
+}
+
+/**
  * Export entities to CSV
  */
 async function exportEntities(db: Neo4jClient, config: ExportConfig): Promise<void> {
   console.log('\n📦 Exporting Entities...\n');
   
-  const entityConfigs = [
-    {
-      label: 'Artista',
-      filename: `node-Artista-${config.timestamp}.csv`,
-      headers: ['id:ID', 'stageName', 'fullName', 'country', 'genre', 'isJinglero:boolean', 'createdAt', 'updatedAt'],
-      properties: ['id', 'stageName', 'fullName', 'country', 'genre', 'isJinglero', 'createdAt', 'updatedAt'],
-    },
-    {
-      label: 'Cancion',
-      filename: `node-Cancion-${config.timestamp}.csv`,
-      headers: ['id:ID', 'title', 'autorIds', 'genre', 'releaseYear', 'createdAt', 'updatedAt'],
-      properties: ['id', 'title', 'autorIds', 'genre', 'releaseYear', 'createdAt', 'updatedAt'],
-    },
-    {
-      label: 'Fabrica',
-      filename: `node-Fabrica-${config.timestamp}.csv`,
-      headers: ['id:ID', 'title', 'date', 'youtubeUrl', 'status', 'createdAt', 'updatedAt'],
-      properties: ['id', 'title', 'date', 'youtubeUrl', 'status', 'createdAt', 'updatedAt'],
-    },
-    {
-      label: 'Jingle',
-      filename: `node-Jingle-${config.timestamp}.csv`,
-      headers: ['id:ID', 'title', 'timestamp', 'songTitle', 'artistName', 'genre', 'fabricaId', 'fabricaDate', 'cancionId', 'isJinglazo:boolean', 'isJinglazoDelDia:boolean', 'isPrecario:boolean', 'comment', 'createdAt', 'updatedAt'],
-      properties: ['id', 'title', 'timestamp', 'songTitle', 'artistName', 'genre', 'fabricaId', 'fabricaDate', 'cancionId', 'isJinglazo', 'isJinglazoDelDia', 'isPrecario', 'comment', 'createdAt', 'updatedAt'],
-    },
-    {
-      label: 'Tematica',
-      filename: `node-Tematica-${config.timestamp}.csv`,
-      headers: ['id:ID', 'name', 'category', 'description', 'createdAt', 'updatedAt'],
-      properties: ['id', 'name', 'category', 'description', 'createdAt', 'updatedAt'],
-    },
-    {
-      label: 'Usuario',
-      filename: `node-Usuario-${config.timestamp}.csv`,
-      headers: ['id:ID', 'username', 'email', 'role', 'createdAt', 'updatedAt'],
-      properties: ['id', 'username', 'email', 'role', 'createdAt', 'updatedAt'],
-    },
-  ];
+  const entityLabels = ['Artista', 'Cancion', 'Fabrica', 'Jingle', 'Tematica', 'Usuario'];
   
-  for (const entityConfig of entityConfigs) {
-    console.log(`Exporting ${entityConfig.label}...`);
+  for (const label of entityLabels) {
+    console.log(`Exporting ${label}...`);
     
-    // Query all entities
+    // Get all properties dynamically
+    const properties = await getAllProperties(db, label);
+    
+    if (properties.length === 0) {
+      console.log(`  ⚠️  No ${label} entities found, skipping...`);
+      continue;
+    }
+    
+    // Ensure 'id' is first
+    const sortedProperties = ['id', ...properties.filter(p => p !== 'id')];
+    
+    // Build query to get all properties
     const query = `
-      MATCH (n:${entityConfig.label})
-      RETURN ${entityConfig.properties.map(p => `n.${p} as ${p}`).join(', ')}
+      MATCH (n:${label})
+      RETURN ${sortedProperties.map(p => `n.${p} as ${p}`).join(', ')}
       ORDER BY n.id
     `;
     
     const results = await db.executeQuery<Record<string, any>>(query, {});
     
+    // Create CSV headers
+    const headers = sortedProperties.map(toCsvHeader);
+    
     // Create CSV content
-    const lines = [entityConfig.headers.join(',')];
+    const lines = [headers.join(',')];
     for (const row of results) {
-      lines.push(toCsvLine(row, entityConfig.properties));
+      lines.push(toCsvLine(row, sortedProperties));
     }
     
     // Write to file
-    const filepath = path.join(config.outputDir, entityConfig.filename);
+    const filename = `node-${label}-${config.timestamp}.csv`;
+    const filepath = path.join(config.outputDir, filename);
     await fs.writeFile(filepath, lines.join('\n') + '\n');
     
-    console.log(`  ✅ ${results.length} ${entityConfig.label} exported to ${entityConfig.filename}`);
+    console.log(`  ✅ ${results.length} ${label} exported to ${filename}`);
+    console.log(`     Properties: ${sortedProperties.length} (${sortedProperties.slice(0, 5).join(', ')}${sortedProperties.length > 5 ? '...' : ''})`);
   }
+}
+
+/**
+ * Get all property keys for a relationship type
+ */
+async function getRelationshipProperties(db: Neo4jClient, relType: string, startLabel: string, endLabel: string): Promise<string[]> {
+  const query = `
+    MATCH (start:${startLabel})-[r:${relType}]->(end:${endLabel})
+    WITH keys(r) as keys
+    UNWIND keys as key
+    RETURN DISTINCT key as property
+    ORDER BY property
+  `;
+  
+  const results = await db.executeQuery<{ property: string }>(query, {});
+  return results.map(r => r.property);
 }
 
 /**
@@ -156,92 +187,93 @@ async function exportRelationships(db: Neo4jClient, config: ExportConfig): Promi
   const relationshipConfigs = [
     {
       type: 'APPEARS_IN',
+      startLabel: 'Jingle',
+      endLabel: 'Fabrica',
       filename: `rel-Jingle-APPEARS_IN-Fabrica-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID', 'timestamp', 'order:int'],
-      query: `
-        MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica)
-        RETURN j.id as startId, f.id as endId, r.timestamp as timestamp, r.order as order
-        ORDER BY f.id, r.order
-      `,
-      properties: ['startId', 'endId', 'timestamp', 'order'],
     },
     {
       type: 'VERSIONA',
+      startLabel: 'Jingle',
+      endLabel: 'Cancion',
       filename: `rel-Jingle-VERSIONA-Cancion-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID'],
-      query: `
-        MATCH (j:Jingle)-[r:VERSIONA]->(c:Cancion)
-        RETURN j.id as startId, c.id as endId
-        ORDER BY j.id
-      `,
-      properties: ['startId', 'endId'],
     },
     {
       type: 'AUTOR_DE',
+      startLabel: 'Artista',
+      endLabel: 'Cancion',
       filename: `rel-Artista-AUTOR_DE-Cancion-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID'],
-      query: `
-        MATCH (a:Artista)-[r:AUTOR_DE]->(c:Cancion)
-        RETURN a.id as startId, c.id as endId
-        ORDER BY c.id, a.id
-      `,
-      properties: ['startId', 'endId'],
     },
     {
       type: 'JINGLERO_DE',
+      startLabel: 'Artista',
+      endLabel: 'Jingle',
       filename: `rel-Artista-JINGLERO_DE-Jingle-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID'],
-      query: `
-        MATCH (a:Artista)-[r:JINGLERO_DE]->(j:Jingle)
-        RETURN a.id as startId, j.id as endId
-        ORDER BY a.id, j.id
-      `,
-      properties: ['startId', 'endId'],
     },
     {
       type: 'TAGGED_WITH',
+      startLabel: 'Jingle',
+      endLabel: 'Tematica',
       filename: `rel-Jingle-TAGGED_WITH-Tematica-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID', 'isPrimary:boolean'],
-      query: `
-        MATCH (j:Jingle)-[r:TAGGED_WITH]->(t:Tematica)
-        RETURN j.id as startId, t.id as endId, r.isPrimary as isPrimary
-        ORDER BY j.id, t.id
-      `,
-      properties: ['startId', 'endId', 'isPrimary'],
     },
     {
       type: 'REACCIONA_A',
+      startLabel: 'Usuario',
+      endLabel: 'Jingle',
       filename: `rel-Usuario-REACCIONA_A-Jingle-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID', 'reaction', 'createdAt'],
-      query: `
-        MATCH (u:Usuario)-[r:REACCIONA_A]->(j:Jingle)
-        RETURN u.id as startId, j.id as endId, r.reaction as reaction, r.createdAt as createdAt
-        ORDER BY u.id, j.id
-      `,
-      properties: ['startId', 'endId', 'reaction', 'createdAt'],
     },
     {
       type: 'SOY_YO',
+      startLabel: 'Usuario',
+      endLabel: 'Artista',
       filename: `rel-Usuario-SOY_YO-Artista-${config.timestamp}.csv`,
-      headers: [':START_ID', ':END_ID', 'verifiedAt'],
-      query: `
-        MATCH (u:Usuario)-[r:SOY_YO]->(a:Artista)
-        RETURN u.id as startId, a.id as endId, r.verifiedAt as verifiedAt
-        ORDER BY u.id, a.id
-      `,
-      properties: ['startId', 'endId', 'verifiedAt'],
     },
   ];
   
   for (const relConfig of relationshipConfigs) {
     console.log(`Exporting ${relConfig.type}...`);
     
-    const results = await db.executeQuery<Record<string, any>>(relConfig.query, {});
+    // Get all properties dynamically
+    const properties = await getRelationshipProperties(db, relConfig.type, relConfig.startLabel, relConfig.endLabel);
+    
+    // Check if any relationships exist
+    const countQuery = `
+      MATCH (start:${relConfig.startLabel})-[r:${relConfig.type}]->(end:${relConfig.endLabel})
+      RETURN count(r) as count
+    `;
+    const countResult = await db.executeQuery<{ count: number }>(countQuery, {});
+    const count = Number(countResult[0]?.count || 0);
+    
+    if (count === 0) {
+      console.log(`  ⚠️  No ${relConfig.type} relationships found, skipping...`);
+      continue;
+    }
+    
+    // Build properties list (startId, endId, then relationship properties)
+    const allProperties = ['startId', 'endId', ...properties];
+    
+    // Build query
+    const relProps = properties.length > 0 
+      ? ', ' + properties.map(p => `r.${p} as ${p}`).join(', ')
+      : '';
+    const query = `
+      MATCH (start:${relConfig.startLabel})-[r:${relConfig.type}]->(end:${relConfig.endLabel})
+      RETURN start.id as startId, end.id as endId${relProps}
+      ORDER BY start.id, end.id
+    `;
+    
+    const results = await db.executeQuery<Record<string, any>>(query, {});
+    
+    // Create CSV headers
+    const headers = [
+      ':START_ID',
+      ':END_ID',
+      ...properties.map(toCsvHeader)
+    ];
     
     // Create CSV content
-    const lines = [relConfig.headers.join(',')];
+    const lines = [headers.join(',')];
     for (const row of results) {
-      lines.push(toCsvLine(row, relConfig.properties));
+      lines.push(toCsvLine(row, allProperties));
     }
     
     // Write to file
@@ -249,6 +281,9 @@ async function exportRelationships(db: Neo4jClient, config: ExportConfig): Promi
     await fs.writeFile(filepath, lines.join('\n') + '\n');
     
     console.log(`  ✅ ${results.length} ${relConfig.type} relationships exported to ${relConfig.filename}`);
+    if (properties.length > 0) {
+      console.log(`     Properties: ${properties.length} (${properties.slice(0, 5).join(', ')}${properties.length > 5 ? '...' : ''})`);
+    }
   }
 }
 

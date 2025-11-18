@@ -48,3 +48,5 @@ In previous sessions we have addressed individual bugs in the UX/UI or backend. 
 [x] BUG_0003: Admin page fetching wrong entity type on navigation (see `BUG_0003.md`)
 [x] BUG_0004: Admin page incorrectly identifies entity type from new ID format (see `BUG_0004.md`)
 [x] BUG_0005: RelatedEntities false positive mismatch warning on page reload (see `BUG_0005.md`)
+[ ] BUG_0006: Relationship creation creates wrong direction for versiona, entity not visible after creation (see `BUG_0006.md`)
+[ ] BUG_0007: Audit all existing relationships to validate correct direction (see `BUG_0007.md`)

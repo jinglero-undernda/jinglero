@@ -21,6 +21,7 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
 }
 import { sortEntities } from '../../lib/utils/entitySorters';
 import { adminApi } from '../../lib/api/client';
+import { parseTimestampFromText } from '../../lib/utils/timestampParser';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
@@ -627,9 +628,22 @@ const RelatedEntities = forwardRef<{
       startId = rel.entityType === 'fabrica' ? selectedEntity.id : entity.id;
       endId = rel.entityType === 'fabrica' ? entity.id : selectedEntity.id;
     } else if (relType === 'versiona') {
-      // Jingle -> Cancion
-      startId = rel.entityType === 'cancion' ? selectedEntity.id : entity.id;
-      endId = rel.entityType === 'cancion' ? entity.id : selectedEntity.id;
+      // VERSIONA: (Jingle)-[VERSIONA]->(Cancion)
+      // Jingle is always start, Cancion is always end
+      // Dynamically determine which entity is which based on current page
+      if (entityType === 'jingle') {
+        // We're on a Jingle page, adding a Cancion
+        startId = entity.id; // Jingle (current entity)
+        endId = selectedEntity.id; // Cancion (selected entity)
+      } else if (entityType === 'cancion') {
+        // We're on a Cancion page, adding a Jingle
+        startId = selectedEntity.id; // Jingle (selected entity)
+        endId = entity.id; // Cancion (current entity)
+      } else {
+        // Fallback (shouldn't happen, but just in case)
+        startId = entity.id;
+        endId = selectedEntity.id;
+      }
     } else if (relType === 'jinglero_de' || relType === 'autor_de') {
       // Artista -> Jingle/Cancion
       startId = rel.entityType === 'artista' ? selectedEntity.id : entity.id;
@@ -664,10 +678,113 @@ const RelatedEntities = forwardRef<{
       endId = selectedEntity.id;
     }
 
+    // Parse timestamp from Jingle's comment if creating APPEARS_IN relationship
+    let parsedTimestampFromComment: string | null = null;
+    if (relType === 'appears_in') {
+      console.log('[RelatedEntities] Checking for timestamp in Jingle comment:', {
+        entityType,
+        relEntityType: rel.entityType,
+        entityId: entity.id,
+        selectedEntityId: selectedEntity.id,
+      });
+      
+      // Determine which entity is the Jingle and get its ID
+      const jingleId: string | null = 
+        entityType === 'jingle' ? entity.id :
+        rel.entityType === 'jingle' ? selectedEntity.id :
+        null;
+
+      // Get the Jingle entity (may be partial from search, so we might need to fetch full entity)
+      let jingleEntity: Jingle | null = 
+        entityType === 'jingle' ? (entity as Jingle) :
+        rel.entityType === 'jingle' ? (selectedEntity as Jingle) :
+        null;
+
+      // If we have a Jingle ID but the entity doesn't exist or doesn't have a comment, fetch the full entity
+      if (jingleId && (!jingleEntity || !jingleEntity.comment)) {
+        console.log('[RelatedEntities] Jingle entity missing or missing comment, fetching full entity:', {
+          jingleId,
+          hasEntity: !!jingleEntity,
+          hasComment: !!jingleEntity?.comment,
+        });
+        try {
+          const fullJingle = await adminApi.getJingle(jingleId);
+          jingleEntity = fullJingle;
+          console.log('[RelatedEntities] Fetched full Jingle entity:', {
+            jingleId: fullJingle.id,
+            hasComment: !!fullJingle.comment,
+            comment: fullJingle.comment,
+          });
+        } catch (error) {
+          console.error('[RelatedEntities] Error fetching full Jingle entity:', error);
+          // Continue with partial entity if fetch fails, or set to null if we didn't have one
+          if (!jingleEntity) {
+            jingleEntity = null;
+          }
+        }
+      }
+
+      console.log('[RelatedEntities] Jingle entity determined:', {
+        jingleEntity: jingleEntity ? { 
+          id: jingleEntity.id, 
+          hasComment: !!jingleEntity.comment, 
+          comment: jingleEntity.comment,
+          commentType: typeof jingleEntity.comment,
+          commentLength: jingleEntity.comment ? jingleEntity.comment.length : 0,
+        } : null,
+      });
+
+      if (jingleEntity && jingleEntity.comment) {
+        // Check if timestamp should be overridden
+        const currentTimestamp = relationshipProperties.timestamp;
+        const shouldOverride = 
+          currentTimestamp === null ||
+          currentTimestamp === undefined ||
+          currentTimestamp === '' ||
+          currentTimestamp === '00:00:00' ||
+          currentTimestamp === 0 ||
+          (typeof currentTimestamp === 'string' && currentTimestamp.trim() === '00:00:00');
+
+        if (shouldOverride) {
+          // Parse timestamp from Jingle's comment
+          parsedTimestampFromComment = parseTimestampFromText(jingleEntity.comment);
+          
+          if (parsedTimestampFromComment) {
+            console.log('[RelatedEntities] Parsed timestamp from Jingle comment:', {
+              jingleId: jingleEntity.id,
+              comment: jingleEntity.comment,
+              parsedTimestamp: parsedTimestampFromComment,
+            });
+            // Update relationshipProperties state for UI display (async, but that's okay)
+            setRelationshipProperties(prev => ({
+              ...prev,
+              timestamp: parsedTimestampFromComment,
+            }));
+          } else {
+            console.log('[RelatedEntities] No valid timestamp found in Jingle comment:', {
+              jingleId: jingleEntity.id,
+              comment: jingleEntity.comment,
+            });
+          }
+        } else {
+          console.log('[RelatedEntities] Timestamp already set, not overriding:', {
+            currentTimestamp,
+            jingleId: jingleEntity.id,
+          });
+        }
+      }
+    }
+
     // Prepare properties - convert empty strings to null/undefined, convert numbers
+    // Use parsed timestamp from comment if available, otherwise use relationshipProperties
     const properties: Record<string, any> = {};
     Object.entries(relationshipProperties).forEach(([key, value]) => {
-      if (value === '' || value === null || value === undefined) {
+      // Override timestamp with parsed value if available
+      if (key === 'timestamp' && parsedTimestampFromComment !== null) {
+        // Use the parsed timestamp (in HH:MM:SS format)
+        // The backend expects HH:MM:SS string format for APPEARS_IN relationships
+        properties[key] = parsedTimestampFromComment;
+      } else if (value === '' || value === null || value === undefined) {
         // Skip empty values
       } else if ((key === 'order' || key === 'timestamp') && (typeof value === 'string' || typeof value === 'number')) {
         const numValue = typeof value === 'string' ? Number(value) : value;
@@ -678,6 +795,11 @@ const RelatedEntities = forwardRef<{
         properties[key] = value;
       }
     });
+    
+    // If we parsed a timestamp but it wasn't in relationshipProperties, add it
+    if (parsedTimestampFromComment !== null && !('timestamp' in properties)) {
+      properties.timestamp = parsedTimestampFromComment;
+    }
 
     let relationshipCreated = false;
     const apiPayload = {
@@ -714,10 +836,36 @@ const RelatedEntities = forwardRef<{
         timestamp: new Date().toISOString(),
       });
       
-      // If relationship already exists, that's okay - we should still refresh to show it
+      // If relationship already exists, try to update it with the parsed timestamp if we have one
       if (errorMessage.includes('already exists') || errorMessage.includes('Relationship already exists')) {
-        console.log('[RelatedEntities] Relationship already exists, refreshing to show it');
-        relationshipCreated = true; // Treat as success for refresh purposes
+        console.log('[RelatedEntities] Relationship already exists');
+        
+        // If we parsed a timestamp from the comment, update the existing relationship
+        if (parsedTimestampFromComment !== null && relType === 'appears_in') {
+          console.log('[RelatedEntities] Updating existing relationship with parsed timestamp:', {
+            relType,
+            startId,
+            endId,
+            parsedTimestamp: parsedTimestampFromComment,
+          });
+          
+          try {
+            await adminApi.updateRelationship(relType, startId, endId, {
+              timestamp: parsedTimestampFromComment,
+            });
+            console.log('[RelatedEntities] Successfully updated relationship timestamp');
+            relationshipCreated = true;
+          } catch (updateError) {
+            const updateErrorMessage = updateError instanceof Error ? updateError.message : 'Error desconocido';
+            console.error('[RelatedEntities] Error updating relationship timestamp:', updateErrorMessage);
+            showToast(`Error al actualizar el timestamp: ${updateErrorMessage}`, 'error');
+            // Still refresh to show the existing relationship
+            relationshipCreated = true;
+          }
+        } else {
+          console.log('[RelatedEntities] Relationship already exists, refreshing to show it');
+          relationshipCreated = true; // Treat as success for refresh purposes
+        }
       } else {
         showToast(`Error al crear la relación: ${errorMessage}`, 'error');
         return; // Don't refresh if there was a real error

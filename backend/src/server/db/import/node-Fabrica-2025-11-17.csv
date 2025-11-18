@@ -1,7 +1,19 @@
-id:ID,title,date,youtubeUrl,status,createdAt,updatedAt
-0hmxZPp0xq0,Quisiera ser de Glew,2025-06-04T23:00:00.000Z,https://www.youtube.com/watch?v=0hmxZPp0xq0,TBC,2025-06-05T00:00:00.000Z,2025-11-14T01:15:45.000Z
-2LbnV-Wss4g,DIJO FEINMANN,2025-06-11T23:00:00.000Z,https://www.youtube.com/watch?v=2LbnV-Wss4g,,2025-11-15T11:12:19.000Z,2025-11-16T23:01:44.000Z
-7JJuJ59DxUw,Quiero ser Sherlock Holmes,13/11/2025,https://www.youtube.com/watch?v=7JJuJ59DxUw,,2025-11-14T11:54:23.000Z,2025-11-15T00:48:51.000Z
-DBbyI99TtIM,HOLA QUE TAL SOY DONALD TRUMP,2025-10-23T22:26:41.000Z,https://www.youtube.com/watch?v=DBbyI99TtIM,DRAFT,2025-10-22T14:39:36.000Z,2025-11-17T15:28:03.000Z
-DLe3hojAro0,ESPECIAL DIEGO MARADONA,2025-10-30T00:00:00.000Z,https://www.youtube.com/watch?v=DLe3hojAro0,,2025-11-15T11:25:04.000Z,2025-11-17T13:46:52.000Z
-t4xLg702Yn0,LA PRIMERA FÁBRICA DE JINGLES,26/06/2023,,,2025-11-15T10:03:38.000Z,2025-11-15T10:03:38.000Z
+id:ID,contents,createdAt,date,description,likes:int,status,title,updatedAt,visualizations:int,youtubeUrl
+0hmxZPp0xq0,Test Contents,2025-06-05T00:00:00.000Z,2025-06-04T23:00:00.000Z,Test Description,100,TBC,Quisiera ser de Glew,2025-11-14T01:15:45.000Z,200,https://www.youtube.com/watch?v=0hmxZPp0xq0
+2LbnV-Wss4g,,2025-11-15T11:12:19.000Z,2025-06-11T23:00:00.000Z,,,,DIJO FEINMANN,2025-11-16T23:01:44.000Z,,https://www.youtube.com/watch?v=2LbnV-Wss4g
+7JJuJ59DxUw,,2025-11-14T11:54:23.000Z,13/11/2025,,,,Quiero ser Sherlock Holmes,2025-11-15T00:48:51.000Z,,https://www.youtube.com/watch?v=7JJuJ59DxUw
+DBbyI99TtIM,,2025-10-22T14:39:36.000Z,2025-10-23T22:26:41.000Z,,,DRAFT,HOLA QUE TAL SOY DONALD TRUMP,2025-11-17T15:28:03.000Z,,https://www.youtube.com/watch?v=DBbyI99TtIM
+DLe3hojAro0,"3:48 ) El amor es mas fuerte - Ulises Butrón// El Diego nunca se vende - Lucas Niro
+
+6:52 ) Sin miedo a nada (me muero por conocerte)- Alex Ubago // Son todos delincuentes - Nico Diaz y la Queen Mariu
+
+11:05 ) Todas las hojas son del viento- Pescado rabioso //Todos los días pienso en Diego- Hernan Lindenbaum y Nacho? 
+
+15:10) El anillo del Capitan Beto - Spinetta// Ahi va el capitan Diego - El negro andante 
+
+21:55 ) Para no olvidar - Los Rodriguez// Estar despiertos, jamás hundido - Lauti el Monje cortoplacista 
+
+25:50 ) Crímenes Perfectos - Calamaro// maradona hoy te estamos cantando en la Paternal - Nico Alvarez 
+
+29:47 ) Ego - Laliii // Diego - Mariu la Queen Serrano (te amoooo)",2025-11-15T11:25:04.000Z,2025-10-30T00:00:00.000Z,,,,ESPECIAL DIEGO MARADONA,2025-11-17T13:46:52.000Z,,https://www.youtube.com/watch?v=DLe3hojAro0
+t4xLg702Yn0,,2025-11-15T10:03:38.000Z,26/06/2023,,,,LA PRIMERA FÁBRICA DE JINGLES,2025-11-15T10:03:38.000Z,,

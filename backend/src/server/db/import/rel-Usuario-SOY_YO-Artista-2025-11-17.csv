@@ -1,2 +1,2 @@
-:START_ID,:END_ID,verifiedAt
-u2qppcsbi,a1i1o58qg,2025-10-19
+:START_ID,:END_ID,isVerified:boolean,requestedAt,status,verifiedAt,verifiedBy
+u2qppcsbi,a1i1o58qg,true,2025-09-25T00:00:00.000Z,VERIFIED,2025-10-19,U0001
