@@ -14,7 +14,9 @@
     "migrate:ids:dry-run": "ts-node src/server/db/migration/migrate-entity-ids.ts --dry-run",
     "db:export-csv": "ts-node src/server/db/migration/export-to-csv.ts",
     "db:generate-id": "ts-node src/server/db/migration/generate-id.ts",
-    "db:import-fabricas": "ts-node src/server/db/migration/import-fabricas.ts"
+    "db:import-fabricas": "ts-node src/server/db/migration/import-fabricas.ts",
+    "db:audit-relationships": "ts-node src/server/db/quality/audit-relationships-cli.ts",
+    "db:fix-relationships": "ts-node src/server/db/quality/audit-relationships-cli.ts --fix"
   },
   "dependencies": {
     "axios": "^1.13.2",

@@ -654,9 +654,19 @@ const RelatedEntities = forwardRef<{
         endId = selectedEntity.id;
       }
     } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-      // Artista -> Jingle/Cancion
-      startId = rel.entityType === 'artista' ? selectedEntity.id : entity.id;
-      endId = rel.entityType === 'artista' ? entity.id : selectedEntity.id;
+      // JINGLERO_DE: (Artista)-[JINGLERO_DE]->(Jingle)
+      // AUTOR_DE: (Artista)-[AUTOR_DE]->(Cancion)
+      // Artista is always start, Jingle/Cancion is always end
+      if (entityType === 'artista') {
+        startId = entity.id; // Artista (current entity)
+        endId = selectedEntity.id; // Jingle/Cancion (selected entity)
+      } else if (entityType === 'jingle' || entityType === 'cancion') {
+        startId = selectedEntity.id; // Artista (selected entity)
+        endId = entity.id; // Jingle/Cancion (current entity)
+      } else {
+        startId = entity.id;
+        endId = selectedEntity.id;
+      }
       console.log(`[DEBUG] Creating ${relType} relationship:`, {
         entityType,
         relEntityType: rel.entityType,
@@ -986,9 +996,18 @@ const RelatedEntities = forwardRef<{
         endId = relatedEntityId;
       }
     } else if (relType === 'jinglero_de' || relType === 'autor_de') {
-      // Artista -> Jingle/Cancion
-      startId = relEntityType === 'artista' ? relatedEntityId : entity.id;
-      endId = relEntityType === 'artista' ? entity.id : relatedEntityId;
+      // JINGLERO_DE: (Artista)-[JINGLERO_DE]->(Jingle)
+      // AUTOR_DE: (Artista)-[AUTOR_DE]->(Cancion)
+      if (entityType === 'artista') {
+        startId = entity.id; // Artista (current entity)
+        endId = relatedEntityId; // Jingle/Cancion (related entity)
+      } else if (entityType === 'jingle' || entityType === 'cancion') {
+        startId = relatedEntityId; // Artista (related entity)
+        endId = entity.id; // Jingle/Cancion (current entity)
+      } else {
+        startId = entity.id;
+        endId = relatedEntityId;
+      }
     } else if (relType === 'tagged_with') {
       // TAGGED_WITH: (Jingle)-[TAGGED_WITH]->(Tematica)
       // Jingle is always the start node, Tematica is always the end node
