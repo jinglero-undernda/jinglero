@@ -1,0 +1,4 @@
+id:ID,artistId,contributionsCount:int,createdAt,displayName,email,lastLogin,role,updatedAt
+u2qppcsbi,ART-004,0,2025-10-19T00:00:00.000Z,Lucas Niro,example@email.com,2025-10-19T00:00:00Z,GUEST,2025-10-19T00:00:00.000Z
+u3gcao3jh,,0,2025-10-19T00:00:00.000Z,El Jinglero sabe,jinglero.londres@gmail.com,2025-10-19T00:00:00Z,ADMIN,2025-10-22T14:13:45.000Z
+u3jgvtyd9,,0,2025-10-19T00:00:00.000Z,Guillermo,arqlopezcampo@gmail.com,2025-10-19T00:00:00Z,GUEST,2025-10-19T00:00:00.000Z
