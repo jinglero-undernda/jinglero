@@ -275,5 +275,142 @@ describe('APPEARS_IN Order Management', () => {
       expect(timestampToSeconds('99:59:59')).toBe(359999);
     });
   });
+
+  describe('error handling', () => {
+    it('should handle invalid Fabrica ID gracefully', async () => {
+      const { updateAppearsInOrder } = require('../../../src/server/api/admin');
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      // Mock: Fabrica doesn't exist
+      mockDb.executeQuery.mockResolvedValueOnce([]);
+
+      await updateAppearsInOrder('invalid-fabrica-id');
+
+      // Should warn and return early without throwing
+      expect(consoleWarnSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Fabrica invalid-fabrica-id not found')
+      );
+      expect(mockDb.executeQuery).toHaveBeenCalledTimes(1);
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should handle invalid timestamp formats gracefully', async () => {
+      const { updateAppearsInOrder } = require('../../../src/server/api/admin');
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation();
+
+      // Mock: Fabrica exists, relationships with invalid timestamps
+      mockDb.executeQuery
+        .mockResolvedValueOnce([{ id: 'fabrica1' }]) // Fabrica exists
+        .mockResolvedValueOnce([
+          { jingleId: 'j1', timestamp: 'invalid-format' },
+          { jingleId: 'j2', timestamp: '00:05:00' },
+          { jingleId: 'j3', timestamp: null },
+        ])
+        .mockResolvedValueOnce(undefined) // First update succeeds
+        .mockResolvedValueOnce(undefined) // Second update succeeds
+        .mockResolvedValueOnce(undefined); // Third update succeeds
+
+      await updateAppearsInOrder('fabrica1');
+
+      // Should warn about invalid timestamp formats
+      expect(consoleWarnSpy).toHaveBeenCalled();
+
+      consoleWarnSpy.mockRestore();
+    });
+
+    it('should continue processing when individual update fails', async () => {
+      const { updateAppearsInOrder } = require('../../../src/server/api/admin');
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleLogSpy = jest.spyOn(console, 'log').mockImplementation();
+
+      // Mock: Fabrica exists, relationships, but one update fails
+      mockDb.executeQuery
+        .mockResolvedValueOnce([{ id: 'fabrica1' }]) // Fabrica exists
+        .mockResolvedValueOnce([
+          { jingleId: 'j1', timestamp: '00:05:00' },
+          { jingleId: 'j2', timestamp: '00:10:00' },
+          { jingleId: 'j3', timestamp: '00:15:00' },
+        ])
+        .mockResolvedValueOnce(undefined) // First update succeeds
+        .mockRejectedValueOnce(new Error('Update failed')) // Second update fails
+        .mockResolvedValueOnce(undefined); // Third update succeeds
+
+      await updateAppearsInOrder('fabrica1');
+
+      // Should log error for failed update but continue
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to update order for Jingle j2'),
+        expect.any(Error)
+      );
+
+      // Should log success for the ones that worked, including mention of failed ones
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Updated order for 2 APPEARS_IN relationships')
+      );
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        expect.stringContaining('(1 failed)')
+      );
+
+      consoleErrorSpy.mockRestore();
+      consoleLogSpy.mockRestore();
+    });
+
+    it('should not throw when database query fails', async () => {
+      const { updateAppearsInOrder } = require('../../../src/server/api/admin');
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      // Mock: Database query fails
+      mockDb.executeQuery.mockRejectedValueOnce(new Error('Database connection failed'));
+
+      // Should not throw, just log error
+      await expect(updateAppearsInOrder('fabrica1')).resolves.not.toThrow();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Error updating APPEARS_IN order for Fabrica fabrica1'),
+        expect.any(Error)
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle empty Fabrica relationships gracefully', async () => {
+      const { updateAppearsInOrder } = require('../../../src/server/api/admin');
+
+      // Mock: Fabrica exists but has no relationships
+      mockDb.executeQuery
+        .mockResolvedValueOnce([{ id: 'fabrica1' }]) // Fabrica exists
+        .mockResolvedValueOnce([]); // No relationships
+
+      await updateAppearsInOrder('fabrica1');
+
+      // Should return early without errors
+      expect(mockDb.executeQuery).toHaveBeenCalledTimes(2);
+    });
+
+    it('should handle all updates failing gracefully', async () => {
+      const { updateAppearsInOrder } = require('../../../src/server/api/admin');
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      // Mock: Fabrica exists, relationships, but all updates fail
+      mockDb.executeQuery
+        .mockResolvedValueOnce([{ id: 'fabrica1' }]) // Fabrica exists
+        .mockResolvedValueOnce([
+          { jingleId: 'j1', timestamp: '00:05:00' },
+          { jingleId: 'j2', timestamp: '00:10:00' },
+        ])
+        .mockRejectedValueOnce(new Error('Update failed'))
+        .mockRejectedValueOnce(new Error('Update failed'));
+
+      await updateAppearsInOrder('fabrica1');
+
+      // Should log error for all failures
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to update order for all 2 APPEARS_IN relationships')
+      );
+
+      consoleErrorSpy.mockRestore();
+    });
+  });
 });
 

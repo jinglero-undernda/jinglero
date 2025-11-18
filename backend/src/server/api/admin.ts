@@ -263,6 +263,17 @@ function timestampToSeconds(timestamp: string): number {
  */
 async function updateAppearsInOrder(fabricaId: string): Promise<void> {
   try {
+    // Validate Fabrica exists
+    const fabricaExists = await db.executeQuery(
+      `MATCH (f:Fabrica {id: $fabricaId}) RETURN f.id AS id LIMIT 1`,
+      { fabricaId }
+    );
+    
+    if (fabricaExists.length === 0) {
+      console.warn(`Fabrica ${fabricaId} not found, skipping order update`);
+      return; // Don't throw, just return early
+    }
+    
     // Query all APPEARS_IN relationships for this Fabrica
     const query = `
       MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
@@ -281,12 +292,29 @@ async function updateAppearsInOrder(fabricaId: string): Promise<void> {
     }
     
     // Convert timestamps to seconds for sorting and detect conflicts
-    const relationshipsWithSeconds = relationships.map((rel, index) => ({
-      jingleId: rel.jingleId,
-      timestamp: rel.timestamp || '00:00:00',
-      seconds: timestampToSeconds(rel.timestamp || '00:00:00'),
-      order: index + 1, // Sequential order based on sorted position
-    }));
+    // Handle invalid timestamp formats gracefully
+    const relationshipsWithSeconds = relationships.map((rel, index) => {
+      const timestamp = rel.timestamp || '00:00:00';
+      let seconds: number;
+      try {
+        seconds = timestampToSeconds(timestamp);
+        // Validate that timestamp was parsed correctly
+        if (isNaN(seconds)) {
+          console.warn(`Invalid timestamp format "${timestamp}" for Jingle ${rel.jingleId} in Fabrica ${fabricaId}, using 00:00:00`);
+          seconds = 0;
+        }
+      } catch (error) {
+        console.warn(`Error parsing timestamp "${timestamp}" for Jingle ${rel.jingleId} in Fabrica ${fabricaId}:`, error);
+        seconds = 0;
+      }
+      
+      return {
+        jingleId: rel.jingleId,
+        timestamp,
+        seconds,
+        order: index + 1, // Sequential order based on sorted position
+      };
+    });
     
     // Check for timestamp conflicts (same timestamp)
     const timestampMap = new Map<number, string[]>();
@@ -306,23 +334,40 @@ async function updateAppearsInOrder(fabricaId: string): Promise<void> {
       }
     });
     
-    // Update order for all relationships in a single transaction
+    // Update order for all relationships with individual error handling
+    let successCount = 0;
+    let errorCount = 0;
+    
     for (const rel of relationshipsWithSeconds) {
-      const updateQuery = `
-        MATCH (j:Jingle {id: $jingleId})-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
-        SET r.order = $order
-      `;
-      await db.executeQuery(updateQuery, {
-        jingleId: rel.jingleId,
-        fabricaId,
-        order: rel.order,
-      }, undefined, true);
+      try {
+        const updateQuery = `
+          MATCH (j:Jingle {id: $jingleId})-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
+          SET r.order = $order
+        `;
+        await db.executeQuery(updateQuery, {
+          jingleId: rel.jingleId,
+          fabricaId,
+          order: rel.order,
+        }, undefined, true);
+        successCount++;
+      } catch (updateError) {
+        errorCount++;
+        console.error(
+          `Failed to update order for Jingle ${rel.jingleId} in Fabrica ${fabricaId}:`,
+          updateError
+        );
+        // Continue processing other relationships even if one fails
+      }
     }
     
-    console.log(`Updated order for ${relationshipsWithSeconds.length} APPEARS_IN relationships in Fabrica ${fabricaId}`);
+    if (successCount > 0) {
+      console.log(`Updated order for ${successCount} APPEARS_IN relationships in Fabrica ${fabricaId}${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+    } else if (errorCount > 0) {
+      console.error(`Failed to update order for all ${errorCount} APPEARS_IN relationships in Fabrica ${fabricaId}`);
+    }
   } catch (error) {
     console.error(`Error updating APPEARS_IN order for Fabrica ${fabricaId}:`, error);
-    throw error;
+    // Don't re-throw - let caller handle gracefully
   }
 }
 
@@ -829,7 +874,12 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
   
   // Automatically update order for APPEARS_IN relationships
   if (neo4jRelType === 'APPEARS_IN') {
-    await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+    try {
+      await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+    } catch (orderError) {
+      console.error(`Failed to update APPEARS_IN order for Fabrica ${payload.end} after creation:`, orderError);
+      // Relationship creation succeeded, order update can be retried later
+    }
   }
   
   res.status(201).json(result[0].r);
@@ -885,7 +935,12 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
   
   // Automatically update order for APPEARS_IN relationships (in case timestamp changed)
   if (neo4jRelType === 'APPEARS_IN') {
-    await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+    try {
+      await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+    } catch (orderError) {
+      console.error(`Failed to update APPEARS_IN order for Fabrica ${payload.end} after update:`, orderError);
+      // Relationship update succeeded, order update can be retried later
+    }
   }
   
   res.json(result[0].r);
@@ -925,7 +980,12 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
   
   // Automatically update order for remaining APPEARS_IN relationships
   if (neo4jRelType === 'APPEARS_IN') {
-    await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+    try {
+      await updateAppearsInOrder(payload.end); // payload.end is the Fabrica ID
+    } catch (orderError) {
+      console.error(`Failed to update APPEARS_IN order for Fabrica ${payload.end} after deletion:`, orderError);
+      // Relationship deletion succeeded, order update can be retried later
+    }
   }
   
   res.json({ message: 'Relationship deleted successfully' });
