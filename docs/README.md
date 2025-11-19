@@ -38,18 +38,20 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`ux-workflows/`](./ux-workflows/)
+**Location**: [`1_frontend_ux-workflows/`](./1_frontend_ux-workflows/)
 
 **Focus**:
+
 - User journeys and interaction patterns
 - State machines and transitions
 - Error handling and edge cases
 - Navigation flows
 
 **Key Documents**:
-- [`ux-workflows/README.md`](./ux-workflows/README.md) - Area overview
-- [`ux-workflows/playbooks/`](./ux-workflows/playbooks/) - 7 playbooks
-- [`ux-workflows/IMPLEMENTATION_GUIDE.md`](./ux-workflows/IMPLEMENTATION_GUIDE.md) - Implementation guide
+
+- [`1_frontend_ux-workflows/README.md`](./1_frontend_ux-workflows/README.md) - Area overview
+- [`1_frontend_ux-workflows/playbooks/`](./1_frontend_ux-workflows/playbooks/) - 7 playbooks
+- [`1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md`](./1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md) - Implementation guide
 
 ---
 
@@ -59,21 +61,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`design-system/`](./design-system/)
+**Location**: [`2_frontend_ui-design-system/`](./2_frontend_ui-design-system/)
 
 **Focus**:
+
 - Design tokens (colors, typography, spacing)
 - Component library specifications
 - Visual style guidelines
 - Design system consistency
 
 **Relationships**:
+
 - Impacts: UX Workflows (visual states), Frontend Architecture
 - Influenced by: UX Workflows (user needs), System Architecture (performance)
 
 **Key Documents**:
-- [`design-system/README.md`](./design-system/README.md) - Area overview
-- [`design-system/playbooks/`](./design-system/playbooks/) - 7 playbooks
+
+- [`2_frontend_ui-design-system/README.md`](./2_frontend_ui-design-system/README.md) - Area overview
+- [`2_frontend_ui-design-system/playbooks/`](./2_frontend_ui-design-system/playbooks/) - 7 playbooks
 
 ---
 
@@ -83,21 +88,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`database-schema/`](./database-schema/)
+**Location**: [`4_backend_database-schema/`](./4_backend_database-schema/)
 
 **Focus**:
+
 - Neo4j node types and properties
 - Relationship types and properties
 - Constraints and indexes
 - Data flow and redundancy patterns
 
 **Relationships**:
+
 - Impacts: API Contracts (data structure), Backend Architecture
 - Influenced by: UX Workflows (data needs), System Architecture (performance)
 
 **Key Documents**:
-- [`database-schema/README.md`](./database-schema/README.md) - Area overview
-- [`database-schema/playbooks/`](./database-schema/playbooks/) - 7 playbooks
+
+- [`4_backend_database-schema/README.md`](./4_backend_database-schema/README.md) - Area overview
+- [`4_backend_database-schema/playbooks/`](./4_backend_database-schema/playbooks/) - 7 playbooks
 
 ---
 
@@ -107,21 +115,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`architecture/`](./architecture/)
+**Location**: [`3_system_architecture/`](./3_system_architecture/)
 
 **Focus**:
+
 - Data flow and caching strategies
 - State management patterns
 - Performance characteristics
 - Scalability and cost optimization
 
 **Relationships**:
+
 - Impacts: All other areas (foundational)
 - Influenced by: Database Schema, Performance & Monitoring
 
 **Key Documents**:
-- [`architecture/README.md`](./architecture/README.md) - Area overview
-- [`architecture/playbooks/`](./architecture/playbooks/) - 7 playbooks
+
+- [`3_system_architecture/README.md`](./3_system_architecture/README.md) - Area overview
+- [`3_system_architecture/playbooks/`](./3_system_architecture/playbooks/) - 7 playbooks
 
 ---
 
@@ -131,21 +142,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`api-contracts/`](./api-contracts/)
+**Location**: [`5_backend_api-contracts/`](./5_backend_api-contracts/)
 
 **Focus**:
+
 - API endpoint specifications
 - Request/response contracts
 - Versioning strategies
 - Frontend-backend integration
 
 **Relationships**:
+
 - Impacts: UX Workflows (data flow), Frontend Architecture
 - Influenced by: Database Schema (data structure), System Architecture (patterns)
 
 **Key Documents**:
-- [`api-contracts/README.md`](./api-contracts/README.md) - Area overview
-- [`api-contracts/playbooks/`](./api-contracts/playbooks/) - 7 playbooks
+
+- [`5_backend_api-contracts/README.md`](./5_backend_api-contracts/README.md) - Area overview
+- [`5_backend_api-contracts/playbooks/`](./5_backend_api-contracts/playbooks/) - 7 playbooks
 
 ---
 
@@ -155,21 +169,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`testing/`](./testing/)
+**Location**: [`6_system_testing/`](./6_system_testing/)
 
 **Focus**:
+
 - Test coverage and strategy
 - Unit, integration, and E2E testing
 - Test quality and maintainability
 - Testing workflows
 
 **Relationships**:
+
 - Validates: All other areas
 - Influenced by: UX Workflows (test scenarios), System Architecture (test patterns)
 
 **Key Documents**:
-- [`testing/README.md`](./testing/README.md) - Area overview
-- [`testing/playbooks/`](./testing/playbooks/) - 7 playbooks
+
+- [`6_system_testing/README.md`](./6_system_testing/README.md) - Area overview
+- [`6_system_testing/playbooks/`](./6_system_testing/playbooks/) - 7 playbooks
 
 ---
 
@@ -179,21 +196,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`performance/`](./performance/)
+**Location**: [`7_ops_performance/`](./7_ops_performance/)
 
 **Focus**:
+
 - Performance targets and metrics
 - Monitoring and alerting
 - Optimization opportunities
 - Cost analysis
 
 **Relationships**:
+
 - Measures: System Architecture, Database Schema, API Contracts
 - Influences: System Architecture (optimization decisions)
 
 **Key Documents**:
-- [`performance/README.md`](./performance/README.md) - Area overview
-- [`performance/playbooks/`](./performance/playbooks/) - 7 playbooks
+
+- [`7_ops_performance/README.md`](./7_ops_performance/README.md) - Area overview
+- [`7_ops_performance/playbooks/`](./7_ops_performance/playbooks/) - 7 playbooks
 
 ---
 
@@ -203,21 +223,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`security/`](./security/)
+**Location**: [`8_ops_security/`](./8_ops_security/)
 
 **Focus**:
+
 - Security requirements
 - Authentication and authorization
 - Data protection
 - Compliance considerations
 
 **Relationships**:
+
 - Applies to: All areas (cross-cutting concern)
 - Influences: API Contracts, Deployment & Infrastructure
 
 **Key Documents**:
-- [`security/README.md`](./security/README.md) - Area overview
-- [`security/playbooks/`](./security/playbooks/) - 7 playbooks
+
+- [`8_ops_security/README.md`](./8_ops_security/README.md) - Area overview
+- [`8_ops_security/playbooks/`](./8_ops_security/playbooks/) - 7 playbooks
 
 ---
 
@@ -227,21 +250,24 @@ The documentation system covers nine interconnected areas:
 
 **Status**: Complete - 7 playbooks available
 
-**Location**: [`deployment/`](./deployment/)
+**Location**: [`9_ops_deployment/`](./9_ops_deployment/)
 
 **Focus**:
+
 - Deployment processes
 - Environment configuration
 - Infrastructure as code
 - CI/CD pipelines
 
 **Relationships**:
+
 - Deploys: All areas
 - Influenced by: System Architecture, Security & Compliance
 
 **Key Documents**:
-- [`deployment/README.md`](./deployment/README.md) - Area overview
-- [`deployment/playbooks/`](./deployment/playbooks/) - 7 playbooks
+
+- [`9_ops_deployment/README.md`](./9_ops_deployment/README.md) - Area overview
+- [`9_ops_deployment/playbooks/`](./9_ops_deployment/playbooks/) - 7 playbooks
 
 ---
 
@@ -298,6 +324,7 @@ The nine areas are interconnected and should be considered together:
 ```
 
 **Key Relationships**:
+
 - **UX Workflows** → **UI Design System**: Visual states and user interactions
 - **Database Schema** → **API Contracts**: Data structure defines API shape
 - **System Architecture** → **All Areas**: Foundational patterns
@@ -309,9 +336,9 @@ The nine areas are interconnected and should be considered together:
 
 ### Quick Start
 
-1. **Navigate to the area** you want to work on (e.g., `ux-workflows/`)
+1. **Navigate to the area** you want to work on (e.g., `1_frontend_ux-workflows/`)
 2. **Read the area README** to understand the area's purpose
-3. **Open the playbooks directory** (e.g., `ux-workflows/playbooks/`)
+3. **Open the playbooks directory** (e.g., `1_frontend_ux-workflows/playbooks/`)
 4. **Read QUICK_START.md** for quick reference
 5. **Choose the appropriate playbook** for your task
 6. **Copy the playbook content** into a new AI agent session
@@ -322,17 +349,21 @@ The nine areas are interconnected and should be considered together:
 Each area has 7 playbooks organized into 4 categories:
 
 **Documentation (1 playbook)**:
+
 - PLAYBOOK_01: Document [Area]
 
 **Analysis & Planning (3 playbooks)**:
+
 - PLAYBOOK_02: Validate [Area]
 - PLAYBOOK_03: Gap Analysis
 - PLAYBOOK_04: Plan [Action]
 
 **Implementation (1 playbook)**:
+
 - PLAYBOOK_05: Implement [Action]
 
 **Maintenance (2 playbooks)**:
+
 - PLAYBOOK_06: Update [Area]
 - PLAYBOOK_07: [Area] Audit
 
@@ -340,7 +371,7 @@ Each area has 7 playbooks organized into 4 categories:
 
 **Scenario**: You want to document the current UI design system
 
-1. Navigate to `design-system/playbooks/`
+1. Navigate to `2_frontend_ui-design-system/playbooks/`
 2. Open `PLAYBOOK_01_DOCUMENT_DESIGN_INTENT.md`
 3. Copy the entire playbook content
 4. Paste into AI agent session
@@ -392,6 +423,7 @@ When working in one area, consider impacts on others:
 ### Status Indicators
 
 Each area uses status indicators:
+
 - ✅ **Complete**: All playbooks created and ready
 - ⏳ **Planned**: Playbooks to be created
 - 🚧 **In Progress**: Currently being developed
@@ -408,7 +440,7 @@ Each area uses status indicators:
 ### Strategic Documents
 
 - [`complete-refactor-analysis.md`](./complete-refactor-analysis.md) - Strategic analysis and approach
-- [`ux-workflows/IMPLEMENTATION_GUIDE.md`](./ux-workflows/IMPLEMENTATION_GUIDE.md) - Implementation guidance
+- [`1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md`](./1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md) - Implementation guidance
 
 ### Historical Documentation
 
@@ -418,7 +450,7 @@ Each area uses status indicators:
 
 ### Bug Tracking
 
-- [`debugLogs/`](./debugLogs/) - Bug tracking and resolution logs
+- [`0_debug-logs/`](./0_debug-logs/) - Bug tracking and resolution logs
 
 ## Contributing
 
@@ -474,4 +506,3 @@ Each area uses status indicators:
 **Last Updated**: 2025-01-XX  
 **System Status**: 9 areas complete, 0 areas planned  
 **Total Playbooks**: 63 complete, 0 planned
-

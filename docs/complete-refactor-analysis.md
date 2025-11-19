@@ -4,8 +4,8 @@
 **Status:** Analysis Complete  
 **Related Documents:**
 
-- `docs/ux-workflows/IMPLEMENTATION_GUIDE.md`
-- `docs/ux-workflows/README.md`
+- `docs/1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md`
+- `docs/1_frontend_ux-workflows/README.md`
 - `docs/admin-portal-specification.md`
 - `docs/admin-redesign-analysis.md`
 
@@ -931,7 +931,7 @@ This approach minimizes risk, preserves working code, and provides a clear path 
 
 ## Appendix B: Validation Checklist Template
 
-See `docs/ux-workflows/IMPLEMENTATION_GUIDE.md` Section "Validation Checklist Template" for detailed template.
+See `docs/1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md` Section "Validation Checklist Template" for detailed template.
 
 ## Appendix C: Change Log Template
 
