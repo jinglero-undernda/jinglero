@@ -241,7 +241,7 @@ async function importJingles(filename: string): Promise<void> {
         id: string;
         properties: Record<string, any>;
         fabricaId?: string;
-        timestamp?: string;
+        timestamp?: number;
       }> = [];
       
       // First pass: validate and prepare rows
@@ -475,7 +475,7 @@ async function importJingles(filename: string): Promise<void> {
             
             const relationships = await db.executeQuery<{ 
               jingleId: string; 
-              timestamp: string; 
+              timestamp: number; 
               relId: any;
             }>(queryRelationships, { fabricaId });
             
