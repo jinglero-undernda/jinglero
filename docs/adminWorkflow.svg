@@ -1,0 +1,511 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="2200" viewBox="0 0 1600 2200">
+  <defs>
+    <style>
+      .start-event { fill: #fff; stroke: #000; stroke-width: 2; }
+      .end-event { fill: #fff; stroke: #000; stroke-width: 4; }
+      .task { fill: #fff; stroke: #000; stroke-width: 2; }
+      .gateway { fill: #fff; stroke: #000; stroke-width: 2; }
+      .sequence-flow { stroke: #000; stroke-width: 2; fill: none; marker-end: url(#arrowhead); }
+      .annotation { fill: #fff; stroke: #d0d0d0; stroke-width: 1; stroke-dasharray: 5,5; }
+      .text { font-family: Arial, sans-serif; font-size: 12px; text-anchor: middle; }
+      .text-small { font-family: Arial, sans-serif; font-size: 10px; text-anchor: middle; }
+      .text-label { font-family: Arial, sans-serif; font-size: 11px; text-anchor: start; }
+      .title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; text-anchor: middle; }
+    </style>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#000" />
+    </marker>
+  </defs>
+  
+  <!-- Title -->
+  <text x="800" y="30" class="title">Admin Portal - Metadata and Relationship Edit Workflow</text>
+  
+  <!-- Start Event -->
+  <circle cx="100" cy="80" r="15" class="start-event"/>
+  <text x="100" y="85" class="text-small">Start</text>
+  
+  <!-- Task: Navigate to Entity -->
+  <rect x="50" y="120" width="100" height="50" rx="5" class="task"/>
+  <text x="100" y="145" class="text">1. Navigate to</text>
+  <text x="100" y="160" class="text">Entity</text>
+  
+  <!-- Sequence Flow -->
+  <path d="M 100 95 L 100 120" class="sequence-flow"/>
+  
+  <!-- Gateway: Check Entity Display -->
+  <polygon points="100,190 130,210 100,230 70,210" class="gateway"/>
+  <text x="100" y="215" class="text-small">Valid?</text>
+  
+  <path d="M 100 170 L 100 190" class="sequence-flow"/>
+  
+  <!-- Task: Display Entity (View Mode) -->
+  <rect x="200" y="190" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="210" class="text">Display Entity</text>
+  <text x="260" y="225" class="text">(View Mode)</text>
+  
+  <path d="M 130 210 L 200 215" class="sequence-flow"/>
+  <text x="165" y="210" class="text-label" style="text-anchor: middle;">Yes</text>
+  
+  <!-- Task: Show Metadata Panel -->
+  <rect x="200" y="280" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="300" class="text">Show Metadata</text>
+  <text x="260" y="315" class="text">Panel</text>
+  
+  <path d="M 260 240 L 260 280" class="sequence-flow"/>
+  
+  <!-- Task: Show Placeholder Relationships -->
+  <rect x="200" y="360" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="380" class="text">Show Placeholder</text>
+  <text x="260" y="395" class="text">Relationships</text>
+  
+  <path d="M 260 330 L 260 360" class="sequence-flow"/>
+  
+  <!-- Task: Click Editar Button -->
+  <rect x="200" y="440" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="460" class="text">2. Click</text>
+  <text x="260" y="475" class="text">Editar Button</text>
+  
+  <path d="M 260 410 L 260 440" class="sequence-flow"/>
+  
+  <!-- Task: Enter Edit Mode -->
+  <rect x="200" y="520" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="540" class="text">3. Enter Edit</text>
+  <text x="260" y="555" class="text">Mode</text>
+  
+  <path d="M 260 490 L 260 520" class="sequence-flow"/>
+  
+  <!-- Task: Show Edit Mode UI -->
+  <rect x="200" y="600" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="620" class="text">Show Edit UI:</text>
+  <text x="260" y="635" class="text">Guardar (inactive)</text>
+  <text x="260" y="650" class="text">Cancelar, Borrar</text>
+  
+  <path d="M 260 570 L 260 600" class="sequence-flow"/>
+  
+  <!-- Task: Show Empty Relationship Rows -->
+  <rect x="200" y="680" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="700" class="text">Show Empty</text>
+  <text x="260" y="715" class="text">Relationship Rows</text>
+  
+  <path d="M 260 650 L 260 680" class="sequence-flow"/>
+  
+  <!-- Task: Hide Placeholder Relationships -->
+  <rect x="200" y="760" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="780" class="text">Hide Placeholder</text>
+  <text x="260" y="795" class="text">Relationships</text>
+  
+  <path d="M 260 730 L 260 760" class="sequence-flow"/>
+  
+  <!-- Gateway: User Action -->
+  <polygon points="260,840 290,860 260,880 230,860" class="gateway"/>
+  <text x="260" y="865" class="text-small">Action?</text>
+  
+  <path d="M 260 810 L 260 840" class="sequence-flow"/>
+  
+  <!-- Branch: Make Changes (3a) -->
+  <rect x="50" y="900" width="120" height="50" rx="5" class="task"/>
+  <text x="110" y="920" class="text">3a. Make</text>
+  <text x="110" y="935" class="text">Changes</text>
+  
+  <path d="M 230 860 L 110 925" class="sequence-flow"/>
+  <text x="170" y="890" class="text-label" style="text-anchor: middle;">Make Changes</text>
+  
+  <!-- Task: Activate Guardar Button -->
+  <rect x="50" y="980" width="120" height="50" rx="5" class="task"/>
+  <text x="110" y="1000" class="text">Activate</text>
+  <text x="110" y="1015" class="text">Guardar Button</text>
+  
+  <path d="M 110 950 L 110 980" class="sequence-flow"/>
+  
+  <!-- Task: Highlight Modified Properties -->
+  <rect x="50" y="1060" width="120" height="50" rx="5" class="task"/>
+  <text x="110" y="1080" class="text">Highlight Modified</text>
+  <text x="110" y="1095" class="text">Properties (green)</text>
+  
+  <path d="M 110 1030 L 110 1060" class="sequence-flow"/>
+  
+  <!-- Gateway: User Action After Changes -->
+  <polygon points="110,1140 140,1160 110,1180 80,1160" class="gateway"/>
+  <text x="110" y="1165" class="text-small">Action?</text>
+  
+  <path d="M 110 1110 L 110 1140" class="sequence-flow"/>
+  
+  <!-- Branch: Navigate Away (4a) -->
+  <rect x="50" y="1220" width="120" height="50" rx="5" class="task"/>
+  <text x="110" y="1240" class="text">4a. Navigate</text>
+  <text x="110" y="1255" class="text">Away</text>
+  
+  <path d="M 80 1160 L 110 1245" class="sequence-flow"/>
+  <text x="95" y="1200" class="text-label" style="text-anchor: middle;">Navigate</text>
+  
+  <!-- Task: Show Navigation Warning Modal -->
+  <rect x="50" y="1300" width="120" height="70" rx="5" class="task"/>
+  <text x="110" y="1320" class="text">Show Modal:</text>
+  <text x="110" y="1335" class="text">Cancelar</text>
+  <text x="110" y="1350" class="text">Descartar y seguir</text>
+  <text x="110" y="1365" class="text">Guardar y seguir</text>
+  
+  <path d="M 110 1270 L 110 1300" class="sequence-flow"/>
+  
+  <!-- Gateway: Modal Choice -->
+  <polygon points="110,1390 140,1410 110,1430 80,1410" class="gateway"/>
+  <text x="110" y="1415" class="text-small">Choice?</text>
+  
+  <path d="M 110 1370 L 110 1390" class="sequence-flow"/>
+  
+  <!-- Branch: Cancelar -->
+  <rect x="50" y="1470" width="120" height="50" rx="5" class="task"/>
+  <text x="110" y="1490" class="text">Cancelar:</text>
+  <text x="110" y="1505" class="text">Stay on Page</text>
+  
+  <path d="M 80 1410 L 110 1495" class="sequence-flow"/>
+  <text x="95" y="1405" class="text-label" style="text-anchor: middle;">Cancelar</text>
+  
+  <!-- Return to Edit Mode -->
+  <path d="M 110 1520 L 110 1180" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="130" y="1350" class="text-label" style="text-anchor: start;">Return to Edit Mode</text>
+  
+  <!-- Branch: Descartar y seguir -->
+  <rect x="200" y="1470" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="1490" class="text">Descartar y seguir:</text>
+  <text x="260" y="1505" class="text">Discard &amp; Navigate</text>
+  
+  <path d="M 140 1410 L 260 1495" class="sequence-flow"/>
+  <text x="200" y="1405" class="text-label" style="text-anchor: middle;">Descartar</text>
+  
+  <!-- Task: Navigate to New Entity -->
+  <rect x="200" y="1550" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="1570" class="text">Navigate to</text>
+  <text x="260" y="1585" class="text">New Entity</text>
+  
+  <path d="M 260 1520 L 260 1550" class="sequence-flow"/>
+  
+  <!-- End Event (Navigate) -->
+  <circle cx="260" cy="1630" r="15" class="end-event"/>
+  <text x="260" y="1635" class="text-small">End</text>
+  
+  <path d="M 260 1600 L 260 1630" class="sequence-flow"/>
+  
+  <!-- Branch: Guardar y seguir -->
+  <rect x="350" y="1470" width="120" height="50" rx="5" class="task"/>
+  <text x="410" y="1490" class="text">Guardar y seguir:</text>
+  <text x="410" y="1505" class="text">Save &amp; Navigate</text>
+  
+  <path d="M 140 1410 L 410 1495" class="sequence-flow"/>
+  <text x="275" y="1405" class="text-label" style="text-anchor: middle;">Guardar</text>
+  
+  <!-- Task: Save Changes -->
+  <rect x="350" y="1550" width="120" height="50" rx="5" class="task"/>
+  <text x="410" y="1570" class="text">Save Changes</text>
+  <text x="410" y="1585" class="text">(DB commit)</text>
+  
+  <path d="M 410 1520 L 410 1550" class="sequence-flow"/>
+  
+  <!-- Task: Navigate to New Entity -->
+  <rect x="350" y="1630" width="120" height="50" rx="5" class="task"/>
+  <text x="410" y="1650" class="text">Navigate to</text>
+  <text x="410" y="1665" class="text">New Entity</text>
+  
+  <path d="M 410 1680 L 410 1630" class="sequence-flow"/>
+  
+  <!-- End Event (Navigate) -->
+  <circle cx="410" cy="1710" r="15" class="end-event"/>
+  <text x="410" y="1715" class="text-small">End</text>
+  
+  <path d="M 410 1680 L 410 1710" class="sequence-flow"/>
+  
+  <!-- Branch: Press Guardar Button (4b) -->
+  <rect x="200" y="1220" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="1240" class="text">4b. Press</text>
+  <text x="260" y="1255" class="text">Guardar Button</text>
+  
+  <path d="M 140 1160 L 260 1245" class="sequence-flow"/>
+  <text x="200" y="1200" class="text-label" style="text-anchor: middle;">Guardar</text>
+  
+  <!-- Task: Commit Changes to DB -->
+  <rect x="200" y="1300" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="1320" class="text">Commit Changes</text>
+  <text x="260" y="1335" class="text">(DB + derivatives)</text>
+  
+  <path d="M 260 1270 L 260 1300" class="sequence-flow"/>
+  
+  <!-- Task: Return to Edit Mode (Guardar inactive) -->
+  <rect x="200" y="1380" width="120" height="50" rx="5" class="task"/>
+  <text x="260" y="1400" class="text">Return to Edit Mode</text>
+  <text x="260" y="1415" class="text">(Guardar inactive)</text>
+  
+  <path d="M 260 1350 L 260 1380" class="sequence-flow"/>
+  
+  <!-- Return to Action Gateway -->
+  <path d="M 260 1430 L 260 1160" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="280" y="1295" class="text-label" style="text-anchor: start;">Return to Action</text>
+  
+  <!-- Branch: Press Cancelar Button (4c) -->
+  <rect x="350" y="1220" width="120" height="50" rx="5" class="task"/>
+  <text x="410" y="1240" class="text">4c. Press</text>
+  <text x="410" y="1255" class="text">Cancelar Button</text>
+  
+  <path d="M 290 1160 L 410 1245" class="sequence-flow"/>
+  <text x="350" y="1200" class="text-label" style="text-anchor: middle;">Cancelar</text>
+  
+  <!-- Task: Show Discard Warning Modal -->
+  <rect x="350" y="1300" width="120" height="50" rx="5" class="task"/>
+  <text x="410" y="1320" class="text">Show Modal:</text>
+  <text x="410" y="1335" class="text">Cancelar</text>
+  <text x="410" y="1350" class="text">Descartar</text>
+  
+  <path d="M 410 1270 L 410 1300" class="sequence-flow"/>
+  
+  <!-- Gateway: Modal Choice -->
+  <polygon points="410,1380 440,1400 410,1420 380,1400" class="gateway"/>
+  <text x="410" y="1405" class="text-small">Choice?</text>
+  
+  <path d="M 410 1350 L 410 1380" class="sequence-flow"/>
+  
+  <!-- Branch: Cancelar (Stay) -->
+  <rect x="350" y="1460" width="120" height="50" rx="5" class="task"/>
+  <text x="410" y="1480" class="text">Cancelar:</text>
+  <text x="410" y="1495" class="text">Stay in Edit Mode</text>
+  
+  <path d="M 380 1400 L 410 1485" class="sequence-flow"/>
+  <text x="395" y="1395" class="text-label" style="text-anchor: middle;">Cancelar</text>
+  
+  <!-- Return to Action Gateway -->
+  <path d="M 410 1510 L 410 1160" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="430" y="1335" class="text-label" style="text-anchor: start;">Return to Action</text>
+  
+  <!-- Branch: Descartar (Exit Edit) -->
+  <rect x="500" y="1460" width="120" height="50" rx="5" class="task"/>
+  <text x="560" y="1480" class="text">Descartar:</text>
+  <text x="560" y="1495" class="text">Exit Edit Mode</text>
+  
+  <path d="M 440 1400 L 560 1485" class="sequence-flow"/>
+  <text x="500" y="1395" class="text-label" style="text-anchor: middle;">Descartar</text>
+  
+  <!-- Task: Return to View Mode -->
+  <rect x="500" y="1540" width="120" height="50" rx="5" class="task"/>
+  <text x="560" y="1560" class="text">Return to</text>
+  <text x="560" y="1575" class="text">View Mode (Step 1)</text>
+  
+  <path d="M 560 1510 L 560 1540" class="sequence-flow"/>
+  
+  <!-- Return to View Mode -->
+  <path d="M 560 1590 L 260 240" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="410" y="915" class="text-label" style="text-anchor: middle;">Return to View</text>
+  
+  <!-- Branch: Navigate Away (No Changes) (3b) -->
+  <rect x="470" y="900" width="120" height="50" rx="5" class="task"/>
+  <text x="530" y="920" class="text">3b. Navigate</text>
+  <text x="530" y="935" class="text">Away (No Changes)</text>
+  
+  <path d="M 290 860 L 530 925" class="sequence-flow"/>
+  <text x="410" y="890" class="text-label" style="text-anchor: middle;">Navigate (No Changes)</text>
+  
+  <!-- Task: Navigate Without Warning -->
+  <rect x="470" y="980" width="120" height="50" rx="5" class="task"/>
+  <text x="530" y="1000" class="text">Navigate</text>
+  <text x="530" y="1015" class="text">Without Warning</text>
+  
+  <path d="M 530 950 L 530 980" class="sequence-flow"/>
+  
+  <!-- End Event (Navigate) -->
+  <circle cx="530" cy="1060" r="15" class="end-event"/>
+  <text x="530" y="1065" class="text-small">End</text>
+  
+  <path d="M 530 1030 L 530 1060" class="sequence-flow"/>
+  
+  <!-- Branch: Search Related Entity (3c) -->
+  <rect x="650" y="900" width="120" height="50" rx="5" class="task"/>
+  <text x="710" y="920" class="text">3c. Search</text>
+  <text x="710" y="935" class="text">Related Entity</text>
+  
+  <path d="M 290 860 L 710 925" class="sequence-flow"/>
+  <text x="500" y="890" class="text-label" style="text-anchor: middle;">Search Entity</text>
+  
+  <!-- Gateway: Match Found? -->
+  <polygon points="710,980 740,1000 710,1020 680,1000" class="gateway"/>
+  <text x="710" y="1005" class="text-small">Match?</text>
+  
+  <path d="M 710 950 L 710 980" class="sequence-flow"/>
+  
+  <!-- Branch: No Match - Offer Create -->
+  <rect x="650" y="1050" width="120" height="50" rx="5" class="task"/>
+  <text x="710" y="1070" class="text">No Match:</text>
+  <text x="710" y="1085" class="text">Offer Create</text>
+  
+  <path d="M 680 1000 L 710 1075" class="sequence-flow"/>
+  <text x="695" y="1035" class="text-label" style="text-anchor: middle;">No Match</text>
+  
+  <!-- Gateway: Other Pending Changes? -->
+  <polygon points="710,1130 740,1150 710,1170 680,1150" class="gateway"/>
+  <text x="710" y="1155" class="text-small">Other</text>
+  <text x="710" y="1168" class="text-small">Changes?</text>
+  
+  <path d="M 710 1100 L 710 1130" class="sequence-flow"/>
+  
+  <!-- Branch: Yes - Show Modal -->
+  <rect x="650" y="1200" width="120" height="70" rx="5" class="task"/>
+  <text x="710" y="1220" class="text">Show Modal:</text>
+  <text x="710" y="1235" class="text">Cancelar</text>
+  <text x="710" y="1250" class="text">Descartar</text>
+  <text x="710" y="1265" class="text">Guardar</text>
+  
+  <path d="M 680 1150 L 710 1225" class="sequence-flow"/>
+  <text x="695" y="1185" class="text-label" style="text-anchor: middle;">Yes</text>
+  
+  <!-- Gateway: Modal Choice -->
+  <polygon points="710,1290 740,1310 710,1330 680,1310" class="gateway"/>
+  <text x="710" y="1315" class="text-small">Choice?</text>
+  
+  <path d="M 710 1270 L 710 1290" class="sequence-flow"/>
+  
+  <!-- Branch: Cancelar -->
+  <rect x="650" y="1370" width="120" height="50" rx="5" class="task"/>
+  <text x="710" y="1390" class="text">Cancelar:</text>
+  <text x="710" y="1405" class="text">Stay in Edit Mode</text>
+  
+  <path d="M 680 1310 L 710 1395" class="sequence-flow"/>
+  <text x="695" y="1305" class="text-label" style="text-anchor: middle;">Cancelar</text>
+  
+  <!-- Return to Action Gateway -->
+  <path d="M 710 1420 L 710 1160" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="730" y="1290" class="text-label" style="text-anchor: start;">Return to Action</text>
+  
+  <!-- Branch: Descartar -->
+  <rect x="800" y="1370" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1390" class="text">Descartar:</text>
+  <text x="860" y="1405" class="text">Go to Create</text>
+  
+  <path d="M 740 1310 L 860 1395" class="sequence-flow"/>
+  <text x="800" y="1305" class="text-label" style="text-anchor: middle;">Descartar</text>
+  
+  <!-- Task: Navigate to Create Entity -->
+  <rect x="800" y="1450" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1470" class="text">Navigate to</text>
+  <text x="860" y="1485" class="text">Create Entity</text>
+  
+  <path d="M 860 1420 L 860 1450" class="sequence-flow"/>
+  
+  <!-- Task: Create New Entity Page -->
+  <rect x="800" y="1530" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1550" class="text">5. New Entity Page</text>
+  <text x="860" y="1565" class="text">(pre-populated)</text>
+  
+  <path d="M 860 1500 L 860 1530" class="sequence-flow"/>
+  
+  <!-- Gateway: Create or Cancel? -->
+  <polygon points="860,1610 890,1630 860,1650 830,1630" class="gateway"/>
+  <text x="860" y="1635" class="text-small">Action?</text>
+  
+  <path d="M 860 1580 L 860 1610" class="sequence-flow"/>
+  
+  <!-- Branch: Create Entity -->
+  <rect x="800" y="1690" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1710" class="text">Create Entity</text>
+  
+  <path d="M 830 1630 L 860 1715" class="sequence-flow"/>
+  <text x="845" y="1625" class="text-label" style="text-anchor: middle;">Create</text>
+  
+  <!-- Task: Return to Previous Entity (Edit Mode) -->
+  <rect x="800" y="1770" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1790" class="text">Return to Previous</text>
+  <text x="860" y="1805" class="text">Entity (Edit Mode)</text>
+  
+  <path d="M 860 1740 L 860 1770" class="sequence-flow"/>
+  
+  <!-- Return to Action Gateway -->
+  <path d="M 860 1820 L 260 1160" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="560" y="1490" class="text-label" style="text-anchor: middle;">Return to Edit Mode</text>
+  
+  <!-- Branch: Cancel Creation -->
+  <rect x="950" y="1690" width="120" height="50" rx="5" class="task"/>
+  <text x="1010" y="1710" class="text">Cancel Creation</text>
+  
+  <path d="M 890 1630 L 1010 1715" class="sequence-flow"/>
+  <text x="950" y="1625" class="text-label" style="text-anchor: middle;">Cancel</text>
+  
+  <!-- Task: Return to Previous Entity (Edit Mode) -->
+  <rect x="950" y="1770" width="120" height="50" rx="5" class="task"/>
+  <text x="1010" y="1790" class="text">Return to Previous</text>
+  <text x="1010" y="1805" class="text">Entity (Edit Mode)</text>
+  
+  <path d="M 1010 1740 L 1010 1770" class="sequence-flow"/>
+  
+  <!-- Return to Action Gateway -->
+  <path d="M 1010 1820 L 260 1160" class="sequence-flow" stroke-dasharray="5,5"/>
+  
+  <!-- Branch: No Other Changes - Go to Create -->
+  <rect x="800" y="1200" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1220" class="text">No Other Changes:</text>
+  <text x="860" y="1235" class="text">Go to Create</text>
+  
+  <path d="M 740 1150 L 860 1225" class="sequence-flow"/>
+  <text x="800" y="1185" class="text-label" style="text-anchor: middle;">No</text>
+  
+  <!-- Task: Navigate to Create Entity -->
+  <rect x="800" y="1280" width="120" height="50" rx="5" class="task"/>
+  <text x="860" y="1300" class="text">Navigate to</text>
+  <text x="860" y="1315" class="text">Create Entity</text>
+  
+  <path d="M 860 1250 L 860 1280" class="sequence-flow"/>
+  
+  <!-- Connect to Create Entity Page -->
+  <path d="M 860 1330 L 860 1530" class="sequence-flow"/>
+  
+  <!-- Branch: Match Found -->
+  <rect x="950" y="1050" width="120" height="50" rx="5" class="task"/>
+  <text x="1010" y="1070" class="text">Match Found:</text>
+  <text x="1010" y="1085" class="text">Add Relationship</text>
+  
+  <path d="M 740 1000 L 1010 1075" class="sequence-flow"/>
+  <text x="875" y="1035" class="text-label" style="text-anchor: middle;">Match Found</text>
+  
+  <!-- Task: Add Relationship -->
+  <rect x="950" y="1130" width="120" height="50" rx="5" class="task"/>
+  <text x="1010" y="1150" class="text">Add Relationship</text>
+  
+  <path d="M 1010 1100 L 1010 1130" class="sequence-flow"/>
+  
+  <!-- Return to Action Gateway -->
+  <path d="M 1010 1180 L 260 1160" class="sequence-flow" stroke-dasharray="5,5"/>
+  
+  <!-- Error Path: Invalid Entity -->
+  <rect x="50" y="190" width="100" height="50" rx="5" fill="#ffeeee" stroke="#cc0000"/>
+  <text x="100" y="210" class="text">Error:</text>
+  <text x="100" y="225" class="text">Invalid Entity</text>
+  
+  <path d="M 70 210 L 50 215" class="sequence-flow"/>
+  <text x="60" y="210" class="text-label" style="text-anchor: middle;">No</text>
+  
+  <!-- End Event (Error) -->
+  <circle cx="50" cy="270" r="15" class="end-event"/>
+  <text x="50" y="275" class="text-small">End</text>
+  
+  <path d="M 50 240 L 50 270" class="sequence-flow"/>
+  
+  <!-- Legend -->
+  <rect x="1200" y="100" width="280" height="300" rx="5" class="annotation"/>
+  <text x="1340" y="125" class="text" style="font-weight: bold;">Legend</text>
+  
+  <circle cx="1230" cy="150" r="15" class="start-event"/>
+  <text x="1255" y="155" class="text-label">Start Event</text>
+  
+  <circle cx="1230" cy="180" r="15" class="end-event"/>
+  <text x="1255" y="185" class="text-label">End Event</text>
+  
+  <rect x="1215" y="200" width="30" height="20" rx="5" class="task"/>
+  <text x="1255" y="215" class="text-label">Task/Activity</text>
+  
+  <polygon points="1230,240 1245,250 1230,260 1215,250" class="gateway"/>
+  <text x="1255" y="255" class="text-label">Gateway (Decision)</text>
+  
+  <path d="M 1215 280 L 1245 280" class="sequence-flow"/>
+  <text x="1255" y="285" class="text-label">Sequence Flow</text>
+  
+  <path d="M 1215 310 L 1245 310" class="sequence-flow" stroke-dasharray="5,5"/>
+  <text x="1255" y="315" class="text-label">Return Flow (dashed)</text>
+  
+  <rect x="1215" y="330" width="30" height="20" rx="5" fill="#ffeeee" stroke="#cc0000"/>
+  <text x="1255" y="345" class="text-label">Error Path</text>
+</svg>
