@@ -99,8 +99,8 @@ describe('relatedEntitiesReducer', () => {
   describe('LOAD_SUCCESS', () => {
     it('should store loaded data and count', () => {
       const jingles: Jingle[] = [
-        { id: 'j1', timestamp: '00:01:00', createdAt: '2024-01-01', updatedAt: '2024-01-01', isJinglazo: false, isJinglazoDelDia: false, isPrecario: false },
-        { id: 'j2', timestamp: '00:02:00', createdAt: '2024-01-02', updatedAt: '2024-01-02', isJinglazo: false, isJinglazoDelDia: false, isPrecario: false },
+        { id: 'j1', timestamp: 60, createdAt: '2024-01-01', updatedAt: '2024-01-01', isJinglazo: false, isJinglazoDelDia: false, isPrecario: false }, // 00:01:00
+        { id: 'j2', timestamp: 120, createdAt: '2024-01-02', updatedAt: '2024-01-02', isJinglazo: false, isJinglazoDelDia: false, isPrecario: false }, // 00:02:00
       ];
       const abortController = new AbortController();
       const stateWithLoading: RelatedEntitiesState = {

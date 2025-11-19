@@ -27,7 +27,7 @@ describe('RelatedEntities Integration Tests', () => {
 
   const mockJingle: Jingle = {
     id: 'jingle-1',
-    timestamp: '00:01:00',
+    timestamp: 60, // 00:01:00 in seconds
     createdAt: '2024-01-01',
     updatedAt: '2024-01-01',
     isJinglazo: false,
@@ -36,9 +36,9 @@ describe('RelatedEntities Integration Tests', () => {
   };
 
   const mockJingles: Jingle[] = [
-    { ...mockJingle, id: 'jingle-1', timestamp: '00:01:00' },
-    { ...mockJingle, id: 'jingle-2', timestamp: '00:02:00' },
-    { ...mockJingle, id: 'jingle-3', timestamp: '00:03:00' },
+    { ...mockJingle, id: 'jingle-1', timestamp: 60 }, // 00:01:00
+    { ...mockJingle, id: 'jingle-2', timestamp: 120 }, // 00:02:00
+    { ...mockJingle, id: 'jingle-3', timestamp: 180 }, // 00:03:00
   ];
 
   beforeEach(() => {

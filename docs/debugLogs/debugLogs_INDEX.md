@@ -19,6 +19,7 @@ In previous sessions we have addressed individual bugs in the UX/UI or backend. 
   - **Resolution**: The approach taken to resolve the bug.
   - **Related Files**: A list of the files related to the bug. IMPORTANT: include specific search strings to allow for efficient navigation to the code area affected by the bug.
   - **Related Code**: SHORT reference to the code affected by the bug.
+  - **Related tests**: A list of the tests related to the bug.
 
 If the provided information or your codebase investigation is not sufficient to populate the sections, you will need to ask me for more information (in particular for the expected and observed behavior).
 

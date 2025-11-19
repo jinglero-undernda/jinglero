@@ -38,7 +38,7 @@ describe('RelatedEntities - Task 5: hasUnsavedChanges and Edit Mode', () => {
   const createMockJingle = (overrides?: Partial<Jingle>): Jingle => ({
     id: 'jingle-1',
     title: 'Test Jingle',
-    timestamp: '00:05:30',
+    timestamp: 330, // 00:05:30 in seconds
     isJinglazo: false,
     isJinglazoDelDia: false,
     isPrecario: false,

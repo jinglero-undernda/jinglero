@@ -18,7 +18,7 @@ const createMockFabrica = (overrides?: Partial<Fabrica>): Fabrica => ({
 const createMockJingle = (overrides?: Partial<Jingle>): Jingle => ({
   id: 'jingle-1',
   title: 'Test Jingle',
-  timestamp: '00:05:30',
+  timestamp: 330, // 00:05:30 in seconds
   isJinglazo: false,
   isJinglazoDelDia: false,
   isPrecario: false,

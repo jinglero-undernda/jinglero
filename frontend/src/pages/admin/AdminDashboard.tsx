@@ -83,6 +83,7 @@ import { useToast } from '../../components/common/ToastContext';
 import EntitySearchAutocomplete from '../../components/admin/EntitySearchAutocomplete';
 import type { EntityType } from '../../lib/utils/entityDisplay';
 import { FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
+import type { Artista, Cancion, Fabrica, Jingle, Tematica, Usuario } from '../../types';
 
 interface EntityCounts {
   fabricas: number;
@@ -152,7 +153,7 @@ export default function AdminDashboard() {
         // Fetch counts for each entity type
         const promises = ENTITY_TYPES.map(async (entityType) => {
           try {
-            const entities = await adminApi.get<any[]>(`/${entityType.type}`);
+            const entities = await adminApi.get<unknown[]>(`/${entityType.type}`);
             counts[entityType.type as keyof EntityCounts] = entities.length;
           } catch (err) {
             console.error(`Error loading ${entityType.label}:`, err);
@@ -173,7 +174,7 @@ export default function AdminDashboard() {
     };
 
     loadCounts();
-  }, []);
+  }, [showToast]);
 
   // Get entity type from route prefix
   const getEntityTypeFromPrefix = (prefix: string): string | null => {
@@ -283,7 +284,7 @@ export default function AdminDashboard() {
    * - Entity creation fails: Error shown, form keeps data, user can retry
    * - Relationship creation fails: Toast notification, still navigate to source entity
    */
-  const handleEntityCreated = async (createdEntity: any) => {
+  const handleEntityCreated = async (createdEntity: Artista | Cancion | Fabrica | Jingle | Tematica | Usuario) => {
     // Task 7.3-7.4: Auto-create relationship when context parameters are provided
     if (relType && fromType && fromId && createdEntity?.id) {
       try {
@@ -424,7 +425,7 @@ export default function AdminDashboard() {
 
 
   // Form state (only used when showing create form)
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
@@ -482,7 +483,7 @@ export default function AdminDashboard() {
 
     const fields = getFieldsForEntityType(entityType);
 
-    const handleFieldChange = (fieldName: string, value: any) => {
+    const handleFieldChange = (fieldName: string, value: unknown) => {
       setFormData(prev => ({ ...prev, [fieldName]: value }));
       if (fieldErrors[fieldName]) {
         setFieldErrors(prev => ({ ...prev, [fieldName]: '' }));
@@ -527,7 +528,7 @@ export default function AdminDashboard() {
         });
         if (formData.id) payload.id = formData.id;
 
-        let createdEntity: any;
+        let createdEntity: Artista | Cancion | Fabrica | Jingle | Tematica | Usuario;
         switch (entityType) {
           case 'usuarios':
             createdEntity = await adminApi.createUsuario(payload);
@@ -788,7 +789,7 @@ export default function AdminDashboard() {
                         </label>
                         {isDropdown ? (
                           <select
-                            value={value ?? ''}
+                            value={String(value ?? '')}
                             onChange={(e) => handleFieldChange(field.name, e.target.value)}
                             required={field.required}
                             style={{
@@ -812,7 +813,7 @@ export default function AdminDashboard() {
                           </select>
                         ) : isTextarea ? (
                           <textarea
-                            value={value ?? ''}
+                            value={String(value ?? '')}
                             onChange={(e) => handleFieldChange(field.name, e.target.value)}
                             required={field.required}
                             style={{
@@ -839,7 +840,7 @@ export default function AdminDashboard() {
                         ) : (
                           <input
                             type={fieldType === 'number' ? 'number' : 'text'}
-                            value={value ?? ''}
+                            value={fieldType === 'number' ? (typeof value === 'number' ? value : (typeof value === 'string' && value !== '' ? Number(value) : '')) : String(value ?? '')}
                             onChange={(e) =>
                               handleFieldChange(
                                 field.name,
@@ -904,7 +905,7 @@ export default function AdminDashboard() {
                   };
                   const promises = ENTITY_TYPES.map(async (entityType) => {
                     try {
-                      const entities = await adminApi.get<any[]>(`/${entityType.type}`);
+                      const entities = await adminApi.get<unknown[]>(`/${entityType.type}`);
                       counts[entityType.type as keyof EntityCounts] = entities.length;
                     } catch (err) {
                       console.error(`Error loading ${entityType.label}:`, err);
