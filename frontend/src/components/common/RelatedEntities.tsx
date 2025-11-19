@@ -22,6 +22,7 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
 import { sortEntities } from '../../lib/utils/entitySorters';
 import { adminApi } from '../../lib/api/client';
 import { parseTimestampFromText } from '../../lib/utils/timestampParser';
+import { parseTimestampToSeconds } from '../../lib/utils/timestamp';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
@@ -698,7 +699,9 @@ const RelatedEntities = forwardRef<{
     }
 
     // Parse timestamp from Jingle's comment if creating APPEARS_IN relationship
-    let parsedTimestampFromComment: string | null = null;
+    // Store as seconds (integer) for API, but keep original string for UI display
+    let parsedTimestampFromComment: number | null = null;
+    let parsedTimestampString: string | null = null;
     if (relType === 'appears_in') {
       console.log('[RelatedEntities] Checking for timestamp in Jingle comment:', {
         entityType,
@@ -765,20 +768,29 @@ const RelatedEntities = forwardRef<{
           (typeof currentTimestamp === 'string' && currentTimestamp.trim() === '00:00:00');
 
         if (shouldOverride) {
-          // Parse timestamp from Jingle's comment
-          parsedTimestampFromComment = parseTimestampFromText(jingleEntity.comment);
+          // Parse timestamp from Jingle's comment (returns HH:MM:SS string)
+          parsedTimestampString = parseTimestampFromText(jingleEntity.comment);
           
-          if (parsedTimestampFromComment) {
-            console.log('[RelatedEntities] Parsed timestamp from Jingle comment:', {
-              jingleId: jingleEntity.id,
-              comment: jingleEntity.comment,
-              parsedTimestamp: parsedTimestampFromComment,
-            });
-            // Update relationshipProperties state for UI display (async, but that's okay)
-            setRelationshipProperties(prev => ({
-              ...prev,
-              timestamp: parsedTimestampFromComment,
-            }));
+          if (parsedTimestampString) {
+            // Convert HH:MM:SS string to seconds (integer) for API
+            try {
+              parsedTimestampFromComment = parseTimestampToSeconds(parsedTimestampString);
+              console.log('[RelatedEntities] Parsed timestamp from Jingle comment:', {
+                jingleId: jingleEntity.id,
+                comment: jingleEntity.comment,
+                parsedTimestampString: parsedTimestampString,
+                parsedTimestampSeconds: parsedTimestampFromComment,
+              });
+              // Update relationshipProperties state for UI display (store as seconds)
+              setRelationshipProperties(prev => ({
+                ...prev,
+                timestamp: parsedTimestampFromComment,
+              }));
+            } catch (error) {
+              console.error('[RelatedEntities] Error converting parsed timestamp to seconds:', error);
+              parsedTimestampFromComment = null;
+              parsedTimestampString = null;
+            }
           } else {
             console.log('[RelatedEntities] No valid timestamp found in Jingle comment:', {
               jingleId: jingleEntity.id,
@@ -800,8 +812,8 @@ const RelatedEntities = forwardRef<{
     Object.entries(relationshipProperties).forEach(([key, value]) => {
       // Override timestamp with parsed value if available
       if (key === 'timestamp' && parsedTimestampFromComment !== null) {
-        // Use the parsed timestamp (in HH:MM:SS format)
-        // The backend expects HH:MM:SS string format for APPEARS_IN relationships
+        // Use the parsed timestamp (already converted to seconds/integer)
+        // The backend expects integer (seconds) format for APPEARS_IN relationships
         properties[key] = parsedTimestampFromComment;
       } else if (value === '' || value === null || value === undefined) {
         // Skip empty values
@@ -815,9 +827,9 @@ const RelatedEntities = forwardRef<{
       }
     });
     
-    // If we parsed a timestamp but it wasn't in relationshipProperties, add it
+    // If we parsed a timestamp but it wasn't in relationshipProperties, add it (as seconds)
     if (parsedTimestampFromComment !== null && !('timestamp' in properties)) {
-      properties.timestamp = parsedTimestampFromComment;
+      properties.timestamp = parsedTimestampFromComment; // Already in seconds
     }
 
     let relationshipCreated = false;
@@ -865,7 +877,8 @@ const RelatedEntities = forwardRef<{
             relType,
             startId,
             endId,
-            parsedTimestamp: parsedTimestampFromComment,
+            parsedTimestampSeconds: parsedTimestampFromComment,
+            parsedTimestampString: parsedTimestampString,
           });
           
           try {
@@ -2332,14 +2345,15 @@ const RelatedEntities = forwardRef<{
                                 };
                                 
                                 // Get or initialize timestamp time
+                                // Timestamp is always an integer (seconds) from API
                                 const getTimestampTime = (): { h: number; m: number; s: number } => {
                                   if (timestampTimes[relationshipPropsKey]) {
                                     return timestampTimes[relationshipPropsKey];
                                   }
-                                  // Only use propsData.timestamp if it's a valid number
+                                  // Timestamp is always a number (seconds) from API
                                   const timestamp = propsData.timestamp;
-                                  const time = (timestamp !== null && timestamp !== undefined && !isNaN(Number(timestamp))) 
-                                    ? secondsToTime(timestamp) 
+                                  const time = (typeof timestamp === 'number' && !isNaN(timestamp))
+                                    ? secondsToTime(timestamp)
                                     : { h: 0, m: 0, s: 0 };
                                   // Initialize synchronously (this is safe since we're in render)
                                   if (!timestampTimes[relationshipPropsKey] && timestamp !== undefined) {
@@ -2358,17 +2372,20 @@ const RelatedEntities = forwardRef<{
                                 };
                                 
                                 const handleTimestampChange = (field: 'h' | 'm' | 's', value: number) => {
-                                  const currentTime = timestampTimes[relationshipPropsKey] || secondsToTime(propsData.timestamp);
+                                  // Get current time from state or convert from timestamp (always integer seconds)
+                                  const currentTimestamp = typeof propsData.timestamp === 'number' ? propsData.timestamp : 0;
+                                  const currentTime = timestampTimes[relationshipPropsKey] || secondsToTime(currentTimestamp);
                                   // Ensure value is a valid number
                                   const numValue = isNaN(value) ? 0 : value;
                                   const newTime = { ...currentTime, [field]: Math.max(0, Math.min(field === 'h' ? 23 : 59, numValue)) };
                                   setTimestampTimes(prev => ({ ...prev, [relationshipPropsKey]: newTime }));
+                                  // Convert time components to seconds (integer) for API
                                   const seconds = timeToSeconds(newTime.h, newTime.m, newTime.s);
                                   setRelationshipPropsData(prev => ({
                                     ...prev,
                                     [relationshipPropsKey]: {
                                       ...prev[relationshipPropsKey],
-                                      timestamp: seconds,
+                                      timestamp: seconds, // Always integer (seconds)
                                     },
                                   }));
                                 };

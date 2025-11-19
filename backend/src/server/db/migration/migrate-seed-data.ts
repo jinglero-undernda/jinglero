@@ -404,6 +404,17 @@ export class SeedDataMigrator {
   }
 
   private async migrateAppearsInRelationships(relationships: any[]): Promise<void> {
+    // Helper function to convert timestamp string to seconds
+    const timestampToSeconds = (timestamp: string): number => {
+      if (!timestamp) return 0;
+      const parts = timestamp.split(':');
+      if (parts.length !== 3) return 0;
+      const hours = parseInt(parts[0], 10) || 0;
+      const minutes = parseInt(parts[1], 10) || 0;
+      const seconds = parseInt(parts[2], 10) || 0;
+      return hours * 3600 + minutes * 60 + seconds;
+    };
+    
     for (const rel of relationships) {
       const query = `
         MATCH (j:Jingle { id: $start }), (f:Fabrica { id: $end })
@@ -413,11 +424,16 @@ export class SeedDataMigrator {
         }]->(f)
       `;
       
+      // Convert timestamp string to seconds if it's a string, otherwise use as-is
+      const timestamp = rel.timestamp 
+        ? (typeof rel.timestamp === 'string' ? timestampToSeconds(rel.timestamp) : rel.timestamp)
+        : 0;
+      
       await this.db.executeWrite(query, {
         start: rel.start,
         end: rel.end,
         order: rel.order || 1,
-        timestamp: rel.timestamp || '00:00:00'
+        timestamp
       });
     }
   }

@@ -333,26 +333,12 @@ router.get('/fabricas/:id/jingles', async (req, res) => {
     }
     
     // Convert Neo4j dates and add formatted timestamps
+    // Timestamps are now stored as integers (seconds) in the database
     const jingles = result.map((record: any) => {
       const jingle = convertNeo4jDates(record.jingle);
-      // Handle timestamp - could be seconds (number) or HH:MM:SS (string)
-      const jingleTimestamp = jingle.timestamp;
-      let timestampSeconds: number;
-      let timestampFormatted: string;
-      
-      if (typeof jingleTimestamp === 'string') {
-        // Already in HH:MM:SS format
-        timestampFormatted = jingleTimestamp;
-        try {
-          timestampSeconds = parseTimestampToSeconds(jingleTimestamp);
-        } catch {
-          timestampSeconds = 0;
-        }
-      } else {
-        // Assume it's in seconds
-        timestampSeconds = jingleTimestamp ?? 0;
-        timestampFormatted = formatSecondsToTimestamp(timestampSeconds);
-      }
+      // Timestamp is already an integer (seconds)
+      const timestampSeconds = typeof jingle.timestamp === 'number' ? jingle.timestamp : 0;
+      const timestampFormatted = formatSecondsToTimestamp(timestampSeconds);
       
       return {
         ...jingle,
@@ -425,7 +411,8 @@ router.get('/fabricas/:id/jingle-at-time', async (req, res) => {
     }
     
     // Find the active Jingle at the given timestamp
-    // Get all jingles and filter in JavaScript since timestamps might be stored as strings
+    // Get all jingles and filter in JavaScript
+    // Timestamps are now stored as integers (seconds) in the database
     const query = `
       MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $id})
       RETURN j {
@@ -447,10 +434,11 @@ router.get('/fabricas/:id/jingle-at-time', async (req, res) => {
     }
     
     // Convert all jingles with timestamps to seconds for comparison
+    // Timestamps are now stored as integers (seconds) in the database
     const jinglesWithSeconds = allJingles.map((record: any) => {
       const jingleData = convertNeo4jDates(record.jingle);
-      const ts = jingleData.timestamp;
-      const timestampInSeconds = typeof ts === 'string' ? parseTimestampToSeconds(ts) : (ts ?? 0);
+      // Timestamp is already an integer (seconds)
+      const timestampInSeconds = typeof jingleData.timestamp === 'number' ? jingleData.timestamp : 0;
       return {
         ...jingleData,
         timestampInSeconds
@@ -463,11 +451,8 @@ router.get('/fabricas/:id/jingle-at-time', async (req, res) => {
     if (activeJingles.length === 0) {
       // Timestamp is before the first jingle
       const firstJingle = jinglesWithSeconds[0];
-      const firstTimestamp = firstJingle.timestamp;
       const firstTimestampSeconds = firstJingle.timestampInSeconds;
-      const firstTimestampFormatted = typeof firstTimestamp === 'string' 
-        ? firstTimestamp 
-        : formatSecondsToTimestamp(firstTimestampSeconds);
+      const firstTimestampFormatted = formatSecondsToTimestamp(firstTimestampSeconds);
       
       return res.status(404).json({ 
         error: 'No Jingle found at this timestamp',

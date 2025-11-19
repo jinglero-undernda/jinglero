@@ -328,13 +328,13 @@ The `APPEARS_IN` relationship (Jingle → Fabrica) includes special properties f
 
 **Properties**:
 
-- **`timestamp`** (string): HH:MM:SS format (e.g., "00:02:50")
+- **`timestamp`** (number): Integer seconds (e.g., 170 for "00:02:50")
   - Represents when the Jingle appears in the video
   - Used as the basis for calculating `order`
-  - Defaults to "00:00:00" if not provided
+  - Defaults to 0 if not provided
 - **`order`** (number): Sequential integer (1, 2, 3, ...)
   - **READ-ONLY, system-managed**
-  - Automatically calculated based on `timestamp` sorting
+  - Automatically calculated based on `timestamp` sorting (numeric sort)
   - Recalculated whenever `APPEARS_IN` relationships are created, updated, or deleted
   - Provides a stable, sequential ordering even when timestamps are not perfectly sequential
 
@@ -342,9 +342,9 @@ The `APPEARS_IN` relationship (Jingle → Fabrica) includes special properties f
 
 1. **On relationship creation** (POST `/api/admin/relationships/APPEARS_IN`):
 
-   - If `timestamp` is omitted, defaults to "00:00:00"
+   - If `timestamp` is omitted, defaults to 0 (seconds)
    - System immediately recalculates all `order` values for that Fabrica
-   - Orders are assigned sequentially based on timestamp sort (ascending)
+   - Orders are assigned sequentially based on timestamp sort (ascending, numeric)
 
 2. **On relationship update** (PUT `/api/admin/relationships/APPEARS_IN`):
 

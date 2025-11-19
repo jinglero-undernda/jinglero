@@ -275,6 +275,7 @@ async function updateAppearsInOrder(fabricaId: string): Promise<void> {
     }
     
     // Query all APPEARS_IN relationships for this Fabrica
+    // Timestamps are now stored as integers (seconds), so ORDER BY works correctly
     const query = `
       MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
       RETURN j.id AS jingleId, r.timestamp AS timestamp, id(r) AS relId
@@ -283,7 +284,7 @@ async function updateAppearsInOrder(fabricaId: string): Promise<void> {
     
     const relationships = await db.executeQuery<{ 
       jingleId: string; 
-      timestamp: string; 
+      timestamp: number; 
       relId: any;
     }>(query, { fabricaId });
     
@@ -291,45 +292,35 @@ async function updateAppearsInOrder(fabricaId: string): Promise<void> {
       return; // No relationships to update
     }
     
-    // Convert timestamps to seconds for sorting and detect conflicts
-    // Handle invalid timestamp formats gracefully
-    const relationshipsWithSeconds = relationships.map((rel, index) => {
-      const timestamp = rel.timestamp || '00:00:00';
-      let seconds: number;
-      try {
-        seconds = timestampToSeconds(timestamp);
-        // Validate that timestamp was parsed correctly
-        if (isNaN(seconds)) {
-          console.warn(`Invalid timestamp format "${timestamp}" for Jingle ${rel.jingleId} in Fabrica ${fabricaId}, using 00:00:00`);
-          seconds = 0;
-        }
-      } catch (error) {
-        console.warn(`Error parsing timestamp "${timestamp}" for Jingle ${rel.jingleId} in Fabrica ${fabricaId}:`, error);
-        seconds = 0;
-      }
+    // Timestamps are already integers (seconds), so we can use them directly
+    // Handle null/undefined timestamps gracefully
+    const relationshipsWithOrder = relationships.map((rel, index) => {
+      const seconds = typeof rel.timestamp === 'number' ? rel.timestamp : 0;
       
       return {
         jingleId: rel.jingleId,
-        timestamp,
-        seconds,
+        timestamp: seconds,
         order: index + 1, // Sequential order based on sorted position
       };
     });
     
     // Check for timestamp conflicts (same timestamp)
     const timestampMap = new Map<number, string[]>();
-    relationshipsWithSeconds.forEach(rel => {
-      const existing = timestampMap.get(rel.seconds) || [];
+    relationshipsWithOrder.forEach(rel => {
+      const existing = timestampMap.get(rel.timestamp) || [];
       existing.push(rel.jingleId);
-      timestampMap.set(rel.seconds, existing);
+      timestampMap.set(rel.timestamp, existing);
     });
     
     // Log warnings for timestamp conflicts
     timestampMap.forEach((jingleIds, seconds) => {
       if (jingleIds.length > 1) {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
         console.warn(
-          `Warning: Timestamp conflict in Fabrica ${fabricaId} at ${Math.floor(seconds / 3600)}:${Math.floor((seconds % 3600) / 60)}:${seconds % 60} ` +
-          `for Jingles: ${jingleIds.join(', ')}. Order assigned arbitrarily.`
+          `Warning: Timestamp conflict in Fabrica ${fabricaId} at ${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} ` +
+          `(${seconds}s) for Jingles: ${jingleIds.join(', ')}. Order assigned arbitrarily.`
         );
       }
     });
@@ -338,7 +329,7 @@ async function updateAppearsInOrder(fabricaId: string): Promise<void> {
     let successCount = 0;
     let errorCount = 0;
     
-    for (const rel of relationshipsWithSeconds) {
+    for (const rel of relationshipsWithOrder) {
       try {
         const updateQuery = `
           MATCH (j:Jingle {id: $jingleId})-[r:APPEARS_IN]->(f:Fabrica {id: $fabricaId})
@@ -571,10 +562,10 @@ async function syncJingleRedundantProperties(
           );
           
           if (relExists.length === 0) {
-            // Create APPEARS_IN relationship with default timestamp
+            // Create APPEARS_IN relationship with default timestamp (0 seconds)
             await db.executeQuery(
               `MATCH (j:Jingle {id: $jingleId}), (f:Fabrica {id: $fabricaId})
-               CREATE (j)-[r:APPEARS_IN {timestamp: '00:00:00', createdAt: datetime()}]->(f)
+               CREATE (j)-[r:APPEARS_IN {timestamp: 0, createdAt: datetime()}]->(f)
                RETURN r`,
               { jingleId, fabricaId: properties.fabricaId },
               undefined,
@@ -838,19 +829,31 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
   delete (properties as any).start;
   delete (properties as any).end;
   
-  // Special handling for APPEARS_IN relationships
-  if (neo4jRelType === 'APPEARS_IN') {
-    // Warn if order is provided (it will be ignored)
-    if ('order' in properties) {
-      console.warn(`Warning: 'order' property is system-managed and will be ignored for APPEARS_IN relationship`);
-      delete (properties as any).order;
+    // Special handling for APPEARS_IN relationships
+    if (neo4jRelType === 'APPEARS_IN') {
+      // Warn if order is provided (it will be ignored)
+      if ('order' in properties) {
+        console.warn(`Warning: 'order' property is system-managed and will be ignored for APPEARS_IN relationship`);
+        delete (properties as any).order;
+      }
+      
+      // Validate and normalize timestamp
+      if (properties.timestamp === undefined || properties.timestamp === null) {
+        properties.timestamp = 0; // Default to 0 seconds
+      } else if (typeof properties.timestamp === 'string') {
+        // Convert string (HH:MM:SS) to seconds for backward compatibility during migration
+        properties.timestamp = timestampToSeconds(properties.timestamp);
+      } else if (typeof properties.timestamp === 'number') {
+        // Validate range (0 to 86400 seconds = 24 hours)
+        if (properties.timestamp < 0 || properties.timestamp > 86400) {
+          console.warn(`Invalid timestamp value ${properties.timestamp}, clamping to valid range`);
+          properties.timestamp = Math.max(0, Math.min(86400, properties.timestamp));
+        }
+      } else {
+        console.warn(`Invalid timestamp type, defaulting to 0`);
+        properties.timestamp = 0;
+      }
     }
-    
-    // Default timestamp to '00:00:00' if not provided
-    if (!properties.timestamp) {
-      properties.timestamp = '00:00:00';
-    }
-  }
   
   const createQuery = `
     MATCH (start { id: $start }), (end { id: $end })
@@ -918,6 +921,25 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     if ('order' in properties) {
       console.warn(`Warning: 'order' property is system-managed and will be ignored for APPEARS_IN relationship`);
       delete (properties as any).order;
+    }
+    
+    // Validate and normalize timestamp if provided
+    if ('timestamp' in properties) {
+      if (properties.timestamp === null || properties.timestamp === undefined) {
+        properties.timestamp = 0; // Default to 0 seconds
+      } else if (typeof properties.timestamp === 'string') {
+        // Convert string (HH:MM:SS) to seconds for backward compatibility during migration
+        properties.timestamp = timestampToSeconds(properties.timestamp);
+      } else if (typeof properties.timestamp === 'number') {
+        // Validate range (0 to 86400 seconds = 24 hours)
+        if (properties.timestamp < 0 || properties.timestamp > 86400) {
+          console.warn(`Invalid timestamp value ${properties.timestamp}, clamping to valid range`);
+          properties.timestamp = Math.max(0, Math.min(86400, properties.timestamp));
+        }
+      } else {
+        console.warn(`Invalid timestamp type, defaulting to 0`);
+        properties.timestamp = 0;
+      }
     }
   }
   

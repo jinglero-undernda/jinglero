@@ -122,7 +122,7 @@ export interface Jingle {
   /** Unique ID in format: j{8-chars} (e.g., j5e6f7g8) */
   id: string;
   youtubeUrl?: string;
-  timestamp: string | number; // Can be HH:MM:SS string or seconds number (from APPEARS_IN relationship)
+  timestamp: number; // Seconds (from APPEARS_IN relationship)
   youtubeClipUrl?: string;
   title?: string;
   comment?: string;

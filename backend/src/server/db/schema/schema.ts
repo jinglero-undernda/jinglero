@@ -59,12 +59,12 @@ APPEARS_IN ORDER MANAGEMENT
 The 'order' property in APPEARS_IN relationships is system-managed and READ-ONLY.
 
 Calculation:
-- Based on 'timestamp' property (HH:MM:SS format)
-- Timestamps converted to seconds and sorted ascending
+- Based on 'timestamp' property (integer seconds)
+- Timestamps sorted ascending (numeric sort)
 - Sequential order assigned: 1, 2, 3, 4, ...
 - Auto-recalculated on create/update/delete of APPEARS_IN relationships
 
-Default timestamp: '00:00:00' if not provided
+Default timestamp: 0 (seconds) if not provided
 
 Conflict handling:
 - If multiple relationships have same timestamp, order assigned arbitrarily
@@ -194,14 +194,15 @@ Relationships:
    Import file: rel-Jingle-APPEARS_IN-Fabrica-YYYY-MM-DD.csv
    Properties:
    - order: number (READ-ONLY, system-managed, calculated from timestamp)
-   - timestamp: string (HH:MM:SS format, defaults to '00:00:00')
+   - timestamp: number (seconds, defaults to 0)
    - status: string (enum: DRAFT, CONFIRMED, default: DRAFT)
    - createdAt: datetime
    
    Note: The 'order' property is automatically calculated and maintained based on the 
-   'timestamp' property. Timestamps are converted to seconds and relationships are 
-   sorted ascending to assign sequential order (1, 2, 3, ...). The 'order' property 
-   cannot be manually set and any provided value will be ignored with a warning.
+   'timestamp' property. Timestamps are stored as integers (seconds) and relationships 
+   are sorted ascending (numeric sort) to assign sequential order (1, 2, 3, ...). The 
+   'order' property cannot be manually set and any provided value will be ignored with 
+   a warning.
 
 2. JINGLERO_DE
    Start Node: Artista

@@ -698,7 +698,7 @@
                 "$id": "p:2",
                 "token": "timestamp",
                 "type": {
-                  "type": "string"
+                  "type": "integer"
                 },
                 "nullable": true
               }
