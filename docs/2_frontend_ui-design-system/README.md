@@ -11,26 +11,54 @@ This directory contains documentation for the UI Design System, including design
 
 ## Documentation Structure
 
-### Design System Components
+The design system documentation is organized hierarchically:
 
-The design system documentation covers:
+### 01 System Foundation
 
-1. **Design Tokens**: Colors, typography, spacing, shadows, transitions
-2. **Component Library**: Button styles, card styles, input styles, badges, links
-3. **Visual Patterns**: Layout patterns, visual hierarchy, responsive design
-4. **Style Guidelines**: Consistency rules, usage guidelines, best practices
+Foundational design elements that all other components build upon:
+
+- **Design Tokens** (`01_system-foundation/tokens/`) - Colors, typography, spacing, shadows, borders, transitions
+- **Design Philosophy** (`01_system-foundation/design-philosophy.md`) - Design goals, principles, vision
+- **Status Tracking** (`01_system-foundation/status.md`) - Current vs target state tracking
+
+### 02 Layout Patterns
+
+Page-level layout patterns and route mappings:
+
+- **Route Mapping** (`02_layout-patterns/routes.md`) - Technical mapping of all routes to components
+- **Grid System** (`02_layout-patterns/grid-system.md`) - Grid layout, breakpoints, containers
+- **Responsive Behavior** (`02_layout-patterns/responsive-behavior.md`) - Breakpoint behavior
+- **Page Templates** (`02_layout-patterns/page-templates/`) - Landing page, detail page, admin page, search results
+
+### 03 Components
+
+Component library organized by complexity:
+
+- **Primitives** (`03_components/primitives/`) - Basic building blocks (buttons, links, badges, inputs, cards)
+- **Composite** (`03_components/composite/`) - Complex components (EntityCard, SearchBar, RelatedEntities, etc.)
+- **Patterns** (`03_components/patterns/`) - Reusable component patterns
+
+### 04 Context Variations
+
+How components and design elements vary by context:
+
+- **Admin Context** (`04_context-variations/admin-context.md`) - Admin-specific variations
+- **Entity Context** (`04_context-variations/entity-context.md`) - Entity-specific variations
+- **Interaction States** (`04_context-variations/interaction-states.md`) - Hover, active, disabled states
+- **Responsive Variations** (`04_context-variations/responsive-variations.md`) - Breakpoint-specific changes
 
 ### File Naming Convention
 
-- `tokens/{category}.md` - Design token documentation (e.g., `tokens/colors.md`)
-- Component specifications documented in playbook outputs
-- Design system audits documented in playbook outputs
+- `tokens/{category}.md` - Design token documentation
+- `page-templates/{template-name}.md` - Page template documentation
+- `{category}/{component-name}.md` - Component documentation
 
 ### Design System Document Structure
 
 Each design system document should include:
 
 1. **Metadata**
+
    - Document name and category
    - Status (draft | current_implementation | validated | implemented | deprecated)
    - Last updated date
@@ -38,16 +66,19 @@ Each design system document should include:
    - Dependencies on other design system elements
 
 2. **Design Intent**
+
    - Purpose and usage
    - Visual design goals
    - User experience goals
 
 3. **Specifications**
+
    - Design token values
    - Component specifications
    - Visual examples (if applicable)
 
 4. **Implementation Notes**
+
    - CSS file locations
    - Component file locations
    - Usage patterns
@@ -96,13 +127,13 @@ Design system documents can be used to validate code by:
 
 ## Current Design System Status
 
-| Category | Status | Last Updated | Notes |
-|----------|--------|--------------|-------|
-| Colors | current_implementation | - | Basic colors in `variables.css` |
-| Typography | current_implementation | - | Basic typography in `variables.css` |
-| Spacing | current_implementation | - | Basic spacing in `variables.css` |
-| Components | current_implementation | - | Component styles exist but not formalized |
-| Design System File | draft | - | Formal design system file pending |
+| Category           | Status                 | Last Updated | Notes                                     |
+| ------------------ | ---------------------- | ------------ | ----------------------------------------- |
+| Colors             | current_implementation | -            | Basic colors in `variables.css`           |
+| Typography         | current_implementation | -            | Basic typography in `variables.css`       |
+| Spacing            | current_implementation | -            | Basic spacing in `variables.css`          |
+| Components         | current_implementation | -            | Component styles exist but not formalized |
+| Design System File | draft                  | -            | Formal design system file pending         |
 
 ## Best Practices
 
@@ -122,14 +153,22 @@ Design system documents can be used to validate code by:
 
 ## Related Documentation
 
-- `../1_frontend_ux-workflows/` - UX workflows that use design system
+- `../1_frontend_ux-workflows/` - UX workflows that use design system (routes documented here can be referenced)
 - `../../frontend/src/styles/theme/variables.css` - Current design tokens
 - `../../complete-refactor-analysis.md` - Strategic analysis and approach
 - `playbooks/` - AI-ready playbooks for working with design system
 
+## Quick Navigation
+
+- [System Foundation](./01_system-foundation/README.md) - Design tokens and foundation
+- [Layout Patterns](./02_layout-patterns/README.md) - Routes, grids, page templates
+- [Components](./03_components/README.md) - Component library
+- [Context Variations](./04_context-variations/README.md) - Context-specific variations
+
 ## Playbooks
 
 See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
+
 - Document design intent
 - Validate implementation
 - Analyze gaps
@@ -140,5 +179,4 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 
 ---
 
-**Last Updated:** 2025-01-XX
-
+**Last Updated:** 2025-11-19

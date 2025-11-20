@@ -4,6 +4,7 @@ import AdminDashboard from './admin/AdminDashboard';
 import AdminEntityAnalyze from './admin/AdminEntityAnalyze';
 import AdminEntityList from './admin/AdminEntityList';
 import AdminLogin from './admin/AdminLogin';
+import DesignSystemShowcase from './admin/design-system/DesignSystemShowcase';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 
 /**
@@ -50,6 +51,15 @@ export default function AdminPage() {
           element={
             <ProtectedRoute>
               <AdminHome />
+            </ProtectedRoute>
+          }
+        />
+        {/* Design System Showcase route */}
+        <Route
+          path="design-system/*"
+          element={
+            <ProtectedRoute>
+              <DesignSystemShowcase />
             </ProtectedRoute>
           }
         />

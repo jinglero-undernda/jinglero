@@ -92,5 +92,5 @@ The playbooks support the phased approach from `complete-refactor-analysis.md`:
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-19
 
