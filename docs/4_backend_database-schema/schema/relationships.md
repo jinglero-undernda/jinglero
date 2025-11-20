@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-11-19
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:189-259`
 
@@ -18,7 +18,7 @@ This document describes all relationship types in the Neo4j knowledge graph. The
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-11-19
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:191-205`
 
 ## Overview
