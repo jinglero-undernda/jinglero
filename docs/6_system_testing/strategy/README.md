@@ -6,7 +6,10 @@ This directory contains detailed testing strategy documentation for different te
 
 ## Strategy Documents
 
-_Strategy documents will be created when documenting testing using PLAYBOOK_01._
+- [Testing Strategy Overview](./overview.md) - Overall testing strategy and summary
+- [Unit Testing Strategy](./unit-testing.md) - Frontend and backend unit test approach
+- [Integration Testing Strategy](./integration-testing.md) - Component and API integration tests
+- [E2E Testing Strategy](./e2e-testing.md) - End-to-end testing plan (draft)
 
 ## Strategy Structure
 
@@ -38,5 +41,5 @@ See `../playbooks/PLAYBOOK_01_DOCUMENT_STRATEGY.md` for instructions on document
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-20
 

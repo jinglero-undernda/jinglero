@@ -336,13 +336,22 @@ The nine areas are interconnected and should be considered together:
 
 ### Quick Start
 
-1. **Navigate to the area** you want to work on (e.g., `1_frontend_ux-workflows/`)
-2. **Read the area README** to understand the area's purpose
-3. **Open the playbooks directory** (e.g., `1_frontend_ux-workflows/playbooks/`)
-4. **Read QUICK_START.md** for quick reference
-5. **Choose the appropriate playbook** for your task
-6. **Copy the playbook content** into a new AI agent session
-7. **Add your specific request** and let the AI follow the instructions
+**New to the system? Start here:**
+
+1. **Use the Product Orchestrator** (`PLAYBOOK_00_PRODUCT_ORCHESTRATOR.md`) to:
+   - Evaluate documentation status across all areas
+   - Identify next logical priorities
+   - Get recommendations based on gaps and dependencies
+   - Plan systematic work
+
+2. **Or navigate directly to an area**:
+   - Navigate to the area you want to work on (e.g., `1_frontend_ux-workflows/`)
+   - Read the area README to understand the area's purpose
+   - Open the playbooks directory (e.g., `1_frontend_ux-workflows/playbooks/`)
+   - Read QUICK_START.md for quick reference
+   - Choose the appropriate playbook for your task
+   - Copy the playbook content into a new AI agent session
+   - Add your specific request and let the AI follow the instructions
 
 ### Playbook Structure
 
@@ -439,6 +448,10 @@ Each area uses status indicators:
 
 ### Strategic Documents
 
+- [`PLAYBOOK_00_PRODUCT_ORCHESTRATOR.md`](./PLAYBOOK_00_PRODUCT_ORCHESTRATOR.md) - **Entry point**: Evaluate all areas, identify priorities
+- [`orchestrator/QUICK_START.md`](./orchestrator/QUICK_START.md) - Quick reference for common scenarios
+- [`orchestrator/STATUS.md`](./orchestrator/STATUS.md) - Live status document (current state)
+- [`orchestrator/activity-log.md`](./orchestrator/activity-log.md) - Detailed activity log
 - [`complete-refactor-analysis.md`](./complete-refactor-analysis.md) - Strategic analysis and approach
 - [`1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md`](./1_frontend_ux-workflows/IMPLEMENTATION_GUIDE.md) - Implementation guidance
 
@@ -494,12 +507,20 @@ Each area uses status indicators:
 
 ## Next Steps
 
-1. **Choose an area** to develop (recommended: UI Design System)
-2. **Navigate to the area** directory
-3. **Read the area README** (when available)
-4. **Start with PLAYBOOK_01** to document current state
-5. **Use PLAYBOOK_02** to validate
-6. **Continue with other playbooks** as needed
+**Recommended Starting Point:**
+
+1. **Use the Product Orchestrator** (`PLAYBOOK_00_PRODUCT_ORCHESTRATOR.md`):
+   - Ask: "What should I work on next?"
+   - Get prioritized recommendations based on current state
+   - Follow guided path through appropriate playbooks
+
+2. **Or choose an area directly**:
+   - Choose an area to develop (recommended: UI Design System)
+   - Navigate to the area directory
+   - Read the area README
+   - Start with PLAYBOOK_01 to document current state
+   - Use PLAYBOOK_02 to validate
+   - Continue with other playbooks as needed
 
 ---
 

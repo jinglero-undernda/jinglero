@@ -17,7 +17,12 @@ The landing page serves as the entry point to the application, featuring search 
 
 ## Layout Structure
 
-*To be documented as layout is analyzed*
+For detailed layout specifications based on workflow requirements, see `landing-page-layout.md`.
+
+**Key Layout Zones**:
+- Hero Section (title, subtitle, global search)
+- Featured Content Section (Featured Fabricas, Featured Entities)
+- Navigation Links Section (Advanced Search, Login)
 
 ## Component Composition
 
@@ -27,7 +32,10 @@ The landing page serves as the entry point to the application, featuring search 
 
 ## Responsive Behavior
 
-*To be documented*
+- **Desktop (> 768px)**: Multi-column grid, max-width 1200px container
+- **Mobile (≤ 768px)**: Single column layout, reduced spacing
+
+For detailed responsive specifications, see `landing-page-layout.md`.
 
 ## Implementation
 
@@ -36,7 +44,10 @@ The landing page serves as the entry point to the application, featuring search 
 
 ## Related Documentation
 
-- Routes: `../routes.md`
-- SearchBar component: `../../03_components/composite/search-bar.md`
-- EntityCard component: `../../03_components/composite/entity-card.md`
+- **Detailed Layout**: `landing-page-layout.md` (comprehensive layout specification per WORKFLOW_010)
+- **Workflow**: `../../1_frontend_ux-workflows/workflows/navigation/WORKFLOW_010_basic-navigation-access.md`
+- **Routes**: `../routes.md`
+- **Components**: 
+  - SearchBar: `../../03_components/composite/search-bar.md`
+  - EntityCard: `../../03_components/composite/entity-card.md`
 

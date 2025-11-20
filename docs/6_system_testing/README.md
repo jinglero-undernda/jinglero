@@ -104,11 +104,11 @@ Testing documents can be used to validate code by:
 
 | Category              | Status                 | Last Updated | Notes                                    |
 | --------------------- | ---------------------- | ------------ | ---------------------------------------- |
-| Test Strategy         | current_implementation | -            | Some tests exist, strategy pending       |
-| Unit Tests            | current_implementation | -            | Some unit tests exist                    |
-| Integration Tests     | current_implementation | -            | Some integration tests exist             |
-| E2E Tests             | current_implementation | -            | E2E tests pending                        |
-| Test Coverage         | current_implementation | -            | Coverage tracking pending                |
+| Test Strategy         | current_implementation | 2025-11-20   | Strategy documented in `strategy/`       |
+| Unit Tests            | current_implementation | 2025-11-20   | Frontend and backend unit tests exist    |
+| Integration Tests     | current_implementation | 2025-11-20   | Component and API integration tests exist |
+| E2E Tests             | draft                  | 2025-11-20   | E2E tests planned but not yet implemented |
+| Test Coverage         | current_implementation | 2025-11-20   | Coverage tracking pending                |
 
 ## Best Practices
 
@@ -148,5 +148,5 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-20
 
