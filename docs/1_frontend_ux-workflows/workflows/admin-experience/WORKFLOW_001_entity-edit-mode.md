@@ -1,6 +1,8 @@
 # WORKFLOW_001: Entity Edit Mode
 
 **Status**: draft  
+**User Experience Category**: Admin Experience  
+**Access Level**: Admin-only  
 **Last Updated**: 2025-01-XX  
 **Related Components**:
 
@@ -17,6 +19,8 @@
 ## Overview
 
 This workflow defines the complete user experience for editing entity metadata and relationships in the Admin Portal. It covers entering edit mode, making changes, handling unsaved changes, and exiting edit mode.
+
+**User Persona**: Admin user with access to the admin portal, responsible for managing and curating the knowledge graph database. They need to edit entity metadata, relationships, and ensure data accuracy.
 
 **User Context**: Admin user managing entity data in the knowledge graph  
 **Success Criteria**: User can edit entity data, see clear feedback on changes, and safely navigate away with appropriate warnings

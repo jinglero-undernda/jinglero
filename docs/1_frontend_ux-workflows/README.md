@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This directory contains user experience (UX) workflow documentation for the Jinglero Admin Portal. These documents serve as:
+This directory contains user experience (UX) workflow documentation for the Jinglero platform. These documents serve as:
 
 1. **Design Specifications**: Define expected user interactions and system behaviors
 2. **Implementation Guides**: Reference for developers implementing features
@@ -11,11 +11,41 @@ This directory contains user experience (UX) workflow documentation for the Jing
 
 ## Documentation Structure
 
+### User Experience Categories
+
+Workflows are organized by user experience type:
+
+1. **Guest Experience**: Public-facing user journeys
+
+   - Landing page experience
+   - Search and discovery
+   - Content viewing (Fabrica, Jingle, etc.)
+   - Entity inspection pages
+
+2. **Admin Experience**: Administrative workflows
+
+   - Entity management (CRUD)
+   - Relationship management
+   - Data validation
+   - Dashboard operations
+
+3. **Authentication**: User authentication flows
+
+   - Admin login
+   - Session management
+   - Protected route access
+
+4. **Navigation**: Cross-experience navigation
+   - Route transitions
+   - Deep linking
+   - Back navigation
+   - Unsaved changes handling
+
 ### Workflow Types
 
 We document different types of workflows:
 
-1. **User Journeys**: Complete end-to-end user experiences (e.g., "Creating a new jingle with relationships")
+1. **User Journeys**: Complete end-to-end user experiences (e.g., "Landing page to content discovery", "Creating a new jingle with relationships")
 2. **Interaction Flows**: Specific interaction patterns (e.g., "Edit mode state management")
 3. **State Machines**: Complex state transitions (e.g., "Entity edit mode lifecycle")
 4. **Error Handling Flows**: Error scenarios and recovery paths
@@ -34,15 +64,17 @@ Each workflow document should include:
 1. **Metadata**
 
    - Workflow ID and name
+   - User Experience Category (Guest/Admin/Auth/Navigation)
    - Status (draft | approved | deprecated)
    - Last updated date
    - Related features/components
    - Dependencies on other workflows
+   - Access Level (Public/Protected/Admin-only)
 
 2. **Overview**
 
    - Purpose and scope
-   - User persona/context
+   - User persona/context (detailed persona description)
    - Success criteria
 
 3. **Flow Diagram**
@@ -120,22 +152,37 @@ Workflow documents can be used to validate code by:
 
 ## Current Workflows
 
-| ID           | Name                            | Status   | Last Updated |
-| ------------ | ------------------------------- | -------- | ------------ |
-| WORKFLOW_001 | Entity Edit Mode                | approved | 2025-01-XX   |
-| WORKFLOW_002 | Entity Creation                 | draft    | -            |
-| WORKFLOW_003 | Relationship Management         | draft    | -            |
-| WORKFLOW_004 | Navigation with Unsaved Changes | draft    | -            |
+| ID           | Name                            | Category         | Status   | Last Updated |
+| ------------ | ------------------------------- | ---------------- | -------- | ------------ |
+| WORKFLOW_001 | Entity Edit Mode                | Admin Experience | approved | 2025-01-XX   |
+| WORKFLOW_002 | Entity Creation                 | Admin Experience | draft    | -            |
+| WORKFLOW_003 | Relationship Management         | Admin Experience | draft    | -            |
+| WORKFLOW_004 | Navigation with Unsaved Changes | Navigation       | draft    | -            |
+| WORKFLOW_005 | Landing Page                    | Guest Experience | planned  | -            |
+| WORKFLOW_006 | Search and Discovery            | Guest Experience | planned  | -            |
+| WORKFLOW_007 | Fabrica Viewing                 | Guest Experience | planned  | -            |
+| WORKFLOW_008 | Entity Inspection               | Guest Experience | planned  | -            |
+| WORKFLOW_009 | Admin Authentication            | Authentication   | planned  | -            |
+
+## Organizing Workflows by Experience Type
+
+Workflows can be organized in two ways:
+
+1. **Flat Structure**: All workflows in a single directory (suitable for small number of workflows)
+2. **Categorized Structure**: Workflows organized by experience category in subdirectories (recommended as workflow count grows)
+
+See `FOLDER_STRUCTURE_RECOMMENDATION.md` for detailed organization options.
 
 ## Best Practices
 
 1. **Keep Workflows Focused**: Each workflow should cover a single, cohesive user experience
-2. **Use Visual Diagrams**: Mermaid diagrams make workflows easier to understand
-3. **Document Edge Cases**: Don't just document the happy path
-4. **Link to Code**: Reference specific components, functions, and files
-5. **Version Control**: Track changes to workflows over time
-6. **Review Regularly**: Update workflows as the product evolves
-7. **Validate Against Code**: Regularly check that code matches documented workflows
+2. **Categorize by Experience**: Assign workflows to appropriate user experience categories
+3. **Use Visual Diagrams**: Mermaid diagrams make workflows easier to understand
+4. **Document Edge Cases**: Don't just document the happy path
+5. **Link to Code**: Reference specific components, functions, and files
+6. **Version Control**: Track changes to workflows over time
+7. **Review Regularly**: Update workflows as the product evolves
+8. **Validate Against Code**: Regularly check that code matches documented workflows
 
 ## Tools
 

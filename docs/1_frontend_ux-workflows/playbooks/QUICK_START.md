@@ -160,7 +160,7 @@ When UX or code changes:
 
 - See **README.md** for overview
 - See individual playbooks for detailed instructions
-- See **FOLDER_STRUCTURE_RECOMMENDATION.md** for structure questions
+- See `../FOLDER_STRUCTURE_RECOMMENDATION.md` for structure questions
 
 ---
 

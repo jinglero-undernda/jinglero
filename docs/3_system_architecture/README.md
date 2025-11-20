@@ -103,13 +103,14 @@ Architecture documents can be used to validate code by:
 
 ## Current Architecture Status
 
-| Category              | Status                 | Last Updated | Notes                                    |
+| Category              | Status                 | Last Updated | Documentation                            |
 | --------------------- | ---------------------- | ------------ | ---------------------------------------- |
-| Data Flow             | current_implementation | -            | Neo4j-based architecture, Public/Admin APIs |
-| State Management      | current_implementation | -            | React state management, request caching   |
-| Caching Strategies   | current_implementation | -            | Client-side request caching              |
-| Performance Patterns | current_implementation | -            | Query optimization, redundant properties  |
-| Scalability          | current_implementation | -            | Cost optimization considerations pending  |
+| Data Flow             | current_implementation | 2025-11-19   | [data-flow.md](./data-flow.md) - Neo4j-based architecture, Public/Admin APIs |
+| State Management      | current_implementation | 2025-11-19   | [state-management.md](./state-management.md) - React state management, request caching |
+| Caching Strategies   | current_implementation | 2025-11-19   | [caching.md](./caching.md) - Client-side request caching |
+| Performance Patterns | current_implementation | 2025-11-19   | [performance.md](./performance.md) - Query optimization, redundant properties |
+| Scalability          | current_implementation | 2025-11-19   | [scalability.md](./scalability.md) - Cost optimization, performance tradeoffs |
+| Overview             | current_implementation | 2025-11-19   | [overview.md](./overview.md) - Architecture summary |
 
 ## Best Practices
 
@@ -129,7 +130,18 @@ Architecture documents can be used to validate code by:
 - **Markdown**: For documentation
 - **Git**: For version control and change tracking
 
-## Related Documentation
+## Architecture Documentation
+
+### Core Architecture Documents
+
+- **[Overview](./overview.md)** - Architecture summary and component overview
+- **[Data Flow](./data-flow.md)** - Frontend to backend to database data flow patterns
+- **[State Management](./state-management.md)** - Frontend state management patterns and strategies
+- **[Caching](./caching.md)** - Client-side and server-side caching strategies
+- **[Performance](./performance.md)** - Query optimization and performance patterns
+- **[Scalability](./scalability.md)** - Cost optimization and scalability considerations
+
+### Related Documentation
 
 - `../../backend/API_REFACTORING_SUMMARY.md` - API architecture summary
 - `../../complete-refactor-analysis.md` - Strategic analysis and approach
@@ -149,5 +161,5 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-19
 

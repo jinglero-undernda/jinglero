@@ -105,11 +105,13 @@ API contract documents can be used to validate code by:
 
 | Category              | Status                 | Last Updated | Notes                                    |
 | --------------------- | ---------------------- | ------------ | ---------------------------------------- |
-| Public API            | current_implementation | -            | Read-only endpoints documented           |
-| Admin API             | current_implementation | -            | CRUD endpoints documented                |
-| Request/Response      | current_implementation | -            | Formats documented in code               |
-| Validation Rules      | current_implementation | -            | Validation in route handlers            |
-| Versioning            | current_implementation | -            | Versioning strategy pending              |
+| Public API            | current_implementation | 2025-11-19   | 27 endpoints documented - [public-api.md](./contracts/public-api.md) |
+| Admin API             | current_implementation | 2025-11-19   | 23 endpoints documented - [admin-api.md](./contracts/admin-api.md) |
+| Search API            | current_implementation | 2025-11-19   | 1 endpoint documented - [search-api.md](./contracts/search-api.md) |
+| Request/Response      | current_implementation | 2025-11-19   | Formats documented in contracts          |
+| Validation Rules      | current_implementation | 2025-11-19   | Validation rules documented in contracts |
+| Versioning            | current_implementation | 2025-11-19   | Version 1.0, no explicit versioning yet   |
+| Overview              | current_implementation | 2025-11-19   | [API_CONTRACTS_OVERVIEW.md](./API_CONTRACTS_OVERVIEW.md) |
 
 ## Best Practices
 
@@ -129,6 +131,12 @@ API contract documents can be used to validate code by:
 
 ## Related Documentation
 
+- **API Contracts Overview**: [API_CONTRACTS_OVERVIEW.md](./API_CONTRACTS_OVERVIEW.md) - Summary of all API contracts
+- **Public API Contract**: [contracts/public-api.md](./contracts/public-api.md) - Public API documentation
+- **Admin API Contract**: [contracts/admin-api.md](./contracts/admin-api.md) - Admin API documentation
+- **Search API Contract**: [contracts/search-api.md](./contracts/search-api.md) - Search API documentation
+- **System Architecture**: `../../docs/3_system_architecture/` - System architecture documentation
+- **Database Schema**: `../../docs/4_backend_database-schema/` - Database schema documentation
 - `../../backend/API_REFACTORING_SUMMARY.md` - API architecture summary
 - `../../backend/src/server/api/openapi.yaml` - OpenAPI specification
 - `../../complete-refactor-analysis.md` - Strategic analysis and approach
@@ -148,5 +156,5 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-19
 

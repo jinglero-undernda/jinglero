@@ -29,7 +29,55 @@ This playbook provides step-by-step instructions for documenting a UX workflow, 
 **Your task:**
 - Understand the workflow scope
 - Identify if this is existing code or new design
+- **Identify User Experience Category** (Guest/Admin/Auth/Navigation)
 - Determine workflow type (User Journey, Interaction Pattern, State Machine, etc.)
+- Determine workflow scope (single experience vs. cross-experience)
+
+### Step 1a: Identify User Experience Category
+
+**Determine which category the workflow belongs to:**
+
+1. **Guest Experience**: Public-facing user journeys
+   - Landing page, search, content viewing, entity inspection
+   - No authentication required
+   - Examples: Landing page experience, search discovery, Fabrica viewing
+
+2. **Admin Experience**: Administrative workflows
+   - Entity management, CRUD operations, data validation
+   - Requires admin authentication
+   - Examples: Entity edit mode, entity creation, relationship management
+
+3. **Authentication**: User authentication flows
+   - Login, logout, session management, protected routes
+   - Examples: Admin login, session handling
+
+4. **Navigation**: Cross-experience navigation
+   - Route transitions, deep linking, back navigation
+   - May span multiple experience categories
+   - Examples: Navigation with unsaved changes, route transitions
+
+**Guidance:**
+- If workflow spans multiple categories, classify as "Navigation"
+- If workflow is primarily about authentication, classify as "Authentication"
+- If workflow requires admin access, classify as "Admin Experience"
+- Otherwise, classify as "Guest Experience"
+
+### Step 1b: Determine Workflow Scope
+
+**Single Experience Workflow:**
+- Focuses on one user experience category
+- Complete journey within that category
+- Example: "Landing page to search results" (Guest Experience)
+
+**Cross-Experience Workflow:**
+- Spans multiple experience categories
+- Typically classified as "Navigation"
+- Example: "Navigating from guest view to admin edit mode"
+
+**When to create separate workflows vs. combining:**
+- Create separate workflows for distinct user goals
+- Combine related steps only if they form a single cohesive journey
+- Navigation workflows can reference other workflows
 
 ### Step 2: Gather Information
 
@@ -83,6 +131,8 @@ This playbook provides step-by-step instructions for documenting a UX workflow, 
 ## Metadata
 
 - **Status**: current_implementation | draft
+- **User Experience Category**: [Guest Experience | Admin Experience | Authentication | Navigation]
+- **Access Level**: [Public | Protected | Admin-only]
 - **Last Updated**: [YYYY-MM-DD]
 - **Last Validated**: [not yet validated]
 - **Code Reference**: [file:line-range] (for existing code)
@@ -96,7 +146,8 @@ This playbook provides step-by-step instructions for documenting a UX workflow, 
 ## Overview
 
 - **Purpose**: [What this workflow does]
-- **User Context**: [Who uses this, when, why]
+- **User Persona**: [Detailed persona description - who uses this, their goals, context]
+- **User Context**: [When and why this workflow is used]
 - **Success Criteria**: [How we know it works]
 - **Related Components**: [List component files]
 - **Dependencies**: [Other workflows this depends on]
@@ -221,6 +272,9 @@ flowchart TD
 ### Step 6: Review and Refine
 
 **Checklist:**
+- [ ] User experience category identified
+- [ ] Access level determined
+- [ ] User persona described
 - [ ] All user actions documented
 - [ ] All system responses documented
 - [ ] All state variables referenced
@@ -235,8 +289,10 @@ flowchart TD
 **Update `../README.md` workflow table:**
 
 ```markdown
-| WORKFLOW_XXX | [Name] | current_implementation | YYYY-MM-DD |
+| WORKFLOW_XXX | [Name] | [Category] | current_implementation | YYYY-MM-DD |
 ```
+
+**Include the category column** (Guest Experience, Admin Experience, Authentication, or Navigation).
 
 ## Output Deliverables
 
@@ -262,18 +318,46 @@ flowchart TD
 
 ## Example Prompts for User
 
-**For existing code:**
+**For existing code (Admin Experience):**
 ```
 Document the entity creation workflow. 
 The main component is AdminDashboard.tsx, 
 and it uses EntityForm.tsx for the form.
 ```
 
-**For new UX:**
+**For existing code (Guest Experience):**
+```
+Document the landing page workflow.
+The main component is Home.tsx.
+Users arrive at the landing page and can navigate to search or view content.
+```
+
+**For existing code (Authentication):**
+```
+Document the admin login workflow.
+The main component is AdminLogin.tsx.
+Users enter credentials and are authenticated to access admin routes.
+```
+
+**For new UX (Guest Experience):**
+```
+Document a new workflow for search and discovery.
+Users should be able to search for entities, see results,
+and navigate to entity detail pages.
+```
+
+**For new UX (Admin Experience):**
 ```
 Document a new workflow for bulk entity operations.
 Users should be able to select multiple entities 
 and perform actions like delete or update.
+```
+
+**For cross-experience (Navigation):**
+```
+Document the navigation workflow when users have unsaved changes.
+This spans both guest and admin experiences when navigating away
+from pages with unsaved edits.
 ```
 
 ## Next Steps
