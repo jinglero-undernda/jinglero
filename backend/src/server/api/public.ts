@@ -718,7 +718,8 @@ router.get('/relationships/:type', async (req, res) => {
       'tagged_with': 'TAGGED_WITH',
       'versiona': 'VERSIONA',
       'reacciona_a': 'REACCIONA_A',
-      'soy_yo': 'SOY_YO'
+      'soy_yo': 'SOY_YO',
+      'repeats': 'REPEATS'
     };
     
     const relType = relTypeMap[type];

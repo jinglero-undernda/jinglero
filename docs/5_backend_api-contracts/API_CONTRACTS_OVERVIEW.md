@@ -130,6 +130,7 @@ All APIs support the following relationship types:
 - **versiona** (VERSIONA) - Jingle → Cancion (versioning)
 - **reacciona_a** (REACCIONA_A) - Usuario → Jingle (reactions)
 - **soy_yo** (SOY_YO) - Usuario → Artista (identity claim)
+- **repeats** (REPEATS) - Jingle → Jingle (repeat relationship)
 
 ## Versioning
 

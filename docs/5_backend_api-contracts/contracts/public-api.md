@@ -37,7 +37,7 @@ The Public API provides read-only access to all entities and relationships in th
 ```json
 {
   "nodeLabels": ["Usuario", "Jingle", "Artista", "Cancion", "Fabrica", "Tematica"],
-  "relationshipTypes": ["APPEARS_IN", "JINGLERO_DE", "AUTOR_DE", "VERSIONA", "TAGGED_WITH", "SOY_YO", "REACCIONA_A"],
+  "relationshipTypes": ["APPEARS_IN", "JINGLERO_DE", "AUTOR_DE", "VERSIONA", "TAGGED_WITH", "SOY_YO", "REACCIONA_A", "REPEATS"],
   "constraints": [...],
   "indexes": [...]
 }
@@ -973,7 +973,7 @@ curl -X GET /api/public/schema
 
 **Path Parameters**
 
-- `type` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo)
+- `type` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo, repeats)
 
 **Query Parameters**
 
@@ -999,8 +999,8 @@ curl -X GET /api/public/schema
 
 **Validation Rules**
 
-- Valid relationship types: `autor_de`, `jinglero_de`, `appears_in`, `tagged_with`, `versiona`, `reacciona_a`, `soy_yo`
-- Maps to Neo4j relationship types: `AUTOR_DE`, `JINGLERO_DE`, `APPEARS_IN`, `TAGGED_WITH`, `VERSIONA`, `REACCIONA_A`, `SOY_YO`
+- Valid relationship types: `autor_de`, `jinglero_de`, `appears_in`, `tagged_with`, `versiona`, `reacciona_a`, `soy_yo`, `repeats`
+- Maps to Neo4j relationship types: `AUTOR_DE`, `JINGLERO_DE`, `APPEARS_IN`, `TAGGED_WITH`, `VERSIONA`, `REACCIONA_A`, `SOY_YO`, `REPEATS`
 
 ---
 

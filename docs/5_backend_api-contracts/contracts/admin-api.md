@@ -3,8 +3,8 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-19
-- **Last Validated**: not yet validated
+- **Last Updated**: 2025-11-22
+- **Last Validated**: 2025-11-22
 - **Version**: 1.0
 - **Code Reference**: `backend/src/server/api/admin.ts:1-1315`
 
@@ -646,7 +646,7 @@ The REPEATS relationship endpoints follow the same patterns as other relationshi
 
 **Method**: POST  
 **Path**: `/api/admin/relationships/repeats`  
-**Code Reference**: `backend/src/server/api/admin.ts:808-889` (to be implemented)
+**Code Reference**: `backend/src/server/api/admin.ts:815-953`
 
 **Description**: Create a new REPEATS relationship between two Jingles. Direction is automatically validated and corrected based on publication dates.
 
@@ -696,7 +696,7 @@ If creating this relationship creates a transitive chain (e.g., J3-REPEATS-J1 wh
 
 **Method**: PUT  
 **Path**: `/api/admin/relationships/repeats`  
-**Code Reference**: `backend/src/server/api/admin.ts:892-969` (to be implemented)
+**Code Reference**: `backend/src/server/api/admin.ts:956-1127`
 
 **Description**: Update a REPEATS relationship. Direction validation and transitive normalization are re-evaluated on update.
 
@@ -729,7 +729,7 @@ If creating this relationship creates a transitive chain (e.g., J3-REPEATS-J1 wh
 
 **Method**: GET  
 **Path**: `/api/admin/relationships/repeats`  
-**Code Reference**: `backend/src/server/api/admin.ts:792-805` (to be implemented)
+**Code Reference**: `backend/src/server/api/admin.ts:799-813`
 
 **Description**: List all REPEATS relationships in the system.
 
@@ -750,7 +750,7 @@ If creating this relationship creates a transitive chain (e.g., J3-REPEATS-J1 wh
 
 **Method**: DELETE  
 **Path**: `/api/admin/relationships/repeats`  
-**Code Reference**: `backend/src/server/api/admin.ts:972-1014` (to be implemented)
+**Code Reference**: `backend/src/server/api/admin.ts:1128-1168`
 
 **Description**: Delete a REPEATS relationship. May trigger transitive normalization if the deleted relationship was part of a chain.
 
@@ -1358,3 +1358,10 @@ All endpoints maintain backward compatibility. Breaking changes will be communic
 
 - **2025-11-19**: Initial baseline documentation created from code analysis
 - **2025-11-22**: Added REPEATS relationship endpoints documentation (draft)
+- **2025-11-22**: Implemented REPEATS relationship support:
+  - Added REPEATS to RELATIONSHIP_TYPE_MAP in admin and public APIs
+  - Implemented direction validation based on fabricaDate
+  - Implemented transitive normalization logic
+  - Implemented circular reference prevention
+  - Created validation module: `backend/src/server/db/validation/repeats-validation.ts`
+  - Updated code references and contract status

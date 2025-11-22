@@ -21,6 +21,12 @@ import {
   RelationshipValidationResult,
 } from '../utils/validation';
 import { validateEntityInput, validateEntityInputSafe } from '../utils/entityValidation';
+import {
+  validateRepeatsDirection,
+  checkCircularReference,
+  normalizeTransitiveChains,
+  checkConcurrentInboundOutbound
+} from '../db/validation/repeats-validation';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -76,7 +82,8 @@ const RELATIONSHIP_TYPE_MAP: Record<string, string> = {
   'tagged_with': 'TAGGED_WITH',
   'versiona': 'VERSIONA',
   'reacciona_a': 'REACCIONA_A',
-  'soy_yo': 'SOY_YO'
+  'soy_yo': 'SOY_YO',
+  'repeats': 'REPEATS'
 };
 
 // Entity type to prefix mapping
@@ -855,6 +862,63 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
       }
     }
   
+  // Special handling for REPEATS relationships
+  let finalStartId = payload.start;
+  let finalEndId = payload.end;
+  
+  if (neo4jRelType === 'REPEATS') {
+    // Validate both entities are Jingles
+    const jingleCheckQuery = `
+      MATCH (start:Jingle { id: $start }), (end:Jingle { id: $end })
+      RETURN start, end
+    `;
+    const jingleCheck = await db.executeQuery(jingleCheckQuery, { start: payload.start, end: payload.end });
+    if (jingleCheck.length === 0) {
+      throw new BadRequestError('REPEATS relationships can only be created between Jingle entities');
+    }
+    
+    // Check for circular reference
+    const isCircular = await checkCircularReference(db, payload.start, payload.end);
+    if (isCircular) {
+      throw new BadRequestError('Creating this REPEATS relationship would create a circular reference');
+    }
+    
+    // Validate and correct direction
+    const directionResult = await validateRepeatsDirection(db, payload.start, payload.end);
+    finalStartId = directionResult.correctStart;
+    finalEndId = directionResult.correctEnd;
+    
+    if (directionResult.corrected) {
+      console.log(`REPEATS direction corrected: ${directionResult.reason}`);
+    }
+    
+    // Check for concurrent inbound/outbound REPEATS (triggers normalization)
+    const hasConcurrent = await checkConcurrentInboundOutbound(db, finalStartId);
+    if (hasConcurrent) {
+      // Normalize will be triggered after creation
+      console.log(`Concurrent inbound/outbound REPEATS detected on ${finalStartId}, will normalize`);
+    }
+    
+    // Check if relationship already exists with corrected direction
+    const correctedExistsQuery = `
+      MATCH (start { id: $start })-[r:REPEATS]->(end { id: $end })
+      RETURN r
+    `;
+    const correctedExisting = await db.executeQuery(correctedExistsQuery, { 
+      start: finalStartId, 
+      end: finalEndId 
+    });
+    if (correctedExisting.length > 0) {
+      throw new ConflictError('REPEATS relationship already exists (with corrected direction)');
+    }
+    
+    // Normalize transitive chains before creating
+    const normalizationResult = await normalizeTransitiveChains(db, finalStartId, finalEndId);
+    if (normalizationResult.normalized) {
+      console.log('REPEATS transitive chains normalized:', normalizationResult);
+    }
+  }
+  
   const createQuery = `
     MATCH (start { id: $start }), (end { id: $end })
     CREATE (start)-[r:${neo4jRelType}]->(end)
@@ -862,16 +926,16 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
     RETURN r
   `;
   const result = await db.executeQuery<{ r: any }>(createQuery, { 
-    start: payload.start, 
-    end: payload.end, 
+    start: finalStartId, 
+    end: finalEndId, 
     properties 
   }, undefined, true);
   
   // Update redundant properties after relationship creation
   await updateRedundantPropertiesOnRelationshipChange(
     neo4jRelType,
-    payload.start,
-    payload.end,
+    finalStartId,
+    finalEndId,
     'create'
   );
   
@@ -943,6 +1007,98 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     }
   }
   
+  // Special handling for REPEATS relationships
+  let finalStartId = payload.start;
+  let finalEndId = payload.end;
+  
+  if (neo4jRelType === 'REPEATS') {
+    // Validate both entities are Jingles
+    const jingleCheckQuery = `
+      MATCH (start:Jingle { id: $start }), (end:Jingle { id: $end })
+      RETURN start, end
+    `;
+    const jingleCheck = await db.executeQuery(jingleCheckQuery, { start: payload.start, end: payload.end });
+    if (jingleCheck.length === 0) {
+      throw new BadRequestError('REPEATS relationships can only exist between Jingle entities');
+    }
+    
+    // Re-validate direction (direction may need correction if fabricaDate changed)
+    const directionResult = await validateRepeatsDirection(db, payload.start, payload.end);
+    finalStartId = directionResult.correctStart;
+    finalEndId = directionResult.correctEnd;
+    
+    // If direction needs correction, we need to delete old and create new
+    if (directionResult.corrected) {
+      console.log(`REPEATS direction needs correction on update: ${directionResult.reason}`);
+      
+      // Check if corrected relationship already exists
+      const correctedExistsQuery = `
+        MATCH (start { id: $start })-[r:REPEATS]->(end { id: $end })
+        RETURN r
+      `;
+      const correctedExisting = await db.executeQuery(correctedExistsQuery, { 
+        start: finalStartId, 
+        end: finalEndId 
+      });
+      
+      if (correctedExisting.length > 0) {
+        // Corrected relationship already exists, delete the old one
+        const deleteQuery = `
+          MATCH (start { id: $oldStart })-[r:REPEATS]->(end { id: $oldEnd })
+          DELETE r
+        `;
+        await db.executeQuery(deleteQuery, { 
+          oldStart: payload.start, 
+          oldEnd: payload.end 
+        }, undefined, true);
+        throw new ConflictError('REPEATS relationship direction corrected - relationship already exists with correct direction');
+      }
+      
+      // Delete old relationship and create new with correct direction
+      const deleteOldQuery = `
+        MATCH (start { id: $oldStart })-[r:REPEATS]->(end { id: $oldEnd })
+        DELETE r
+      `;
+      await db.executeQuery(deleteOldQuery, { 
+        oldStart: payload.start, 
+        oldEnd: payload.end 
+      }, undefined, true);
+      
+      // Create new relationship with correct direction
+      const createQuery = `
+        MATCH (start { id: $start }), (end { id: $end })
+        CREATE (start)-[r:REPEATS]->(end)
+        SET r += $properties
+        RETURN r
+      `;
+      const result = await db.executeQuery<{ r: any }>(createQuery, { 
+        start: finalStartId, 
+        end: finalEndId, 
+        properties 
+      }, undefined, true);
+      
+      // Normalize transitive chains after update
+      const normalizationResult = await normalizeTransitiveChains(db, finalStartId, finalEndId);
+      if (normalizationResult.normalized) {
+        console.log('REPEATS transitive chains normalized after update:', normalizationResult);
+      }
+      
+      return res.json(result[0].r);
+    }
+    
+    // Check for circular reference (if updating would create one)
+    const isCircular = await checkCircularReference(db, finalStartId, finalEndId);
+    if (isCircular) {
+      throw new BadRequestError('Updating this REPEATS relationship would create a circular reference');
+    }
+    
+    // Normalize transitive chains after update
+    const normalizationResult = await normalizeTransitiveChains(db, finalStartId, finalEndId);
+    if (normalizationResult.normalized) {
+      console.log('REPEATS transitive chains normalized after update:', normalizationResult);
+    }
+  }
+  
   // Update relationship properties
   const updateQuery = `
     MATCH (start { id: $start })-[r:${neo4jRelType}]->(end { id: $end })
@@ -950,8 +1106,8 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     RETURN r
   `;
   const result = await db.executeQuery<{ r: any }>(updateQuery, { 
-    start: payload.start, 
-    end: payload.end, 
+    start: finalStartId, 
+    end: finalEndId, 
     properties 
   }, undefined, true);
   

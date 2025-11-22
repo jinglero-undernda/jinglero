@@ -258,4 +258,12 @@ Relationships:
    - updatedAt: datetime
    - removedAt: datetime (optional, if the reaction was removed)
 
+8. REPEATS
+   Start Node: Jingle
+   End Node: Jingle
+   Import file: rel-Jingle-REPEATS-Jingle-YYYY-MM-DD.csv
+   Properties:
+   - status: string (enum: DRAFT, CONFIRMED, default: DRAFT)
+   - createdAt: datetime
+
 */

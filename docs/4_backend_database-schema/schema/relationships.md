@@ -483,7 +483,7 @@ REACCIONA_A connects a Usuario to a Jingle, indicating that the user has reacted
 
 - **Status**: needs_implementation
 - **Last Updated**: 2025-01-28
-- **Last Validated**: 2025-01-28
+- **Last Validated**: 2025-11-22
 - **Code Reference**: `backend/src/server/db/schema/schema.ts` (to be implemented)
 - **Validation Report**: `docs/4_backend_database-schema/validation-reports/REPEATS-validation-report-2025-01-28.md`
 
