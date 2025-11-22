@@ -431,7 +431,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Path Parameters**
 
-- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo)
+- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo, repeats)
 
 **Success Response (200)**
 
@@ -453,7 +453,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Validation Rules**
 
-- Valid relationship types: `autor_de`, `jinglero_de`, `appears_in`, `tagged_with`, `versiona`, `reacciona_a`, `soy_yo`
+- Valid relationship types: `autor_de`, `jinglero_de`, `appears_in`, `tagged_with`, `versiona`, `reacciona_a`, `soy_yo`, `repeats`
 
 ---
 
@@ -467,7 +467,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Path Parameters**
 
-- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo)
+- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo, repeats)
 
 **Request Body**
 
@@ -517,6 +517,13 @@ The Admin API provides full CRUD operations for entities and relationships, sche
   - VERSIONA: Updates `jingle.cancionId`
   - AUTOR_DE: Updates `cancion.autorIds[]`
 - Order is recalculated for all APPEARS_IN relationships of the Fabrica
+- For REPEATS relationships:
+  - Direction is automatically validated and corrected based on publication dates (`fabricaDate`)
+  - If both Jingles are published: Latest (newer `fabricaDate`) → REPEATS → Earliest (older `fabricaDate`)
+  - If one Jingle is Inedito: Inedito → REPEATS → Published
+  - Transitive normalization is triggered automatically: if J3-REPEATS-J1 AND J1-REPEATS-J2 exist, normalizes to J3-REPEATS-J2
+  - Prevents concurrent inbound and outbound REPEATS on the same Jingle (triggers normalization)
+  - Prevents circular REPEATS chains
 
 ---
 
@@ -530,7 +537,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Path Parameters**
 
-- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo)
+- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo, repeats)
 
 **Request Body**
 
@@ -573,6 +580,13 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 - APPEARS_IN relationships automatically update `order` property when timestamp changes
 - Order is recalculated for all APPEARS_IN relationships of the Fabrica
+- For REPEATS relationships:
+  - Direction is automatically validated and corrected based on publication dates (`fabricaDate`)
+  - If both Jingles are published: Latest (newer `fabricaDate`) → REPEATS → Earliest (older `fabricaDate`)
+  - If one Jingle is Inedito: Inedito → REPEATS → Published
+  - Transitive normalization is triggered automatically: if J3-REPEATS-J1 AND J1-REPEATS-J2 exist, normalizes to J3-REPEATS-J2
+  - Prevents concurrent inbound and outbound REPEATS on the same Jingle (triggers normalization)
+  - Prevents circular REPEATS chains
 
 ---
 
@@ -586,7 +600,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Path Parameters**
 
-- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo)
+- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo, repeats)
 
 **Request Body**
 
@@ -618,6 +632,147 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Special Notes**
 
+- For REPEATS relationships:
+  - Deleting a REPEATS relationship may trigger transitive normalization if it was part of a chain
+  - If the deleted relationship was an intermediate link, the system may need to recreate direct links
+
+---
+
+### REPEATS Relationship Endpoints
+
+The REPEATS relationship endpoints follow the same patterns as other relationship types, but include special validation and normalization behavior.
+
+#### POST /api/admin/relationships/repeats
+
+**Method**: POST  
+**Path**: `/api/admin/relationships/repeats`  
+**Code Reference**: `backend/src/server/api/admin.ts:808-889` (to be implemented)
+
+**Description**: Create a new REPEATS relationship between two Jingles. Direction is automatically validated and corrected based on publication dates.
+
+**Request Body**
+
+```json
+{
+  "start": "j1a2b3c4",
+  "end": "j5e6f7g8",
+  "status": "DRAFT"
+}
+```
+
+**Success Response (201)**
+
+```json
+{
+  "status": "DRAFT",
+  "createdAt": "2025-01-28T00:00:00.000Z"
+}
+```
+
+**Direction Validation**
+
+The API automatically corrects the relationship direction based on publication status:
+
+- **Both Published**: If both Jingles have `fabricaDate`, the relationship is created as Latest → Earliest (based on `fabricaDate` comparison)
+- **One Inedito**: If one Jingle is Inedito (no `fabricaDate`), the relationship is created as Inedito → Published
+- **Both Inedito**: If both are Inedito, direction is determined by `createdAt` (later → earlier)
+
+**Transitive Normalization**
+
+If creating this relationship creates a transitive chain (e.g., J3-REPEATS-J1 when J1-REPEATS-J2 already exists), the system automatically:
+
+- Creates J3-REPEATS-J2 (direct link to original)
+- Deletes or updates the intermediate relationship (J3-REPEATS-J1)
+
+**Error Responses**
+
+- **400**: Bad Request - Missing start/end IDs, invalid Jingle IDs, or circular reference detected
+- **401**: Unauthorized - Authentication required
+- **404**: Not Found - One or both Jingle IDs not found
+- **409**: Conflict - Relationship already exists
+- **500**: Internal Server Error - Database error or normalization failure
+
+#### PUT /api/admin/relationships/repeats
+
+**Method**: PUT  
+**Path**: `/api/admin/relationships/repeats`  
+**Code Reference**: `backend/src/server/api/admin.ts:892-969` (to be implemented)
+
+**Description**: Update a REPEATS relationship. Direction validation and transitive normalization are re-evaluated on update.
+
+**Request Body**
+
+```json
+{
+  "start": "j1a2b3c4",
+  "end": "j5e6f7g8",
+  "status": "CONFIRMED"
+}
+```
+
+**Success Response (200)**
+
+```json
+{
+  "status": "CONFIRMED",
+  "createdAt": "2025-01-28T00:00:00.000Z"
+}
+```
+
+**Special Notes**
+
+- Direction validation is re-evaluated on update
+- If updating the relationship creates a transitive chain, normalization is triggered
+- If the update would create a circular reference, the update is rejected with a 400 error
+
+#### GET /api/admin/relationships/repeats
+
+**Method**: GET  
+**Path**: `/api/admin/relationships/repeats`  
+**Code Reference**: `backend/src/server/api/admin.ts:792-805` (to be implemented)
+
+**Description**: List all REPEATS relationships in the system.
+
+**Success Response (200)**
+
+```json
+[
+  {
+    "start": "j1a2b3c4",
+    "end": "j5e6f7g8",
+    "status": "DRAFT",
+    "createdAt": "2025-01-28T00:00:00.000Z"
+  }
+]
+```
+
+#### DELETE /api/admin/relationships/repeats
+
+**Method**: DELETE  
+**Path**: `/api/admin/relationships/repeats`  
+**Code Reference**: `backend/src/server/api/admin.ts:972-1014` (to be implemented)
+
+**Description**: Delete a REPEATS relationship. May trigger transitive normalization if the deleted relationship was part of a chain.
+
+**Request Body**
+
+```json
+{
+  "start": "j1a2b3c4",
+  "end": "j5e6f7g8"
+}
+```
+
+**Success Response (200)**
+
+```json
+{
+  "message": "Relationship deleted successfully"
+}
+```
+
+**Special Notes**
+
 - Redundant properties are automatically updated:
   - APPEARS_IN deletion: Updates `jingle.fabricaId` and `jingle.fabricaDate` (or clears if no other relationships)
   - VERSIONA deletion: Clears `jingle.cancionId` (or updates if other relationships exist)
@@ -643,7 +798,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 ```json
 {
   "nodeLabels": ["Usuario", "Jingle", "Artista", "Cancion", "Fabrica", "Tematica"],
-  "relationshipTypes": ["APPEARS_IN", "JINGLERO_DE", "AUTOR_DE", "VERSIONA", "TAGGED_WITH", "SOY_YO", "REACCIONA_A"],
+  "relationshipTypes": ["APPEARS_IN", "JINGLERO_DE", "AUTOR_DE", "VERSIONA", "TAGGED_WITH", "SOY_YO", "REACCIONA_A", "REPEATS"],
   "constraints": [...],
   "indexes": [...]
 }
@@ -954,7 +1109,7 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 
 **Path Parameters**
 
-- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo)
+- `relType` (required): Relationship type (autor_de, jinglero_de, appears_in, tagged_with, versiona, reacciona_a, soy_yo, repeats)
 
 **Request Body**
 
@@ -1061,6 +1216,7 @@ All datetime values are returned as ISO 8601 strings (e.g., `2025-01-01T00:00:00
 ### Timestamp Format
 
 Timestamps in APPEARS_IN relationships:
+
 - Stored as integers (seconds) in the database
 - Can be provided as number (seconds) or string (HH:MM:SS format)
 - Automatically converted to seconds if provided as string
@@ -1127,14 +1283,17 @@ Entity input is validated using Zod schemas before creation/update:
 The API automatically maintains redundant properties when relationships change:
 
 **APPEARS_IN**:
+
 - Create: Sets `jingle.fabricaId` and `jingle.fabricaDate`
 - Delete: Updates or clears `jingle.fabricaId` and `jingle.fabricaDate`
 
 **VERSIONA**:
+
 - Create: Sets `jingle.cancionId`
 - Delete: Clears or updates `jingle.cancionId`
 
 **AUTOR_DE**:
+
 - Create: Adds to `cancion.autorIds[]`
 - Delete: Removes from `cancion.autorIds[]`
 
@@ -1153,6 +1312,7 @@ When creating/updating entities with redundant properties, relationships are aut
 ### Order Management
 
 APPEARS_IN relationships have an `order` property that is system-managed:
+
 - Calculated from `timestamp` (ascending sort)
 - Sequential order: 1, 2, 3, ...
 - Auto-recalculated on create/update/delete
@@ -1179,8 +1339,8 @@ All endpoints maintain backward compatibility. Breaking changes will be communic
 
 ### Version History
 
-| Version | Date       | Changes                      |
-| ------- | ---------- | ---------------------------- |
+| Version | Date       | Changes                        |
+| ------- | ---------- | ------------------------------ |
 | 1.0     | 2025-11-19 | Initial baseline documentation |
 
 ---
@@ -1197,5 +1357,4 @@ All endpoints maintain backward compatibility. Breaking changes will be communic
 ## Change History
 
 - **2025-11-19**: Initial baseline documentation created from code analysis
-
-
+- **2025-11-22**: Added REPEATS relationship endpoints documentation (draft)
