@@ -43,6 +43,7 @@ function getRelationshipTypeForAPI(
       cancion: 'versiona',
       artista: relationshipLabel.toLowerCase() === 'autor' ? 'autor_de' : 'jinglero_de',
       tematica: 'tagged_with',
+      jingle: 'repeats',
     },
     fabrica: {
       jingle: 'appears_in',
@@ -553,6 +554,9 @@ const RelatedEntities = forwardRef<{
       ],
       tagged_with: [
         { name: 'isPrimary', type: 'boolean', label: 'Es Primaria', required: false },
+        { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
+      ],
+      repeats: [
         { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
       ],
     };
@@ -1388,6 +1392,11 @@ const RelatedEntities = forwardRef<{
           } else if (relType === 'tagged_with') {
             startId = entityType === 'jingle' ? entity.id : relatedEntityId;
             endId = entityType === 'jingle' ? relatedEntityId : entity.id;
+          } else if (relType === 'repeats') {
+            // REPEATS: Jingle -> Jingle (self-referential)
+            // Direction is validated by API, but we pass IDs as-is
+            startId = entity.id;
+            endId = relatedEntityId;
           } else {
             startId = entity.id;
             endId = relatedEntityId;

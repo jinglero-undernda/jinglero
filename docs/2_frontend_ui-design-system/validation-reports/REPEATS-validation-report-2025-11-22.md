@@ -49,6 +49,7 @@ The backend implementation is **complete and matches documentation**. All requir
 **Expected Location**: `frontend/src/lib/services/relationshipService.ts`
 
 **Expected Implementation**:
+
 ```typescript
 export async function fetchJingleRepeats(jingleId: string): Promise<Jingle[]> {
   // Should query REPEATS relationships (both inbound and outbound)
@@ -60,6 +61,7 @@ export async function fetchJingleRepeats(jingleId: string): Promise<Jingle[]> {
 **Current State**: Function does not exist in `relationshipService.ts`
 
 **API Endpoint Available**: The frontend can use `publicApi.getEntityRelationships('jingles', jingleId)` to fetch REPEATS relationships, but a dedicated service function is needed to:
+
 1. Query both inbound and outbound REPEATS relationships
 2. Perform 2-step traversal to find initial instance
 3. Sort results according to custom rules
@@ -75,6 +77,7 @@ export async function fetchJingleRepeats(jingleId: string): Promise<Jingle[]> {
 **Expected Location**: `frontend/src/lib/utils/relationshipConfigs.ts` in `getJingleRelationships()` function
 
 **Expected Implementation** (should be inserted between Jinglero and Tematicas, around line 72):
+
 ```typescript
 {
   label: 'Versiones',  // Note: Documentation says "Versiones", example shows "Repetidos"
@@ -100,6 +103,7 @@ export async function fetchJingleRepeats(jingleId: string): Promise<Jingle[]> {
 **Expected Location**: `frontend/src/components/common/RelatedEntities.tsx` in `getRelationshipTypeForAPI()` function
 
 **Expected Implementation** (should be added to `jingle` mapping, around line 45):
+
 ```typescript
 jingle: {
   fabrica: 'appears_in',
@@ -123,6 +127,7 @@ jingle: {
 **Expected Location**: `frontend/src/components/common/RelatedEntities.tsx` in `getRelationshipProperties()` function
 
 **Expected Implementation** (should be added around line 1391):
+
 ```typescript
 } else if (relType === 'tagged_with') {
   startId = entityType === 'jingle' ? entity.id : relatedEntityId;
@@ -151,6 +156,7 @@ jingle: {
 **Expected Location**: `frontend/src/components/common/RelatedEntities.tsx` in `getRelationshipPropertiesSchema()` function
 
 **Expected Implementation** (should be added around line 558):
+
 ```typescript
 repeats: [
   { name: 'status', type: 'select', label: 'Estado', required: false, options: ['DRAFT', 'CONFIRMED'] },
@@ -170,16 +176,17 @@ repeats: [
 **Expected Location**: `frontend/src/components/admin/EntityEdit.tsx` in `RELATIONSHIP_SCHEMA` constant
 
 **Expected Implementation** (should be added around line 19):
+
 ```typescript
-const RELATIONSHIP_SCHEMA: Record<string, { start: string; end: string; }> = {
-  appears_in: { start: 'jingles', end: 'fabricas' },
-  jinglero_de: { start: 'artistas', end: 'jingles' },
-  autor_de: { start: 'artistas', end: 'canciones' },
-  versiona: { start: 'jingles', end: 'canciones' },
-  tagged_with: { start: 'jingles', end: 'tematicas' },
-  soy_yo: { start: 'usuarios', end: 'artistas' },
-  reacciona_a: { start: 'usuarios', end: 'jingles' },
-  repeats: { start: 'jingles', end: 'jingles' },  // ← Add this line
+const RELATIONSHIP_SCHEMA: Record<string, { start: string; end: string }> = {
+  appears_in: { start: "jingles", end: "fabricas" },
+  jinglero_de: { start: "artistas", end: "jingles" },
+  autor_de: { start: "artistas", end: "canciones" },
+  versiona: { start: "jingles", end: "canciones" },
+  tagged_with: { start: "jingles", end: "tematicas" },
+  soy_yo: { start: "usuarios", end: "artistas" },
+  reacciona_a: { start: "usuarios", end: "jingles" },
+  repeats: { start: "jingles", end: "jingles" }, // ← Add this line
 };
 ```
 
@@ -198,6 +205,7 @@ const RELATIONSHIP_SCHEMA: Record<string, { start: string; end: string; }> = {
 **Expected Changes**:
 
 1. **Interface Update** (around line 10):
+
 ```typescript
 interface JingleWithRelationships extends Jingle {
   fabrica?: Fabrica | null;
@@ -205,11 +213,12 @@ interface JingleWithRelationships extends Jingle {
   jingleros?: Artista[];
   autores?: Artista[];
   tematicas?: Tematica[];
-  repeats?: Jingle[];  // ← Add this line
+  repeats?: Jingle[]; // ← Add this line
 }
 ```
 
 2. **Initial Relationship Data** (around line 78):
+
 ```typescript
 initialRelationshipData={{
   'Fabrica-fabrica': jingle.fabrica ? [jingle.fabrica] : [],
@@ -221,7 +230,8 @@ initialRelationshipData={{
 }}
 ```
 
-**Current State**: 
+**Current State**:
+
 - `JingleWithRelationships` interface (lines 10-16) does not include `repeats` field
 - `initialRelationshipData` (lines 78-84) does not include REPEATS mapping
 
@@ -238,6 +248,7 @@ initialRelationshipData={{
 **Expected Location**: `frontend/src/lib/utils/entitySorters.ts` or custom function in `relationshipConfigs.ts`
 
 **Expected Implementation**:
+
 ```typescript
 // Custom sort function for REPEATS relationships
 // Primary: fabricaDate ascending (earliest first)
@@ -247,16 +258,16 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
   return [...jingles].sort((a, b) => {
     const aDate = a.fabricaDate ? new Date(a.fabricaDate).getTime() : null;
     const bDate = b.fabricaDate ? new Date(b.fabricaDate).getTime() : null;
-    
+
     // Both have fabricaDate: sort ascending (earliest first)
     if (aDate !== null && bDate !== null) {
       return aDate - bDate;
     }
-    
+
     // One is Inedito: Inedito goes to bottom
     if (aDate === null && bDate !== null) return 1;
     if (aDate !== null && bDate === null) return -1;
-    
+
     // Both are Inedito: sort by createdAt ascending
     const aCreated = new Date(a.createdAt).getTime();
     const bCreated = new Date(b.createdAt).getTime();
@@ -265,7 +276,8 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
 }
 ```
 
-**Current State**: 
+**Current State**:
+
 - `entitySorters.ts` does not have REPEATS-specific sorting logic
 - The `sortKey: 'date'` in relationship config uses standard date sorting (descending), not the custom REPEATS rules
 
@@ -284,6 +296,7 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
 **Recommendation**: Use **"Versiones"** as specified in the main documentation (line 28), as it better reflects the relationship concept (versions of the same jingle).
 
 **Files Affected**:
+
 - `relationshipConfigs.ts` (when implementing)
 
 ---
@@ -314,16 +327,19 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
 ### Priority 1: Core Implementation (Required for Basic Functionality)
 
 1. **Implement `fetchJingleRepeats` function** in `relationshipService.ts`
+
    - Use `publicApi.getEntityRelationships('jingles', jingleId)` to fetch REPEATS relationships
    - Implement 2-step traversal to find initial instance
    - Sort results according to custom rules
 
 2. **Add REPEATS configuration** to `getJingleRelationships()` in `relationshipConfigs.ts`
+
    - Insert between Jinglero and Tematicas
    - Use label "Versiones" (as per documentation)
    - Set `sortKey: 'date'` (will need custom sort function)
 
 3. **Add REPEATS mapping** to `getRelationshipTypeForAPI()` in `RelatedEntities.tsx`
+
    - Add `jingle: 'repeats'` to the `jingle` mapping
 
 4. **Add REPEATS handling** in relationship creation logic in `RelatedEntities.tsx`
@@ -332,6 +348,7 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
 ### Priority 2: Properties and Schema (Required for Admin Features)
 
 5. **Add REPEATS properties schema** to `getRelationshipPropertiesSchema()` in `RelatedEntities.tsx`
+
    - Add `status` field (DRAFT/CONFIRMED)
 
 6. **Add REPEATS to `RELATIONSHIP_SCHEMA`** in `EntityEdit.tsx`
@@ -340,6 +357,7 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
 ### Priority 3: Data Integration (Required for Complete Feature)
 
 7. **Update InspectJingle page** to include REPEATS in initial data
+
    - Add `repeats?: Jingle[]` to `JingleWithRelationships` interface
    - Add REPEATS to `initialRelationshipData` mapping
    - **Note**: May require backend API update to include REPEATS in `/api/public/jingles/:id` response
@@ -369,12 +387,14 @@ function sortJingleRepeats(jingles: Jingle[]): Jingle[] {
 **Current State**: The endpoint (lines 551-625 in `backend/src/server/api/public.ts`) does not include REPEATS relationships in the query or response.
 
 **Recommendation**: Add REPEATS to the query:
+
 ```cypher
 OPTIONAL MATCH (j)-[:REPEATS]->(repeat:Jingle)
 OPTIONAL MATCH (j)<-[:REPEATS]-(repeatedBy:Jingle)
 ```
 
 And include in response:
+
 ```typescript
 collect(DISTINCT repeat {.*}) AS repeats
 ```
@@ -418,4 +438,3 @@ The REPEATS relationship is **fully implemented on the backend** but **not imple
 
 **Report Generated**: 2025-11-22  
 **Next Validation**: After frontend implementation is complete
-

@@ -12,21 +12,23 @@ This document provides an overview of all API contracts in the Jinglero system. 
 
 ## APIs Documented
 
-| API | Status | Base Path | Authentication | Documentation |
-|-----|--------|-----------|----------------|---------------|
-| Public API | current_implementation | `/api/public` | None | [public-api.md](./contracts/public-api.md) |
-| Admin API | current_implementation | `/api/admin` | JWT Required | [admin-api.md](./contracts/admin-api.md) |
-| Search API | current_implementation | `/api/search` | None | [search-api.md](./contracts/search-api.md) |
+| API        | Status                 | Base Path     | Authentication | Documentation                              |
+| ---------- | ---------------------- | ------------- | -------------- | ------------------------------------------ |
+| Public API | current_implementation | `/api/public` | None           | [public-api.md](./contracts/public-api.md) |
+| Admin API  | current_implementation | `/api/admin`  | JWT Required   | [admin-api.md](./contracts/admin-api.md)   |
+| Search API | current_implementation | `/api/search` | None           | [search-api.md](./contracts/search-api.md) |
 
 ## Endpoint Summary
 
 ### Public API Endpoints
 
 **Schema & Health:**
+
 - `GET /api/public/schema` - Schema introspection
 - `GET /api/public/health` - Health check
 
 **Direct Entity Endpoints:**
+
 - `GET /api/public/usuarios` - List Usuarios
 - `GET /api/public/usuarios/:id` - Get Usuario
 - `GET /api/public/artistas` - List Artistas
@@ -44,20 +46,24 @@ This document provides an overview of all API contracts in the Jinglero system. 
 - `GET /api/public/jingles/:id` - Get Jingle with relationships
 
 **Generic Entity Endpoints:**
+
 - `GET /api/public/entities/:type` - List entities by type
 - `GET /api/public/entities/:type/:id` - Get entity by type and ID
 - `GET /api/public/entities/:type/:id/relationships` - Get entity relationships
 
 **Related Entities:**
+
 - `GET /api/public/entities/jingles/:id/related` - Related Jingles
 - `GET /api/public/entities/canciones/:id/related` - Related Canciones
 - `GET /api/public/entities/artistas/:id/related` - Related Artistas
 - `GET /api/public/entities/tematicas/:id/related` - Related Tematicas
 
 **Relationships:**
+
 - `GET /api/public/relationships/:type` - List relationships by type
 
 **Search:**
+
 - `GET /api/public/search` - Simple global search
 
 **Total: 27 endpoints**
@@ -65,11 +71,13 @@ This document provides an overview of all API contracts in the Jinglero system. 
 ### Admin API Endpoints
 
 **Authentication:**
+
 - `POST /api/admin/login` - Authenticate and get JWT token
 - `POST /api/admin/logout` - Logout (client-side token removal)
 - `GET /api/admin/status` - Check authentication status
 
 **Entities (CRUD):**
+
 - `GET /api/admin/:type` - List entities
 - `GET /api/admin/:type/:id` - Get entity
 - `POST /api/admin/:type` - Create entity
@@ -78,6 +86,7 @@ This document provides an overview of all API contracts in the Jinglero system. 
 - `DELETE /api/admin/:type/:id` - Delete entity
 
 **Relationships:**
+
 - `GET /api/admin/relationships` - List relationship types
 - `GET /api/admin/relationships/:relType` - List relationships by type
 - `POST /api/admin/relationships/:relType` - Create relationship
@@ -85,6 +94,7 @@ This document provides an overview of all API contracts in the Jinglero system. 
 - `DELETE /api/admin/relationships/:relType` - Delete relationship
 
 **Schema Management:**
+
 - `GET /api/admin/schema` - Get schema information
 - `POST /api/admin/schema/properties` - Add property to entity type
 - `POST /api/admin/schema/relationships` - Create relationship type
@@ -93,6 +103,7 @@ This document provides an overview of all API contracts in the Jinglero system. 
 - `DELETE /api/admin/schema/constraints/:name` - Delete constraint
 
 **Validation:**
+
 - `GET /api/admin/validate/entity/:type/:id` - Get validation results
 - `POST /api/admin/validate/entity/:type/:id` - Validate entity
 - `POST /api/admin/validate/entity/:type` - Validate all entities of type
@@ -104,6 +115,7 @@ This document provides an overview of all API contracts in the Jinglero system. 
 ### Search API Endpoints
 
 **Search:**
+
 - `GET /api/search` - Global search with filtering and pagination
 
 **Total: 1 endpoint**
@@ -142,6 +154,7 @@ All APIs support the following relationship types:
 ### Versioning Strategy
 
 Currently, no explicit versioning is implemented. All APIs use base paths without version numbers:
+
 - Public API: `/api/public`
 - Admin API: `/api/admin`
 - Search API: `/api/search`
@@ -196,6 +209,7 @@ All error responses follow this format:
 ### Entity Validation
 
 Entity input is validated using Zod schemas:
+
 - **Fabrica**: Requires `id` (YouTube video ID), `title`, `date`
 - **Jingle**: All fields optional
 - **Cancion**: Requires `title`
@@ -230,6 +244,7 @@ The Admin API automatically maintains data consistency:
 ### Relationship Creation
 
 When creating/updating entities with redundant properties, relationships are automatically created:
+
 - Jingle with `fabricaId` → creates APPEARS_IN
 - Jingle with `cancionId` → creates VERSIONA
 - Cancion with `autorIds[]` → creates AUTOR_DE relationships
@@ -237,6 +252,7 @@ When creating/updating entities with redundant properties, relationships are aut
 ### Order Management
 
 APPEARS_IN relationships have an `order` property that is system-managed:
+
 - Calculated from `timestamp` (ascending sort)
 - Sequential order: 1, 2, 3, ...
 - Auto-recalculated on create/update/delete
@@ -259,5 +275,3 @@ APPEARS_IN relationships have an `order` property that is system-managed:
 ---
 
 **Last Updated:** 2025-11-19
-
-

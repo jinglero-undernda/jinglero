@@ -70,3 +70,4 @@ In some cases, we observe regressions of bugs that were previously resolved. In 
 [ ] BUG_0008: APPEARS_IN order update script throws error causing relationship creation/update to fail (see `BUG_0008.md`)
 [ ] BUG_0009: RelatedEntities uses wrong entity ID when mismatch detected, causing "Jingle not found" error (see `BUG_0009.md`)
 [ ] BUG_0010: Timestamps show 00:00:00 in Admin interface after bulk upload - Root cause: API returns HH:MM:SS string but frontend expects seconds number (see `BUG_0010.md`)
+[ ] BUG_0011: REPEATS relationship creation doesn't show entity after creation (see `BUG_0011.md`)

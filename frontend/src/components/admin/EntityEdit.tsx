@@ -17,6 +17,7 @@ const RELATIONSHIP_SCHEMA: Record<string, { start: string; end: string; }> = {
   tagged_with: { start: 'jingles', end: 'tematicas' },
   soy_yo: { start: 'usuarios', end: 'artistas' },
   reacciona_a: { start: 'usuarios', end: 'jingles' },
+  repeats: { start: 'jingles', end: 'jingles' },
 };
 
 type RelEntry = { start: string; end: string } & Record<string, unknown>;

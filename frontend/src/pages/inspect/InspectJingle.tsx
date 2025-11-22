@@ -13,6 +13,7 @@ interface JingleWithRelationships extends Jingle {
   jingleros?: Artista[];
   autores?: Artista[];
   tematicas?: Tematica[];
+  repeats?: Jingle[];
 }
 
 export default function InspectJingle() {
@@ -80,6 +81,7 @@ export default function InspectJingle() {
               'Cancion-cancion': jingle.cancion ? [jingle.cancion] : [],
               'Autor-artista': jingle.autores || [],
               'Jinglero-artista': jingle.jingleros || [],
+              'Versiones-jingle': jingle.repeats || [],
               'Tematicas-tematica': jingle.tematicas || [],
             }}
           />
