@@ -27,6 +27,7 @@ import {
   normalizeTransitiveChains,
   checkConcurrentInboundOutbound
 } from '../db/validation/repeats-validation';
+import { updateJingleAutoComment } from '../utils/jingleAutoComment';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -403,6 +404,8 @@ async function updateRedundantPropertiesOnRelationshipChange(
         
         if (result.length > 0) {
           console.log(`Updated Jingle ${startId}: set fabricaId=${endId}`);
+          // Update auto-comment after Fabrica relationship change
+          await updateJingleAutoComment(db, startId);
         }
       } else if (operation === 'delete') {
         // Check if there are other APPEARS_IN relationships
@@ -431,6 +434,8 @@ async function updateRedundantPropertiesOnRelationshipChange(
           console.log(
             `Updated Jingle ${startId}: fabricaId=${newFabricaId || 'null'} after deleting APPEARS_IN relationship`
           );
+          // Update auto-comment after Fabrica relationship change
+          await updateJingleAutoComment(db, startId);
         }
       }
     }
@@ -450,6 +455,8 @@ async function updateRedundantPropertiesOnRelationshipChange(
         
         if (result.length > 0) {
           console.log(`Updated Jingle ${startId}: set cancionId=${endId}`);
+          // Update auto-comment after Cancion relationship change
+          await updateJingleAutoComment(db, startId);
         }
       } else if (operation === 'delete') {
         // Check if there are other VERSIONA relationships
@@ -475,6 +482,8 @@ async function updateRedundantPropertiesOnRelationshipChange(
           console.log(
             `Updated Jingle ${startId}: cancionId=${newCancionId || 'null'} after deleting VERSIONA relationship`
           );
+          // Update auto-comment after Cancion relationship change
+          await updateJingleAutoComment(db, startId);
         }
       }
     }
@@ -939,6 +948,22 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
     'create'
   );
   
+  // Update auto-comment for affected Jingles
+  if (neo4jRelType === 'JINGLERO_DE' || neo4jRelType === 'TAGGED_WITH') {
+    // For JINGLERO_DE and TAGGED_WITH, the Jingle is the end node
+    await updateJingleAutoComment(db, finalEndId);
+  } else if (neo4jRelType === 'AUTOR_DE') {
+    // For AUTOR_DE, update all Jingles that VERSIONA the Cancion (end node)
+    const jinglesQuery = `
+      MATCH (j:Jingle)-[:VERSIONA]->(c:Cancion {id: $cancionId})
+      RETURN j.id AS jingleId
+    `;
+    const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: finalEndId });
+    for (const jingle of jingles) {
+      await updateJingleAutoComment(db, jingle.jingleId);
+    }
+  }
+  
   // Automatically update order for APPEARS_IN relationships
   if (neo4jRelType === 'APPEARS_IN') {
     try {
@@ -1121,6 +1146,25 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     }
   }
   
+  // Update auto-comment for affected Jingles
+  if (neo4jRelType === 'APPEARS_IN' || neo4jRelType === 'VERSIONA') {
+    // For APPEARS_IN and VERSIONA, the Jingle is the start node
+    await updateJingleAutoComment(db, payload.start);
+  } else if (neo4jRelType === 'JINGLERO_DE' || neo4jRelType === 'TAGGED_WITH') {
+    // For JINGLERO_DE and TAGGED_WITH, the Jingle is the end node
+    await updateJingleAutoComment(db, payload.end);
+  } else if (neo4jRelType === 'AUTOR_DE') {
+    // For AUTOR_DE, update all Jingles that VERSIONA the Cancion (end node)
+    const jinglesQuery = `
+      MATCH (j:Jingle)-[:VERSIONA]->(c:Cancion {id: $cancionId})
+      RETURN j.id AS jingleId
+    `;
+    const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: payload.end });
+    for (const jingle of jingles) {
+      await updateJingleAutoComment(db, jingle.jingleId);
+    }
+  }
+  
   res.json(result[0].r);
 }));
 
@@ -1163,6 +1207,22 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
     } catch (orderError) {
       console.error(`Failed to update APPEARS_IN order for Fabrica ${payload.end} after deletion:`, orderError);
       // Relationship deletion succeeded, order update can be retried later
+    }
+  }
+  
+  // Update auto-comment for affected Jingles
+  if (neo4jRelType === 'JINGLERO_DE' || neo4jRelType === 'TAGGED_WITH') {
+    // For JINGLERO_DE and TAGGED_WITH, the Jingle is the end node
+    await updateJingleAutoComment(db, payload.end);
+  } else if (neo4jRelType === 'AUTOR_DE') {
+    // For AUTOR_DE, update all Jingles that VERSIONA the Cancion (end node)
+    const jinglesQuery = `
+      MATCH (j:Jingle)-[:VERSIONA]->(c:Cancion {id: $cancionId})
+      RETURN j.id AS jingleId
+    `;
+    const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: payload.end });
+    for (const jingle of jingles) {
+      await updateJingleAutoComment(db, jingle.jingleId);
     }
   }
   
@@ -1347,6 +1407,21 @@ router.post('/:type', asyncHandler(async (req, res) => {
   // Validate and auto-fix any redundant property discrepancies
   await validateAndFixRedundantProperties(type, id);
   
+  // Update auto-comment for Jingles
+  if (label === 'Jingle') {
+    await updateJingleAutoComment(db, id);
+    // Re-fetch to get updated autoComment
+    const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
+      `MATCH (n:${label} { id: $id }) RETURN n`,
+      { id },
+      undefined,
+      true
+    );
+    if (updatedResult.length > 0) {
+      return res.status(201).json(convertNeo4jDates(updatedResult[0].n.properties));
+    }
+  }
+  
   res.status(201).json(convertNeo4jDates(result[0].n.properties));
 }));
 
@@ -1400,6 +1475,21 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   // Validate and auto-fix any redundant property discrepancies
   await validateAndFixRedundantProperties(type, id);
   
+  // Update auto-comment for Jingles
+  if (label === 'Jingle') {
+    await updateJingleAutoComment(db, id);
+    // Re-fetch to get updated autoComment
+    const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
+      `MATCH (n:${label} { id: $id }) RETURN n`,
+      { id },
+      undefined,
+      true
+    );
+    if (updatedResult.length > 0) {
+      return res.json(convertNeo4jDates(updatedResult[0].n.properties));
+    }
+  }
+  
   res.json(convertNeo4jDates(result[0].n.properties));
 }));
 
@@ -1446,6 +1536,21 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
   
   // Validate and auto-fix any redundant property discrepancies
   await validateAndFixRedundantProperties(type, id);
+  
+  // Update auto-comment for Jingles
+  if (label === 'Jingle') {
+    await updateJingleAutoComment(db, id);
+    // Re-fetch to get updated autoComment
+    const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
+      `MATCH (n:${label} { id: $id }) RETURN n`,
+      { id },
+      undefined,
+      true
+    );
+    if (updatedResult.length > 0) {
+      return res.json(convertNeo4jDates(updatedResult[0].n.properties));
+    }
+  }
   
   res.json(convertNeo4jDates(result[0].n.properties));
 }));

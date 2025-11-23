@@ -609,6 +609,32 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                         {String(value || '')}
                       </span>
                     </>
+                  ) : fieldName === 'autoComment' && entityType === 'jingle' ? (
+                    // autoComment is read-only for Jingles (system-generated)
+                    <>
+                      <span
+                        style={{
+                          fontSize: '14px',
+                          color: '#ccc',
+                          minWidth: '150px',
+                          flexShrink: 0,
+                        }}
+                      >
+                        {fieldName}:
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '14px',
+                          color: '#999',
+                          flex: 1,
+                          fontStyle: 'italic',
+                          wordBreak: 'break-all',
+                          overflowWrap: 'break-word',
+                        }}
+                      >
+                        {String(value || '')}
+                      </span>
+                    </>
                   ) : fieldName === 'id' && (entityType === 'jingle' || entityType === 'cancion' || entityType === 'artista' || entityType === 'tematica') ? (
                     // ID field is read-only for jingles, canciones, artistas, and tematicas
                     <>

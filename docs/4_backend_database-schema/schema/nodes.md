@@ -331,6 +331,18 @@ Jingle represents a clip or segment from a Fabrica (stream). Each Jingle appears
 - **Description**: Indicates if this song was performed on the show before.
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:120`
 
+### autoComment
+
+- **Type**: string (optional)
+- **Required**: No
+- **Default**: null
+- **Description**: System-generated summary comment that provides a concise overview of the jingle's core information. This property is read-only and automatically updated whenever any Jingle property or relationship changes. The format includes emoji-prefixed sections for Fabrica (date and timestamp), Title, Cancion, Autores, Primary Tematica, and Jingleros. Blank fields are omitted from the comment.
+- **Format**: `🏭: YYYY-MM-DD - [HH:]MM:SS, 🎤: {Titulo}, 📦: {Cancion}, 🚚: {Autor} [; {Autor}], 🏷️: {Primary Tematica}, 🔧: {Jinglero} [; {Jinglero}]`
+- **Example**: `🏭: 2025-01-15 - 01:23:45, 🎤: Opening Theme, 📦: Song Title, 🚚: Artist One; Artist Two, 🏷️: ACTUALIDAD, 🔧: Performer One`
+- **Read-only**: Yes (system-managed)
+- **Auto-update triggers**: Any change to Jingle properties or relationships (APPEARS_IN, VERSIONA, JINGLERO_DE, TAGGED_WITH, AUTOR_DE)
+- **Code Reference**: `backend/src/server/utils/jingleAutoComment.ts`
+
 ### status
 
 - **Type**: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED)

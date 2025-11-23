@@ -75,6 +75,8 @@ export interface Jingle {
   cancionId?: string;
   isLive?: boolean;
   isRepeat?: boolean;
+  /** System-generated summary comment (read-only, auto-updated) */
+  autoComment?: string;
   status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED';
   createdAt: Date;
   updatedAt: Date;

@@ -143,6 +143,8 @@ export interface Jingle {
   cancionId?: string;
   isLive?: boolean;
   isRepeat?: boolean;
+  /** System-generated summary comment (read-only, auto-updated) */
+  autoComment?: string;
   /** From APPEARS_IN relationship (READ-ONLY, system-managed, calculated from timestamp) */
   order?: number | null;
   createdAt: string;

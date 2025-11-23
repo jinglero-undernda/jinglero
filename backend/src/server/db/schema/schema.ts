@@ -118,6 +118,7 @@ Nodes:
   - cancionId: string (optional, redundant with VERSIONA relationship - for performance)
   - isLive: boolean (optional, indicates if Jingle was performed live)
   - isRepeat: boolean (optional, indicates if this song was performed on the show before)
+  - autoComment: string (optional, system-generated summary comment, read-only, auto-updated)
    - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
    - createdAt: datetime
    - updatedAt: datetime
