@@ -18,45 +18,45 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Schema Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_SCHEMA.md](./PLAYBOOK_01_DOCUMENT_SCHEMA.md)**
+1. **[PLAYBOOK_04_01_DOCUMENT_SCHEMA.md](./PLAYBOOK_04_01_DOCUMENT_SCHEMA.md)**
 
    - Document schema from existing database/code
    - Document new schema specifications
    - Create complete schema documentation
 
-2. **[PLAYBOOK_02_VALIDATE_REQUIREMENTS.md](./PLAYBOOK_02_VALIDATE_REQUIREMENTS.md)**
+2. **[PLAYBOOK_04_02_VALIDATE_REQUIREMENTS.md](./PLAYBOOK_04_02_VALIDATE_REQUIREMENTS.md)**
 
    - Validate schema documentation against requirements
    - Check for sync issues between schema and requirements
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_04_03_GAP_ANALYSIS.md](./PLAYBOOK_04_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented schema and requirements
    - Identify discrepancies across frontend, backend, and database layers
    - Prioritize gaps for refactoring
 
 ### Refactoring Operations
 
-4. **[PLAYBOOK_04_PLAN_MIGRATION.md](./PLAYBOOK_04_PLAN_MIGRATION.md)**
+4. **[PLAYBOOK_04_04_PLAN_MIGRATION.md](./PLAYBOOK_04_04_PLAN_MIGRATION.md)**
 
    - Plan incremental migrations based on gap analysis
    - Create migration tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_MIGRATION.md](./PLAYBOOK_05_IMPLEMENT_MIGRATION.md)**
+5. **[PLAYBOOK_04_05_IMPLEMENT_MIGRATION.md](./PLAYBOOK_04_05_IMPLEMENT_MIGRATION.md)**
    - Execute migrations following documented schema
    - Maintain sync between database and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_SCHEMA.md](./PLAYBOOK_06_UPDATE_SCHEMA.md)**
+6. **[PLAYBOOK_04_06_UPDATE_SCHEMA.md](./PLAYBOOK_04_06_UPDATE_SCHEMA.md)**
 
    - Update existing schema documentation
    - Handle schema changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_SCHEMA_AUDIT.md](./PLAYBOOK_07_SCHEMA_AUDIT.md)**
+7. **[PLAYBOOK_04_07_SCHEMA_AUDIT.md](./PLAYBOOK_04_07_SCHEMA_AUDIT.md)**
    - Audit all schema elements for accuracy
    - Check for drift between docs and database
    - Generate maintenance reports

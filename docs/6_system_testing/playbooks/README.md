@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Testing Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_STRATEGY.md](./PLAYBOOK_01_DOCUMENT_STRATEGY.md)**
+1. **[PLAYBOOK_06_01_DOCUMENT_STRATEGY.md](./PLAYBOOK_06_01_DOCUMENT_STRATEGY.md)**
    - Document testing strategy from existing tests
    - Document new testing strategy specifications
    - Create complete testing strategy documentation
 
-2. **[PLAYBOOK_02_VALIDATE_COVERAGE.md](./PLAYBOOK_02_VALIDATE_COVERAGE.md)**
+2. **[PLAYBOOK_06_02_VALIDATE_COVERAGE.md](./PLAYBOOK_06_02_VALIDATE_COVERAGE.md)**
    - Validate testing strategy against coverage requirements
    - Check for sync issues between strategy and implementation
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_06_03_GAP_ANALYSIS.md](./PLAYBOOK_06_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented strategy and requirements
    - Identify discrepancies across test types and coverage
    - Prioritize gaps for improvement
 
 ### Improvement Operations
 
-4. **[PLAYBOOK_04_PLAN_IMPROVEMENTS.md](./PLAYBOOK_04_PLAN_IMPROVEMENTS.md)**
+4. **[PLAYBOOK_06_04_PLAN_IMPROVEMENTS.md](./PLAYBOOK_06_04_PLAN_IMPROVEMENTS.md)**
    - Plan incremental test improvements based on gap analysis
    - Create improvement tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_TESTS.md](./PLAYBOOK_05_IMPLEMENT_TESTS.md)**
+5. **[PLAYBOOK_06_05_IMPLEMENT_TESTS.md](./PLAYBOOK_06_05_IMPLEMENT_TESTS.md)**
    - Execute test implementation following documented strategy
    - Maintain sync between tests and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_STRATEGY.md](./PLAYBOOK_06_UPDATE_STRATEGY.md)**
+6. **[PLAYBOOK_06_06_UPDATE_STRATEGY.md](./PLAYBOOK_06_06_UPDATE_STRATEGY.md)**
    - Update existing testing strategy documentation
    - Handle strategy changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_TESTING_AUDIT.md](./PLAYBOOK_07_TESTING_AUDIT.md)**
+7. **[PLAYBOOK_06_07_TESTING_AUDIT.md](./PLAYBOOK_06_07_TESTING_AUDIT.md)**
    - Audit all testing elements for accuracy
    - Check for drift between docs and code
    - Generate maintenance reports

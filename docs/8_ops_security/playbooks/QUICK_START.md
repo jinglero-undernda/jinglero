@@ -4,7 +4,7 @@
 
 ### In a New AI Agent Session
 
-1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_DOCUMENT_REQUIREMENTS.md`)
+1. **Open the relevant playbook** (e.g., `PLAYBOOK_08_01_DOCUMENT_REQUIREMENTS.md`)
 2. **Copy the entire playbook content**
 3. **Paste as context** in your AI agent window
 4. **Add your specific request** (e.g., "Document the current security requirements")
@@ -13,7 +13,7 @@
 ### Example Session
 
 ```
-[You paste PLAYBOOK_01_DOCUMENT_REQUIREMENTS.md]
+[You paste PLAYBOOK_08_01_DOCUMENT_REQUIREMENTS.md]
 
 [You add]: "Document the current security requirements.
 Check backend/src/server/middleware/auth.ts for authentication,
@@ -26,43 +26,43 @@ and analyze security requirements and implementation."
 
 ### Document Current Security Requirements
 
-1. Use **PLAYBOOK_01_DOCUMENT_REQUIREMENTS.md**
+1. Use **PLAYBOOK_08_01_DOCUMENT_REQUIREMENTS.md**
 2. Specify areas to document (e.g., authentication, authorization, data protection)
 3. AI will create complete security requirement documentation
 
 ### Validate Security Implementation
 
-1. Use **PLAYBOOK_02_VALIDATE_IMPLEMENTATION.md**
+1. Use **PLAYBOOK_02_02_VALIDATE_IMPLEMENTATION.md**
 2. Specify security area to validate (e.g., "authentication")
 3. AI will validate against requirements and generate report
 
 ### Find Gaps Between Requirements and Security
 
-1. Use **PLAYBOOK_03_GAP_ANALYSIS.md**
+1. Use **PLAYBOOK_02_03_GAP_ANALYSIS.md**
 2. Specify security area to analyze (e.g., "authentication")
 3. AI will identify gaps and prioritize improvements
 
 ### Plan Security Improvements
 
-1. Use **PLAYBOOK_04_PLAN_IMPROVEMENTS.md**
+1. Use **PLAYBOOK_08_04_PLAN_IMPROVEMENTS.md**
 2. Provide gap analysis or list of improvement needs
 3. AI will create improvement plan with tasks and priorities
 
 ### Implement Security Features
 
-1. Use **PLAYBOOK_05_IMPLEMENT_SECURITY.md**
+1. Use **PLAYBOOK_08_05_IMPLEMENT_SECURITY.md**
 2. Specify task to implement
 3. AI will implement while maintaining doc sync
 
 ### Update Security Requirements After Changes
 
-1. Use **PLAYBOOK_06_UPDATE_REQUIREMENTS.md**
+1. Use **PLAYBOOK_08_06_UPDATE_REQUIREMENTS.md**
 2. Describe what changed (requirements or code)
 3. AI will update security requirement documentation
 
 ### Audit All Security Elements
 
-1. Use **PLAYBOOK_07_SECURITY_AUDIT.md**
+1. Use **PLAYBOOK_08_07_SECURITY_AUDIT.md**
 2. AI will check all security elements for accuracy and drift
 
 ## Phase-Based Usage

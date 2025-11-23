@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-11-23
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:1-261`
 
@@ -80,6 +80,7 @@ This document provides comprehensive property specifications for all nodes and r
 | facebookProfile | string | No | No | None | Facebook profile URL |
 | website | string | No | No | None | Website URL |
 | bio | string | No | No | None | Biography or description |
+| musicBrainzId | string | No | No | None | MusicBrainz ID for linking to external MusicBrainz database |
 | status | string (enum) | No | No | DRAFT | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED |
 | createdAt | datetime | Yes | No | Current | Creation timestamp |
 | updatedAt | datetime | Yes | No | Current | Last update timestamp |
@@ -98,6 +99,7 @@ This document provides comprehensive property specifications for all nodes and r
 | youtubeMusic | string | No | No | None | YouTube Music URL |
 | lyrics | string | No | No | None | URL to retrieve lyrics |
 | autorIds | string[] | No | No | None | Redundant: Array of Artista IDs from AUTOR_DE |
+| musicBrainzId | string | No | No | None | MusicBrainz ID for linking to external MusicBrainz database |
 | status | string (enum) | No | No | DRAFT | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED |
 | createdAt | datetime | Yes | No | Current | Creation timestamp |
 | updatedAt | datetime | Yes | No | Current | Last update timestamp |
@@ -456,3 +458,4 @@ The `isArg` property is auto-managed from the `nationality` property.
 ## Change History
 
 - **2025-01-27**: Initial documentation created from `schema.ts` and `setup.ts`
+- **2025-11-23**: Added `musicBrainzId` property to Artista and Cancion nodes

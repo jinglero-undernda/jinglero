@@ -138,6 +138,7 @@ Nodes:
    - facebookProfile: string (optional)
   - website: string (optional)
   - bio: string (optional)
+  - musicBrainzId: string (optional)
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime
@@ -152,11 +153,12 @@ Nodes:
    - year: number (optional)
    - genre: string (optional)
    - youtubeMusic: string (optional)
-   - lyrics: string (optional, URL to retrieve lyrics)
-   - autorIds: string[] (optional, redundant with AUTOR_DE relationships - for performance)
-   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
-   - createdAt: datetime
-   - updatedAt: datetime
+  - lyrics: string (optional, URL to retrieve lyrics)
+  - autorIds: string[] (optional, redundant with AUTOR_DE relationships - for performance)
+  - musicBrainzId: string (optional)
+  - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
+  - createdAt: datetime
+  - updatedAt: datetime
 
 5. Fabrica
    Labels: Fabrica

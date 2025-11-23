@@ -4,7 +4,7 @@
 
 ### In a New AI Agent Session
 
-1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_DOCUMENT_CURRENT.md`)
+1. **Open the relevant playbook** (e.g., `PLAYBOOK_03_01_DOCUMENT_CURRENT.md`)
 2. **Copy the entire playbook content**
 3. **Paste as context** in your AI agent window
 4. **Add your specific request** (e.g., "Document the current data flow architecture")
@@ -13,7 +13,7 @@
 ### Example Session
 
 ```
-[You paste PLAYBOOK_01_DOCUMENT_CURRENT.md]
+[You paste PLAYBOOK_03_01_DOCUMENT_CURRENT.md]
 
 [You add]: "Document the current system architecture.
 Check frontend/src for state management patterns,
@@ -27,43 +27,43 @@ and analyze data flow from frontend to database."
 
 ### Document Current Architecture
 
-1. Use **PLAYBOOK_01_DOCUMENT_CURRENT.md**
+1. Use **PLAYBOOK_03_01_DOCUMENT_CURRENT.md**
 2. Specify areas to document (e.g., data flow, state management, caching)
 3. AI will create complete architecture documentation
 
 ### Evaluate Architectural Alternatives
 
-1. Use **PLAYBOOK_02_EVALUATE_ALTERNATIVES.md**
+1. Use **PLAYBOOK_03_02_EVALUATE_ALTERNATIVES.md**
 2. Specify alternatives to evaluate (e.g., "Compare client-side vs server-side caching")
 3. AI will evaluate and generate comparison report
 
 ### Analyze Tradeoffs
 
-1. Use **PLAYBOOK_03_ANALYZE_TRADEOFFS.md**
+1. Use **PLAYBOOK_03_03_ANALYZE_TRADEOFFS.md**
 2. Specify alternatives to analyze (e.g., "Analyze caching strategy tradeoffs")
 3. AI will analyze performance, cost, and UX impacts
 
 ### Plan Architecture Optimization
 
-1. Use **PLAYBOOK_04_PLAN_OPTIMIZATION.md**
+1. Use **PLAYBOOK_03_04_PLAN_OPTIMIZATION.md**
 2. Provide tradeoff analysis or list of optimization opportunities
 3. AI will create optimization plan with tasks and priorities
 
 ### Implement Architecture Optimization
 
-1. Use **PLAYBOOK_05_IMPLEMENT_OPTIMIZATION.md**
+1. Use **PLAYBOOK_03_05_IMPLEMENT_OPTIMIZATION.md**
 2. Specify task to implement
 3. AI will implement while maintaining doc sync
 
 ### Update Architecture After Changes
 
-1. Use **PLAYBOOK_06_UPDATE_ARCHITECTURE.md**
+1. Use **PLAYBOOK_03_06_UPDATE_ARCHITECTURE.md**
 2. Describe what changed (architecture or code)
 3. AI will update architecture documentation
 
 ### Audit All Architecture Elements
 
-1. Use **PLAYBOOK_07_ARCHITECTURE_AUDIT.md**
+1. Use **PLAYBOOK_03_07_ARCHITECTURE_AUDIT.md**
 2. AI will check all architecture elements for accuracy and drift
 
 ## Phase-Based Usage

@@ -391,7 +391,7 @@ Jingle represents a clip or segment from a Fabrica (stream). Each Jingle appears
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-11-23
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:125-143`
 
@@ -497,6 +497,14 @@ Artista represents a musical artist or performer. Artists can author Canciones, 
 - **Description**: Artist's biography or description.
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:140`
 
+### musicBrainzId
+
+- **Type**: string (optional)
+- **Required**: No
+- **Default**: None
+- **Description**: MusicBrainz ID for linking to external MusicBrainz database. Used to tie database to external source of accurate data.
+- **Code Reference**: `backend/src/server/db/schema/schema.ts:140`
+
 ### status
 
 - **Type**: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED)
@@ -565,7 +573,7 @@ Artista represents a musical artist or performer. Artists can author Canciones, 
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-11-23
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:145-159`
 
@@ -638,6 +646,14 @@ Cancion represents a song or musical composition. Songs can have multiple author
 - **Default**: None
 - **Description**: Array of Artista IDs who authored this song. Redundant with AUTOR_DE relationships - for performance. Relationships are source of truth.
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:156`
+
+### musicBrainzId
+
+- **Type**: string (optional)
+- **Required**: No
+- **Default**: None
+- **Description**: MusicBrainz ID for linking to external MusicBrainz database. Used to tie database to external source of accurate data.
+- **Code Reference**: `backend/src/server/db/schema/schema.ts:159`
 
 ### status
 

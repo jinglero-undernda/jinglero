@@ -18,45 +18,45 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Workflow Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_WORKFLOW.md](./PLAYBOOK_01_DOCUMENT_WORKFLOW.md)**
+1. **[PLAYBOOK_01_01_DOCUMENT_WORKFLOW.md](./PLAYBOOK_01_01_DOCUMENT_WORKFLOW.md)**
 
    - Document an existing workflow from code
    - Document a new workflow from UX description
    - Create complete workflow documentation with all layers
 
-2. **[PLAYBOOK_02_VALIDATE_WORKFLOW.md](./PLAYBOOK_02_VALIDATE_WORKFLOW.md)**
+2. **[PLAYBOOK_01_02_VALIDATE_WORKFLOW.md](./PLAYBOOK_01_02_VALIDATE_WORKFLOW.md)**
 
    - Validate workflow documentation against codebase
    - Check for sync issues across layers
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_01_03_GAP_ANALYSIS.md](./PLAYBOOK_01_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented workflows and code
    - Identify discrepancies across UX, UI, and technical layers
    - Prioritize gaps for refactoring
 
 ### Refactoring Operations
 
-4. **[PLAYBOOK_04_PLAN_REFACTOR.md](./PLAYBOOK_04_PLAN_REFACTOR.md)**
+4. **[PLAYBOOK_01_04_PLAN_REFACTOR.md](./PLAYBOOK_01_04_PLAN_REFACTOR.md)**
 
    - Plan incremental refactoring based on gap analysis
    - Create refactoring tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_REFACTOR.md](./PLAYBOOK_05_IMPLEMENT_REFACTOR.md)**
+5. **[PLAYBOOK_01_05_IMPLEMENT_REFACTOR.md](./PLAYBOOK_01_05_IMPLEMENT_REFACTOR.md)**
    - Execute refactoring following documented workflows
    - Maintain sync between code and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_WORKFLOW.md](./PLAYBOOK_06_UPDATE_WORKFLOW.md)**
+6. **[PLAYBOOK_01_06_UPDATE_WORKFLOW.md](./PLAYBOOK_01_06_UPDATE_WORKFLOW.md)**
 
    - Update existing workflow documentation
    - Handle UX changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_WORKFLOW_AUDIT.md](./PLAYBOOK_07_WORKFLOW_AUDIT.md)**
+7. **[PLAYBOOK_01_07_WORKFLOW_AUDIT.md](./PLAYBOOK_01_07_WORKFLOW_AUDIT.md)**
    - Audit all workflows for accuracy
    - Check for drift between docs and code
    - Generate maintenance reports

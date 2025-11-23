@@ -21,6 +21,20 @@ This meta-playbook provides a systematic approach to evaluating documentation st
 
 ## Instructions for AI Assistant
 
+### Step 0: Confirm Date with User
+
+**Before generating any documentation:**
+1. **Always confirm the current date with the user** before adding any date fields
+2. **Ask the user**: "What is the current date? (YYYY-MM-DD format)"
+3. **Use the confirmed date** for all date fields in the documentation:
+   - Change History tables
+   - "Last Updated" fields
+   - Status tables
+   - Activity logs
+   - Any other date fields
+
+**Never assume or guess the date.**
+
 ### Step 1: System Health Assessment
 
 **Your task:**

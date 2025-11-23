@@ -42,6 +42,7 @@ export interface Artista {
   facebookProfile?: string;
   website?: string;
   bio?: string;
+  musicBrainzId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -65,6 +66,7 @@ export interface Cancion {
   lyrics?: string;
   /** Redundant property: Array of Artista IDs (auto-synced with AUTOR_DE relationships) */
   autorIds?: string[];
+  musicBrainzId?: string;
   createdAt: string;
   updatedAt: string;
 }

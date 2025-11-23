@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Deployment Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_PROCESS.md](./PLAYBOOK_01_DOCUMENT_PROCESS.md)**
+1. **[PLAYBOOK_09_01_DOCUMENT_PROCESS.md](./PLAYBOOK_09_01_DOCUMENT_PROCESS.md)**
    - Document deployment processes from existing code/config
    - Document new deployment process specifications
    - Create complete deployment process documentation
 
-2. **[PLAYBOOK_02_VALIDATE_ENVIRONMENT.md](./PLAYBOOK_02_VALIDATE_ENVIRONMENT.md)**
+2. **[PLAYBOOK_09_02_VALIDATE_ENVIRONMENT.md](./PLAYBOOK_09_02_VALIDATE_ENVIRONMENT.md)**
    - Validate deployment processes against actual environments
    - Check for sync issues between processes and implementation
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_09_03_GAP_ANALYSIS.md](./PLAYBOOK_09_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented processes and actual deployment
    - Identify discrepancies across processes, environments, and infrastructure
    - Prioritize gaps for improvement
 
 ### Improvement Operations
 
-4. **[PLAYBOOK_04_PLAN_IMPROVEMENTS.md](./PLAYBOOK_04_PLAN_IMPROVEMENTS.md)**
+4. **[PLAYBOOK_09_04_PLAN_IMPROVEMENTS.md](./PLAYBOOK_09_04_PLAN_IMPROVEMENTS.md)**
    - Plan incremental deployment improvements based on gap analysis
    - Create improvement tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_INFRASTRUCTURE.md](./PLAYBOOK_05_IMPLEMENT_INFRASTRUCTURE.md)**
+5. **[PLAYBOOK_09_05_IMPLEMENT_INFRASTRUCTURE.md](./PLAYBOOK_09_05_IMPLEMENT_INFRASTRUCTURE.md)**
    - Execute infrastructure implementation following documented processes
    - Maintain sync between infrastructure and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_PROCESS.md](./PLAYBOOK_06_UPDATE_PROCESS.md)**
+6. **[PLAYBOOK_09_06_UPDATE_PROCESS.md](./PLAYBOOK_09_06_UPDATE_PROCESS.md)**
    - Update existing deployment process documentation
    - Handle process changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_DEPLOYMENT_AUDIT.md](./PLAYBOOK_07_DEPLOYMENT_AUDIT.md)**
+7. **[PLAYBOOK_09_07_DEPLOYMENT_AUDIT.md](./PLAYBOOK_09_07_DEPLOYMENT_AUDIT.md)**
    - Audit all deployment elements for accuracy
    - Check for drift between docs and implementation
    - Generate maintenance reports

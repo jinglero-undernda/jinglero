@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Design System Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_DESIGN_INTENT.md](./PLAYBOOK_01_DOCUMENT_DESIGN_INTENT.md)**
+1. **[PLAYBOOK_02_01_DOCUMENT_DESIGN_INTENT.md](./PLAYBOOK_02_01_DOCUMENT_DESIGN_INTENT.md)**
    - Document design intent from existing code
    - Document new design specifications
    - Create complete design system documentation
 
-2. **[PLAYBOOK_02_VALIDATE_IMPLEMENTATION.md](./PLAYBOOK_02_VALIDATE_IMPLEMENTATION.md)**
+2. **[PLAYBOOK_02_02_VALIDATE_IMPLEMENTATION.md](./PLAYBOOK_02_02_VALIDATE_IMPLEMENTATION.md)**
    - Validate design system documentation against codebase
    - Check for sync issues between design and implementation
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_02_03_GAP_ANALYSIS.md](./PLAYBOOK_02_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented design and implementation
    - Identify discrepancies across design tokens, components, and styles
    - Prioritize gaps for refactoring
 
 ### Refactoring Operations
 
-4. **[PLAYBOOK_04_PLAN_REFACTOR.md](./PLAYBOOK_04_PLAN_REFACTOR.md)**
+4. **[PLAYBOOK_02_04_PLAN_REFACTOR.md](./PLAYBOOK_02_04_PLAN_REFACTOR.md)**
    - Plan incremental refactoring based on gap analysis
    - Create refactoring tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_REFACTOR.md](./PLAYBOOK_05_IMPLEMENT_REFACTOR.md)**
+5. **[PLAYBOOK_02_05_IMPLEMENT_REFACTOR.md](./PLAYBOOK_02_05_IMPLEMENT_REFACTOR.md)**
    - Execute refactoring following documented design system
    - Maintain sync between code and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_DESIGN_SYSTEM.md](./PLAYBOOK_06_UPDATE_DESIGN_SYSTEM.md)**
+6. **[PLAYBOOK_02_06_UPDATE_DESIGN_SYSTEM.md](./PLAYBOOK_02_06_UPDATE_DESIGN_SYSTEM.md)**
    - Update existing design system documentation
    - Handle design changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_DESIGN_SYSTEM_AUDIT.md](./PLAYBOOK_07_DESIGN_SYSTEM_AUDIT.md)**
+7. **[PLAYBOOK_02_07_DESIGN_SYSTEM_AUDIT.md](./PLAYBOOK_02_07_DESIGN_SYSTEM_AUDIT.md)**
    - Audit all design system elements for accuracy
    - Check for drift between docs and code
    - Generate maintenance reports

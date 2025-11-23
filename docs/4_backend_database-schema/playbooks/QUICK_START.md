@@ -4,7 +4,7 @@
 
 ### In a New AI Agent Session
 
-1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_DOCUMENT_SCHEMA.md`)
+1. **Open the relevant playbook** (e.g., `PLAYBOOK_04_01_DOCUMENT_SCHEMA.md`)
 2. **Copy the entire playbook content**
 3. **Paste as context** in your AI agent window
 4. **Add your specific request** (e.g., "Document the current Neo4j schema from schema.ts")
@@ -13,7 +13,7 @@
 ### Example Session
 
 ```
-[You paste PLAYBOOK_01_DOCUMENT_SCHEMA.md]
+[You paste PLAYBOOK_04_01_DOCUMENT_SCHEMA.md]
 
 [You add]: "Document the current database schema.
 Check backend/src/server/db/schema/schema.ts for schema definitions,
@@ -26,43 +26,43 @@ and backend/src/server/db/schema/setup.ts for constraints."
 
 ### Document Current Schema
 
-1. Use **PLAYBOOK_01_DOCUMENT_SCHEMA.md**
+1. Use **PLAYBOOK_04_01_DOCUMENT_SCHEMA.md**
 2. Specify files to check (e.g., `schema.ts`, `setup.ts`)
 3. AI will create complete schema documentation
 
 ### Validate Schema Against Requirements
 
-1. Use **PLAYBOOK_02_VALIDATE_REQUIREMENTS.md**
+1. Use **PLAYBOOK_04_02_VALIDATE_REQUIREMENTS.md**
 2. Specify schema element to validate (e.g., "node types")
 3. AI will validate against frontend/backend requirements and generate report
 
 ### Find Gaps Between Schema and Requirements
 
-1. Use **PLAYBOOK_03_GAP_ANALYSIS.md**
+1. Use **PLAYBOOK_02_03_GAP_ANALYSIS.md**
 2. Specify schema area to analyze (e.g., "node properties")
 3. AI will identify gaps across frontend, backend, and database layers
 
 ### Plan Schema Migration
 
-1. Use **PLAYBOOK_04_PLAN_MIGRATION.md**
+1. Use **PLAYBOOK_04_04_PLAN_MIGRATION.md**
 2. Provide gap analysis or list of issues
 3. AI will create migration plan with tasks and priorities
 
 ### Implement Schema Migration
 
-1. Use **PLAYBOOK_05_IMPLEMENT_MIGRATION.md**
+1. Use **PLAYBOOK_04_05_IMPLEMENT_MIGRATION.md**
 2. Specify task to implement
 3. AI will implement while maintaining doc sync
 
 ### Update Schema After Changes
 
-1. Use **PLAYBOOK_06_UPDATE_SCHEMA.md**
+1. Use **PLAYBOOK_04_06_UPDATE_SCHEMA.md**
 2. Describe what changed (schema or code)
 3. AI will update schema documentation
 
 ### Audit All Schema Elements
 
-1. Use **PLAYBOOK_07_SCHEMA_AUDIT.md**
+1. Use **PLAYBOOK_04_07_SCHEMA_AUDIT.md**
 2. AI will check all schema elements for accuracy and drift
 
 ## Phase-Based Usage

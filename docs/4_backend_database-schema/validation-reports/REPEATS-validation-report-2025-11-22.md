@@ -432,7 +432,7 @@ After implementation, re-run validation to verify:
 
 ## Validation Methodology
 
-This validation followed PLAYBOOK_02_VALIDATE_REQUIREMENTS.md:
+This validation followed PLAYBOOK_04_02_VALIDATE_REQUIREMENTS.md:
 
 1. ✅ Read complete schema documentation
 2. ✅ Extracted all technical details (node types, relationship types, properties, constraints)

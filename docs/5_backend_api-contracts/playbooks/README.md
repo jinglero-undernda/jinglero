@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core API Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_CONTRACTS.md](./PLAYBOOK_01_DOCUMENT_CONTRACTS.md)**
+1. **[PLAYBOOK_05_01_DOCUMENT_CONTRACTS.md](./PLAYBOOK_05_01_DOCUMENT_CONTRACTS.md)**
    - Document API contracts from existing code
    - Document new API contract specifications
    - Create complete API contract documentation
 
-2. **[PLAYBOOK_02_VALIDATE_USAGE.md](./PLAYBOOK_02_VALIDATE_USAGE.md)**
+2. **[PLAYBOOK_05_02_VALIDATE_USAGE.md](./PLAYBOOK_05_02_VALIDATE_USAGE.md)**
    - Validate API contract documentation against usage
    - Check for sync issues between contracts and implementation
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_05_03_GAP_ANALYSIS.md](./PLAYBOOK_05_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented contracts and usage
    - Identify discrepancies across frontend, backend, and API layers
    - Prioritize gaps for refactoring
 
 ### Versioning Operations
 
-4. **[PLAYBOOK_04_PLAN_VERSIONING.md](./PLAYBOOK_04_PLAN_VERSIONING.md)**
+4. **[PLAYBOOK_05_04_PLAN_VERSIONING.md](./PLAYBOOK_05_04_PLAN_VERSIONING.md)**
    - Plan API versioning strategy based on gap analysis
    - Create versioning tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_VERSIONING.md](./PLAYBOOK_05_IMPLEMENT_VERSIONING.md)**
+5. **[PLAYBOOK_05_05_IMPLEMENT_VERSIONING.md](./PLAYBOOK_05_05_IMPLEMENT_VERSIONING.md)**
    - Execute versioning following documented contracts
    - Maintain sync between API and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_CONTRACTS.md](./PLAYBOOK_06_UPDATE_CONTRACTS.md)**
+6. **[PLAYBOOK_05_06_UPDATE_CONTRACTS.md](./PLAYBOOK_05_06_UPDATE_CONTRACTS.md)**
    - Update existing API contract documentation
    - Handle contract changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_API_AUDIT.md](./PLAYBOOK_07_API_AUDIT.md)**
+7. **[PLAYBOOK_05_07_API_AUDIT.md](./PLAYBOOK_05_07_API_AUDIT.md)**
    - Audit all API contracts for accuracy
    - Check for drift between docs and code
    - Generate maintenance reports

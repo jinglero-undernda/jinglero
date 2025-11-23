@@ -2,7 +2,7 @@
 
 ## Status
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-19
+- **Last Updated**: 2025-11-23
 - **Purpose**: Document admin-specific design variations
 
 ## Overview
@@ -19,6 +19,12 @@ Admin context introduces additional controls, editing capabilities, and data man
 ### RelatedEntities
 - **Changes**: Eager loading, no cycle prevention, blank rows for relationship creation
 - **Code Reference**: `frontend/src/components/common/RelatedEntities.tsx`
+
+### EntityMetadataEditor
+- **Changes**: Displays editable metadata fields for entities
+- **Field Configuration**: Fields are configured via `FIELD_ORDER` in `fieldConfigs.ts`
+- **New Fields**: `musicBrainzId` field available for `artistas` and `canciones` entity types (optional string, text input)
+- **Code Reference**: `frontend/src/components/admin/EntityMetadataEditor.tsx`
 
 ## Visual Indicators
 

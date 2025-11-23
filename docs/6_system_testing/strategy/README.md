@@ -37,7 +37,7 @@ Each strategy document should include:
 
 ## Related Playbooks
 
-See `../playbooks/PLAYBOOK_01_DOCUMENT_STRATEGY.md` for instructions on documenting testing strategy.
+See `../playbooks/PLAYBOOK_06_01_DOCUMENT_STRATEGY.md` for instructions on documenting testing strategy.
 
 ---
 

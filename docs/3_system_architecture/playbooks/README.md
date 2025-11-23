@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Architecture Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_CURRENT.md](./PLAYBOOK_01_DOCUMENT_CURRENT.md)**
+1. **[PLAYBOOK_03_01_DOCUMENT_CURRENT.md](./PLAYBOOK_03_01_DOCUMENT_CURRENT.md)**
    - Document current architecture from existing code
    - Document new architecture specifications
    - Create complete architecture documentation
 
-2. **[PLAYBOOK_02_EVALUATE_ALTERNATIVES.md](./PLAYBOOK_02_EVALUATE_ALTERNATIVES.md)**
+2. **[PLAYBOOK_03_02_EVALUATE_ALTERNATIVES.md](./PLAYBOOK_03_02_EVALUATE_ALTERNATIVES.md)**
    - Evaluate architectural alternatives
    - Compare approaches for data handling
    - Generate evaluation reports
 
-3. **[PLAYBOOK_03_ANALYZE_TRADEOFFS.md](./PLAYBOOK_03_ANALYZE_TRADEOFFS.md)**
+3. **[PLAYBOOK_03_03_ANALYZE_TRADEOFFS.md](./PLAYBOOK_03_03_ANALYZE_TRADEOFFS.md)**
    - Analyze tradeoffs between alternatives
    - Evaluate performance/cost/UX impacts
    - Prioritize optimization opportunities
 
 ### Optimization Operations
 
-4. **[PLAYBOOK_04_PLAN_OPTIMIZATION.md](./PLAYBOOK_04_PLAN_OPTIMIZATION.md)**
+4. **[PLAYBOOK_03_04_PLAN_OPTIMIZATION.md](./PLAYBOOK_03_04_PLAN_OPTIMIZATION.md)**
    - Plan incremental optimizations based on tradeoff analysis
    - Create optimization tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_OPTIMIZATION.md](./PLAYBOOK_05_IMPLEMENT_OPTIMIZATION.md)**
+5. **[PLAYBOOK_03_05_IMPLEMENT_OPTIMIZATION.md](./PLAYBOOK_03_05_IMPLEMENT_OPTIMIZATION.md)**
    - Execute optimizations following documented architecture
    - Maintain sync between code and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_ARCHITECTURE.md](./PLAYBOOK_06_UPDATE_ARCHITECTURE.md)**
+6. **[PLAYBOOK_03_06_UPDATE_ARCHITECTURE.md](./PLAYBOOK_03_06_UPDATE_ARCHITECTURE.md)**
    - Update existing architecture documentation
    - Handle architecture changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_ARCHITECTURE_AUDIT.md](./PLAYBOOK_07_ARCHITECTURE_AUDIT.md)**
+7. **[PLAYBOOK_03_07_ARCHITECTURE_AUDIT.md](./PLAYBOOK_03_07_ARCHITECTURE_AUDIT.md)**
    - Audit all architecture elements for accuracy
    - Check for drift between docs and code
    - Generate maintenance reports

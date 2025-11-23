@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Security Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_REQUIREMENTS.md](./PLAYBOOK_01_DOCUMENT_REQUIREMENTS.md)**
+1. **[PLAYBOOK_08_01_DOCUMENT_REQUIREMENTS.md](./PLAYBOOK_08_01_DOCUMENT_REQUIREMENTS.md)**
    - Document security requirements from existing code/requirements
    - Document new security requirement specifications
    - Create complete security requirement documentation
 
-2. **[PLAYBOOK_02_VALIDATE_IMPLEMENTATION.md](./PLAYBOOK_02_VALIDATE_IMPLEMENTATION.md)**
+2. **[PLAYBOOK_08_02_VALIDATE_IMPLEMENTATION.md](./PLAYBOOK_08_02_VALIDATE_IMPLEMENTATION.md)**
    - Validate security requirements against actual implementation
    - Check for sync issues between requirements and code
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_08_03_GAP_ANALYSIS.md](./PLAYBOOK_08_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented requirements and actual security
    - Identify discrepancies across requirements, implementation, and compliance
    - Prioritize gaps for improvement
 
 ### Improvement Operations
 
-4. **[PLAYBOOK_04_PLAN_IMPROVEMENTS.md](./PLAYBOOK_04_PLAN_IMPROVEMENTS.md)**
+4. **[PLAYBOOK_08_04_PLAN_IMPROVEMENTS.md](./PLAYBOOK_08_04_PLAN_IMPROVEMENTS.md)**
    - Plan incremental security improvements based on gap analysis
    - Create improvement tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_SECURITY.md](./PLAYBOOK_05_IMPLEMENT_SECURITY.md)**
+5. **[PLAYBOOK_08_05_IMPLEMENT_SECURITY.md](./PLAYBOOK_08_05_IMPLEMENT_SECURITY.md)**
    - Execute security implementation following documented requirements
    - Maintain sync between security code and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_REQUIREMENTS.md](./PLAYBOOK_06_UPDATE_REQUIREMENTS.md)**
+6. **[PLAYBOOK_08_06_UPDATE_REQUIREMENTS.md](./PLAYBOOK_08_06_UPDATE_REQUIREMENTS.md)**
    - Update existing security requirement documentation
    - Handle requirement changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_SECURITY_AUDIT.md](./PLAYBOOK_07_SECURITY_AUDIT.md)**
+7. **[PLAYBOOK_08_07_SECURITY_AUDIT.md](./PLAYBOOK_08_07_SECURITY_AUDIT.md)**
    - Audit all security elements for accuracy
    - Check for drift between docs and implementation
    - Generate maintenance reports

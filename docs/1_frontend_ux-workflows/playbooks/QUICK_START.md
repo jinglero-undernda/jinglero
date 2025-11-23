@@ -4,7 +4,7 @@
 
 ### In a New AI Agent Session
 
-1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_DOCUMENT_WORKFLOW.md`)
+1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_01_DOCUMENT_WORKFLOW.md`)
 2. **Copy the entire playbook content**
 3. **Paste as context** in your AI agent window
 4. **Add your specific request** (e.g., "Document the entity creation workflow")
@@ -13,7 +13,7 @@
 ### Example Session
 
 ```
-[You paste PLAYBOOK_01_DOCUMENT_WORKFLOW.md]
+[You paste PLAYBOOK_01_01_DOCUMENT_WORKFLOW.md]
 
 [You add]: "Document the entity creation workflow. 
 The main component is AdminDashboard.tsx, 
@@ -26,43 +26,43 @@ and it uses EntityForm.tsx for the form."
 
 ### Document a New Workflow
 
-1. Use **PLAYBOOK_01_DOCUMENT_WORKFLOW.md**
+1. Use **PLAYBOOK_01_01_DOCUMENT_WORKFLOW.md**
 2. Provide workflow name and description
 3. AI will create complete workflow documentation
 
 ### Validate Existing Workflow
 
-1. Use **PLAYBOOK_02_VALIDATE_WORKFLOW.md**
+1. Use **PLAYBOOK_01_02_VALIDATE_WORKFLOW.md**
 2. Specify workflow to validate (e.g., "WORKFLOW_001")
 3. AI will validate against codebase and generate report
 
 ### Find Gaps Between Docs and Code
 
-1. Use **PLAYBOOK_03_GAP_ANALYSIS.md**
+1. Use **PLAYBOOK_01_03_GAP_ANALYSIS.md**
 2. Specify workflow to analyze
 3. AI will identify gaps across UX, UI, and technical layers
 
 ### Plan Refactoring
 
-1. Use **PLAYBOOK_04_PLAN_REFACTOR.md**
+1. Use **PLAYBOOK_01_04_PLAN_REFACTOR.md**
 2. Provide gap analysis or list of issues
 3. AI will create refactoring plan with tasks and priorities
 
 ### Implement Refactoring
 
-1. Use **PLAYBOOK_05_IMPLEMENT_REFACTOR.md**
+1. Use **PLAYBOOK_01_05_IMPLEMENT_REFACTOR.md**
 2. Specify task to implement
 3. AI will implement while maintaining doc sync
 
 ### Update Workflow After Changes
 
-1. Use **PLAYBOOK_06_UPDATE_WORKFLOW.md**
+1. Use **PLAYBOOK_01_06_UPDATE_WORKFLOW.md**
 2. Describe what changed (UX or code)
 3. AI will update workflow documentation
 
 ### Audit All Workflows
 
-1. Use **PLAYBOOK_07_WORKFLOW_AUDIT.md**
+1. Use **PLAYBOOK_01_07_WORKFLOW_AUDIT.md**
 2. AI will check all workflows for accuracy and drift
 
 ## Phase-Based Usage
@@ -140,13 +140,13 @@ When UX or code changes:
 
 | Task | Playbook | Input | Output |
 |------|----------|-------|--------|
-| Document workflow | PLAYBOOK_01 | Workflow description | Complete workflow doc |
-| Validate workflow | PLAYBOOK_02 | Workflow document | Validation report |
-| Find gaps | PLAYBOOK_03 | Workflow + validation | Gap analysis report |
-| Plan refactoring | PLAYBOOK_04 | Gap analysis | Refactoring plan |
-| Implement refactor | PLAYBOOK_05 | Refactoring task | Code changes + updates |
-| Update workflow | PLAYBOOK_06 | Change description | Updated workflow |
-| Audit all | PLAYBOOK_07 | (none) | Audit report |
+| Document workflow | PLAYBOOK_01_01 | Workflow description | Complete workflow doc |
+| Validate workflow | PLAYBOOK_01_02 | Workflow document | Validation report |
+| Find gaps | PLAYBOOK_01_03 | Workflow + validation | Gap analysis report |
+| Plan refactoring | PLAYBOOK_01_04 | Gap analysis | Refactoring plan |
+| Implement refactor | PLAYBOOK_01_05 | Refactoring task | Code changes + updates |
+| Update workflow | PLAYBOOK_01_06 | Change description | Updated workflow |
+| Audit all | PLAYBOOK_01_07 | (none) | Audit report |
 
 ## Tips
 

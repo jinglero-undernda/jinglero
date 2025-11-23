@@ -4,7 +4,7 @@
 
 ### In a New AI Agent Session
 
-1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_DOCUMENT_STRATEGY.md`)
+1. **Open the relevant playbook** (e.g., `PLAYBOOK_06_01_DOCUMENT_STRATEGY.md`)
 2. **Copy the entire playbook content**
 3. **Paste as context** in your AI agent window
 4. **Add your specific request** (e.g., "Document the current testing strategy")
@@ -13,7 +13,7 @@
 ### Example Session
 
 ```
-[You paste PLAYBOOK_01_DOCUMENT_STRATEGY.md]
+[You paste PLAYBOOK_06_01_DOCUMENT_STRATEGY.md]
 
 [You add]: "Document the current testing strategy.
 Check frontend/src for test files,
@@ -27,43 +27,43 @@ and analyze test coverage and patterns."
 
 ### Document Current Testing Strategy
 
-1. Use **PLAYBOOK_01_DOCUMENT_STRATEGY.md**
+1. Use **PLAYBOOK_06_01_DOCUMENT_STRATEGY.md**
 2. Specify areas to document (e.g., unit tests, integration tests, E2E tests)
 3. AI will create complete testing strategy documentation
 
 ### Validate Test Coverage
 
-1. Use **PLAYBOOK_02_VALIDATE_COVERAGE.md**
+1. Use **PLAYBOOK_06_02_VALIDATE_COVERAGE.md**
 2. Specify testing area to validate (e.g., "unit test coverage")
 3. AI will validate against requirements and generate report
 
 ### Find Gaps Between Strategy and Requirements
 
-1. Use **PLAYBOOK_03_GAP_ANALYSIS.md**
+1. Use **PLAYBOOK_02_03_GAP_ANALYSIS.md**
 2. Specify testing area to analyze (e.g., "unit test coverage")
 3. AI will identify gaps and prioritize improvements
 
 ### Plan Test Improvements
 
-1. Use **PLAYBOOK_04_PLAN_IMPROVEMENTS.md**
+1. Use **PLAYBOOK_06_04_PLAN_IMPROVEMENTS.md**
 2. Provide gap analysis or list of improvement needs
 3. AI will create improvement plan with tasks and priorities
 
 ### Implement Tests
 
-1. Use **PLAYBOOK_05_IMPLEMENT_TESTS.md**
+1. Use **PLAYBOOK_06_05_IMPLEMENT_TESTS.md**
 2. Specify task to implement
 3. AI will implement while maintaining doc sync
 
 ### Update Testing Strategy After Changes
 
-1. Use **PLAYBOOK_06_UPDATE_STRATEGY.md**
+1. Use **PLAYBOOK_06_06_UPDATE_STRATEGY.md**
 2. Describe what changed (strategy or code)
 3. AI will update testing strategy documentation
 
 ### Audit All Testing Elements
 
-1. Use **PLAYBOOK_07_TESTING_AUDIT.md**
+1. Use **PLAYBOOK_06_07_TESTING_AUDIT.md**
 2. AI will check all testing elements for accuracy and drift
 
 ## Phase-Based Usage

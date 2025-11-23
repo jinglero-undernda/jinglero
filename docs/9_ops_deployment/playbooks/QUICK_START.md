@@ -4,7 +4,7 @@
 
 ### In a New AI Agent Session
 
-1. **Open the relevant playbook** (e.g., `PLAYBOOK_01_DOCUMENT_PROCESS.md`)
+1. **Open the relevant playbook** (e.g., `PLAYBOOK_09_01_DOCUMENT_PROCESS.md`)
 2. **Copy the entire playbook content**
 3. **Paste as context** in your AI agent window
 4. **Add your specific request** (e.g., "Document the current deployment process")
@@ -13,7 +13,7 @@
 ### Example Session
 
 ```
-[You paste PLAYBOOK_01_DOCUMENT_PROCESS.md]
+[You paste PLAYBOOK_09_01_DOCUMENT_PROCESS.md]
 
 [You add]: "Document the current deployment process.
 Check for deployment scripts, CI/CD configuration,
@@ -26,43 +26,43 @@ and analyze deployment workflows."
 
 ### Document Current Deployment Process
 
-1. Use **PLAYBOOK_01_DOCUMENT_PROCESS.md**
+1. Use **PLAYBOOK_09_01_DOCUMENT_PROCESS.md**
 2. Specify areas to document (e.g., deployment steps, environment config, CI/CD)
 3. AI will create complete deployment process documentation
 
 ### Validate Deployment Environment
 
-1. Use **PLAYBOOK_02_VALIDATE_ENVIRONMENT.md**
+1. Use **PLAYBOOK_09_02_VALIDATE_ENVIRONMENT.md**
 2. Specify deployment area to validate (e.g., "production environment")
 3. AI will validate against processes and generate report
 
 ### Find Gaps Between Processes and Deployment
 
-1. Use **PLAYBOOK_03_GAP_ANALYSIS.md**
+1. Use **PLAYBOOK_02_03_GAP_ANALYSIS.md**
 2. Specify deployment area to analyze (e.g., "CI/CD pipeline")
 3. AI will identify gaps and prioritize improvements
 
 ### Plan Deployment Improvements
 
-1. Use **PLAYBOOK_04_PLAN_IMPROVEMENTS.md**
+1. Use **PLAYBOOK_09_04_PLAN_IMPROVEMENTS.md**
 2. Provide gap analysis or list of improvement needs
 3. AI will create improvement plan with tasks and priorities
 
 ### Implement Infrastructure
 
-1. Use **PLAYBOOK_05_IMPLEMENT_INFRASTRUCTURE.md**
+1. Use **PLAYBOOK_09_05_IMPLEMENT_INFRASTRUCTURE.md**
 2. Specify task to implement
 3. AI will implement while maintaining doc sync
 
 ### Update Deployment Process After Changes
 
-1. Use **PLAYBOOK_06_UPDATE_PROCESS.md**
+1. Use **PLAYBOOK_09_06_UPDATE_PROCESS.md**
 2. Describe what changed (process or code)
 3. AI will update deployment process documentation
 
 ### Audit All Deployment Elements
 
-1. Use **PLAYBOOK_07_DEPLOYMENT_AUDIT.md**
+1. Use **PLAYBOOK_09_07_DEPLOYMENT_AUDIT.md**
 2. AI will check all deployment elements for accuracy and drift
 
 ## Phase-Based Usage

@@ -18,41 +18,41 @@ This directory contains AI-ready instruction documents ("playbooks") for systema
 
 ### Core Performance Operations
 
-1. **[PLAYBOOK_01_DOCUMENT_TARGETS.md](./PLAYBOOK_01_DOCUMENT_TARGETS.md)**
+1. **[PLAYBOOK_07_01_DOCUMENT_TARGETS.md](./PLAYBOOK_07_01_DOCUMENT_TARGETS.md)**
    - Document performance targets from existing code/requirements
    - Document new performance target specifications
    - Create complete performance target documentation
 
-2. **[PLAYBOOK_02_VALIDATE_METRICS.md](./PLAYBOOK_02_VALIDATE_METRICS.md)**
+2. **[PLAYBOOK_07_02_VALIDATE_METRICS.md](./PLAYBOOK_07_02_VALIDATE_METRICS.md)**
    - Validate performance targets against actual metrics
    - Check for sync issues between targets and implementation
    - Generate validation reports
 
-3. **[PLAYBOOK_03_GAP_ANALYSIS.md](./PLAYBOOK_03_GAP_ANALYSIS.md)**
+3. **[PLAYBOOK_07_03_GAP_ANALYSIS.md](./PLAYBOOK_07_03_GAP_ANALYSIS.md)**
    - Analyze gaps between documented targets and actual performance
    - Identify discrepancies across targets, metrics, and monitoring
    - Prioritize gaps for optimization
 
 ### Optimization Operations
 
-4. **[PLAYBOOK_04_PLAN_OPTIMIZATION.md](./PLAYBOOK_04_PLAN_OPTIMIZATION.md)**
+4. **[PLAYBOOK_07_04_PLAN_OPTIMIZATION.md](./PLAYBOOK_07_04_PLAN_OPTIMIZATION.md)**
    - Plan incremental optimizations based on gap analysis
    - Create optimization tasks with clear scope
    - Assess risks and dependencies
 
-5. **[PLAYBOOK_05_IMPLEMENT_MONITORING.md](./PLAYBOOK_05_IMPLEMENT_MONITORING.md)**
+5. **[PLAYBOOK_07_05_IMPLEMENT_MONITORING.md](./PLAYBOOK_07_05_IMPLEMENT_MONITORING.md)**
    - Execute monitoring implementation following documented targets
    - Maintain sync between monitoring and documentation
    - Validate implementation
 
 ### Maintenance Operations
 
-6. **[PLAYBOOK_06_UPDATE_TARGETS.md](./PLAYBOOK_06_UPDATE_TARGETS.md)**
+6. **[PLAYBOOK_07_06_UPDATE_TARGETS.md](./PLAYBOOK_07_06_UPDATE_TARGETS.md)**
    - Update existing performance target documentation
    - Handle target changes and code changes
    - Maintain cross-layer consistency
 
-7. **[PLAYBOOK_07_PERFORMANCE_AUDIT.md](./PLAYBOOK_07_PERFORMANCE_AUDIT.md)**
+7. **[PLAYBOOK_07_07_PERFORMANCE_AUDIT.md](./PLAYBOOK_07_07_PERFORMANCE_AUDIT.md)**
    - Audit all performance elements for accuracy
    - Check for drift between docs and implementation
    - Generate maintenance reports

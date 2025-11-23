@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-22
+- **Last Updated**: 2025-11-23
 - **Last Validated**: 2025-11-22
 - **Version**: 1.0
 - **Code Reference**: `backend/src/server/api/admin.ts:1-1315`
@@ -208,6 +208,8 @@ The Admin API provides full CRUD operations for entities and relationships, sche
 }
 ```
 
+**Note**: For `artistas` and `canciones` entity types, the `musicBrainzId` field (optional string) can be included in the request body to link entities to MusicBrainz external data source.
+
 **Success Response (201)**
 
 ```json
@@ -269,6 +271,8 @@ The Admin API provides full CRUD operations for entities and relationships, sche
   "cancionId": "c1d2e3f4"
 }
 ```
+
+**Note**: For `artistas` and `canciones` entity types, the `musicBrainzId` field (optional string) can be included in the request body to link entities to MusicBrainz external data source.
 
 **Success Response (200)**
 

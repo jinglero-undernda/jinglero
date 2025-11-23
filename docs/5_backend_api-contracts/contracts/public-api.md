@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-19
+- **Last Updated**: 2025-11-23
 - **Last Validated**: not yet validated
 - **Version**: 1.0
 - **Code Reference**: `backend/src/server/api/public.ts:1-1143`
@@ -171,6 +171,7 @@ curl -X GET /api/public/schema
   "id": "a1b2c3d4",
   "name": "Artist Name",
   "stageName": "Stage Name",
+  "musicBrainzId": "12345678-1234-1234-1234-123456789012",
   "createdAt": "2025-01-01T00:00:00.000Z",
   "updatedAt": "2025-01-01T00:00:00.000Z"
 }
@@ -205,6 +206,7 @@ curl -X GET /api/public/schema
     "title": "Song Title",
     "album": "Album Name",
     "year": 2020,
+    "musicBrainzId": "87654321-4321-4321-4321-210987654321",
     "createdAt": "2025-01-01T00:00:00.000Z",
     "updatedAt": "2025-01-01T00:00:00.000Z"
   }
@@ -235,6 +237,7 @@ curl -X GET /api/public/schema
   "title": "Song Title",
   "album": "Album Name",
   "year": 2020,
+  "musicBrainzId": "87654321-4321-4321-4321-210987654321",
   "createdAt": "2025-01-01T00:00:00.000Z",
   "updatedAt": "2025-01-01T00:00:00.000Z"
 }

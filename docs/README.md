@@ -381,7 +381,7 @@ Each area has 7 playbooks organized into 4 categories:
 **Scenario**: You want to document the current UI design system
 
 1. Navigate to `2_frontend_ui-design-system/playbooks/`
-2. Open `PLAYBOOK_01_DOCUMENT_DESIGN_INTENT.md`
+2. Open `PLAYBOOK_02_01_DOCUMENT_DESIGN_INTENT.md`
 3. Copy the entire playbook content
 4. Paste into AI agent session
 5. Add: "Document the current design system. Check `frontend/src/styles/theme/variables.css` for design tokens."
@@ -425,7 +425,7 @@ When working in one area, consider impacts on others:
 
 ### File Naming
 
-- **Playbooks**: `PLAYBOOK_XX_DESCRIPTION.md` (e.g., `PLAYBOOK_01_DOCUMENT_WORKFLOW.md`)
+- **Playbooks**: `PLAYBOOK_XX_YY_DESCRIPTION.md` (e.g., `PLAYBOOK_01_01_DOCUMENT_WORKFLOW.md` where XX is area number and YY is playbook number)
 - **Area READMEs**: `README.md` in each area directory
 - **Supporting Docs**: Descriptive names (e.g., `QUICK_START.md`, `tokens/colors.md`)
 
