@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
+import FilterSwitch from './FilterSwitch';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
@@ -2496,23 +2497,21 @@ const RelatedEntities = forwardRef<{
                                               />
                                             </div>
                                           ) : prop.type === 'boolean' ? (
-                                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', flex: 1 }}>
-                                              <input
-                                                type="checkbox"
-                                                checked={propsData[prop.name] || false}
-                                                onChange={(e) => {
-                                                  setRelationshipPropsData(prev => ({
-                                                    ...prev,
-                                                    [relationshipPropsKey]: {
-                                                      ...prev[relationshipPropsKey],
-                                                      [prop.name]: e.target.checked,
-                                                    },
-                                                  }));
-                                                }}
-                                                style={{ cursor: 'pointer' }}
-                                              />
-                                              <span style={{ color: '#fff', fontSize: '14px' }}>{prop.label}</span>
-                                            </label>
+                                            <FilterSwitch
+                                              checked={propsData[prop.name] || false}
+                                              onChange={(checked) => {
+                                                setRelationshipPropsData(prev => ({
+                                                  ...prev,
+                                                  [relationshipPropsKey]: {
+                                                    ...prev[relationshipPropsKey],
+                                                    [prop.name]: checked,
+                                                  },
+                                                }));
+                                              }}
+                                              label={prop.label}
+                                              size="small"
+                                              ariaLabel={`Toggle ${prop.label}`}
+                                            />
                                           ) : prop.type === 'select' ? (
                                             <select
                                               value={propsData[prop.name] || ''}

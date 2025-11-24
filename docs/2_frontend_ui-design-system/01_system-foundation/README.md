@@ -16,12 +16,13 @@ Design tokens are the atomic design values used throughout the system:
 - **Shadows** (`tokens/shadows.md`) - Shadow definitions for depth
 - **Borders** (`tokens/borders.md`) - Border radius values
 - **Transitions** (`tokens/transitions.md`) - Animation timing values
+- **Materials** (`tokens/materials.md`) - Material textures (concrete, metal, patina)
 
 All tokens are implemented as CSS variables in `frontend/src/styles/theme/variables.css`.
 
 ### Design Philosophy
 
-See `design-philosophy.md` for design goals, principles, and vision. This document will evolve as the target design is defined.
+See `design-philosophy.md` for design goals, principles, and vision. The design philosophy establishes the industrial aesthetic foundation for all design tokens and components.
 
 ### Status Tracking
 
@@ -36,4 +37,3 @@ Design tokens should be used via CSS variables throughout the codebase. Never ha
 - Layout patterns use these tokens: `../02_layout-patterns/`
 - Components use these tokens: `../03_components/`
 - Context variations may override tokens: `../04_context-variations/`
-

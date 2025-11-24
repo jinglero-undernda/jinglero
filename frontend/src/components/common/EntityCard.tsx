@@ -143,7 +143,7 @@ function EntityCard({
   hasUnsavedChanges = false,
   showAdminNavButton = false,
   onAdminNavClick,
-  adminRoute: _adminRoute,
+  adminRoute: _adminRoute, // eslint-disable-line @typescript-eslint/no-unused-vars
   showDeleteButton = false,
   onDeleteClick,
 }: EntityCardProps) {
@@ -255,24 +255,6 @@ function EntityCard({
           }}
           aria-label="Editar"
           title="Editar"
-          style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            transition: 'background-color 0.2s',
-            whiteSpace: 'nowrap',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#1565c0';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#1976d2';
-          }}
         >
           Editar
         </button>
@@ -292,29 +274,6 @@ function EntityCard({
             disabled={!hasUnsavedChanges}
             aria-label="Guardar cambios"
             title={hasUnsavedChanges ? "Guardar cambios" : "No hay cambios para guardar"}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: hasUnsavedChanges ? '#4caf50' : '#999',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: hasUnsavedChanges ? 'pointer' : 'not-allowed',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              whiteSpace: 'nowrap',
-              opacity: hasUnsavedChanges ? 1 : 0.6,
-            }}
-            onMouseEnter={(e) => {
-              if (hasUnsavedChanges) {
-                e.currentTarget.style.backgroundColor = '#45a049';
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (hasUnsavedChanges) {
-                e.currentTarget.style.backgroundColor = '#4caf50';
-              }
-            }}
           >
             Guardar
           </button>
@@ -328,24 +287,6 @@ function EntityCard({
             }}
             aria-label="Cancelar edición"
             title="Cancelar edición"
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#666',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              transition: 'background-color 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#555';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#666';
-            }}
           >
             Cancelar
           </button>
@@ -355,18 +296,6 @@ function EntityCard({
             disabled={true}
             aria-label="Borrar entidad (no disponible)"
             title="Borrar entidad (funcionalidad pendiente)"
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#999',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'not-allowed',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              whiteSpace: 'nowrap',
-              opacity: 0.5,
-            }}
           >
             Borrar
           </button>
@@ -387,26 +316,6 @@ function EntityCard({
       }}
       aria-label={`Editar ${primaryText} en modo administrador`}
       title={`Editar ${primaryText} en modo administrador`}
-      style={{
-        padding: '0.25rem 0.5rem',
-        backgroundColor: '#2a2a2a',
-        color: '#fff',
-        border: '1px solid #444',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '1rem',
-        lineHeight: '1',
-        transition: 'background-color 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#3a3a3a';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '#2a2a2a';
-      }}
     >
       🔧
     </button>
@@ -416,7 +325,7 @@ function EntityCard({
   const deleteButton = showDeleteButton && actualVariant === 'contents' && onDeleteClick ? (
     <button
       type="button"
-      className="entity-card__delete-button"
+      className="entity-card__delete-relationship-button"
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -424,28 +333,6 @@ function EntityCard({
       }}
       aria-label={`Eliminar relación con ${primaryText}`}
       title={`Eliminar relación con ${primaryText}`}
-      style={{
-        padding: '0.25rem 0.5rem',
-        backgroundColor: '#d32f2f',
-        color: '#fff',
-        border: 'none',
-        borderRadius: '4px',
-        cursor: 'pointer',
-        fontSize: '18px',
-        lineHeight: '1',
-        fontWeight: 'bold',
-        transition: 'background-color 0.2s',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        minWidth: '32px',
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.backgroundColor = '#b71c1c';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.backgroundColor = '#d32f2f';
-      }}
     >
       ×
     </button>
@@ -482,14 +369,7 @@ function EntityCard({
     return (
       <div 
         className={`entity-card entity-card--placeholder ${className}`}
-        style={{
-          ...indentationStyle,
-          padding: '0.5rem 1rem',
-          backgroundColor: '#1a1a1a',
-          color: '#999',
-          fontStyle: 'italic',
-          opacity: 0.7,
-        }}
+        style={indentationStyle}
         role="status"
         aria-label={message}
       >

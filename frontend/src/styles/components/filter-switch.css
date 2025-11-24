@@ -1,0 +1,172 @@
+/* ============================================
+   INDUSTRIAL FILTER SWITCH COMPONENT
+   Console-style boolean toggle switches
+   ============================================ */
+
+.filter-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.filter-switch__track {
+  position: relative;
+  width: 48px;
+  height: 24px;
+  background-color: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  flex-shrink: 0;
+}
+
+.filter-switch--checked .filter-switch__track {
+  background-color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+  box-shadow: var(--shadow-sm), var(--shadow-glow-primary);
+}
+
+.filter-switch__handle {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background-color: var(--material-metal-control-bg);
+  border-radius: 50%;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-inset);
+}
+
+.filter-switch--checked .filter-switch__handle {
+  left: calc(100% - 22px);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-switch__label {
+  font-family: var(--font-family-signage);
+  font-size: var(--font-size-body-small);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-primary);
+  user-select: none;
+}
+
+/* ============================================
+   SIZES
+   ============================================ */
+
+.filter-switch--small .filter-switch__track {
+  width: 36px;
+  height: 18px;
+  border-radius: 9px;
+}
+
+.filter-switch--small .filter-switch__handle {
+  width: 14px;
+  height: 14px;
+}
+
+.filter-switch--small.filter-switch--checked .filter-switch__handle {
+  left: calc(100% - 16px);
+}
+
+.filter-switch--large .filter-switch__track {
+  width: 64px;
+  height: 32px;
+  border-radius: 16px;
+}
+
+.filter-switch--large .filter-switch__handle {
+  width: 28px;
+  height: 28px;
+}
+
+.filter-switch--large.filter-switch--checked .filter-switch__handle {
+  left: calc(100% - 30px);
+}
+
+/* ============================================
+   INTERACTIVE STATES
+   ============================================ */
+
+/* Hover State */
+.filter-switch:hover:not(.filter-switch--disabled) .filter-switch__track {
+  box-shadow: var(--shadow-md), var(--shadow-glow-interactive);
+  transform: scale(1.05);
+}
+
+.filter-switch--checked:hover:not(.filter-switch--disabled) .filter-switch__track {
+  box-shadow: var(--shadow-md), var(--shadow-glow-primary), var(--shadow-glow-interactive);
+}
+
+/* Focus State */
+.filter-switch:focus-visible .filter-switch__track {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-md), var(--shadow-glow-primary);
+}
+
+.filter-switch--checked:focus-visible .filter-switch__track {
+  box-shadow: var(--shadow-md), var(--shadow-glow-primary);
+}
+
+/* Disabled State */
+.filter-switch--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.filter-switch--disabled .filter-switch__track {
+  cursor: not-allowed;
+}
+
+.filter-switch--disabled:hover .filter-switch__track {
+  transform: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-switch--disabled .filter-switch__label {
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================
+   HIDDEN INPUT (for accessibility)
+   ============================================ */
+
+.filter-switch__input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* ============================================
+   STATUS INDICATORS (optional)
+   ============================================ */
+
+.filter-switch__status {
+  font-family: var(--font-family-signage);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  margin-left: var(--spacing-xs);
+}
+
+.filter-switch--checked .filter-switch__status {
+  color: var(--color-accent-primary);
+}
+
+.filter-switch:not(.filter-switch--checked) .filter-switch__status {
+  color: var(--color-text-tertiary);
+}
+

@@ -2,57 +2,59 @@
 .entity-card {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-md, 16px);
-  padding: var(--spacing-md, 16px);
-  background-color: var(--background-color, #fff);
-  border: 1px solid #ddd;
-  border-radius: var(--border-radius-md, 8px);
-  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.1));
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
   transition:
-    box-shadow var(--transition-normal, 0.2s ease),
-    border-color var(--transition-normal, 0.2s ease),
-    background-color var(--transition-normal, 0.2s ease);
+    box-shadow var(--transition-normal),
+    border-color var(--transition-normal),
+    background-color var(--transition-normal);
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  --indent-base: 16px;
+  --indent-base: var(--spacing-md);
 }
 
 /* Heading variant: light background, standard height for title rows */
 .entity-card--heading {
-  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px);
+  padding: var(--spacing-sm) var(--spacing-md);
   align-items: center;
-  gap: var(--spacing-sm, 8px);
-  border-radius: var(--border-radius-sm, 4px);
+  gap: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
   min-height: 40px;
-  background-color: #f9f9f9;
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-border-secondary);
 }
 
 /* Contents variant: very dark background with white text, narrower height for content rows */
 .entity-card--contents {
-  padding: 2px var(--spacing-md, 12px);
+  padding: 2px var(--spacing-md);
   align-items: center;
-  gap: var(--spacing-sm, 8px);
-  border-radius: var(--border-radius-sm, 4px);
+  gap: var(--spacing-sm);
+  border-radius: var(--border-radius-sm);
   min-height: 28px;
-  background-color: #1a1a1a;
-  border-color: #333;
-  color: #fff;
+  background-color: var(--color-bg-primary);
+  border-color: var(--color-border-primary);
+  color: var(--color-text-primary);
 }
 
 .entity-card:hover {
-  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
-  border-color: var(--primary-color, #1976d2);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent-primary);
 }
 
 .entity-card--contents:hover {
-  background-color: #2a2a2a;
-  border-color: var(--primary-color, #1976d2);
+  background-color: var(--color-bg-tertiary);
+  border-color: var(--color-accent-primary);
 }
 
 .entity-card:focus-visible {
-  outline: 2px solid var(--primary-color, #1976d2);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
+  box-shadow: var(--shadow-md), var(--shadow-glow-primary);
 }
 
 .entity-card__icon {
@@ -79,18 +81,18 @@
 }
 
 .entity-card__primary {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text-color, #333);
-  margin-bottom: var(--spacing-xs, 4px);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--spacing-xs);
   word-wrap: break-word;
   word-break: break-word;
 }
 
 .entity-card__secondary {
-  font-size: 14px;
-  color: var(--secondary-color, #666);
-  margin-bottom: var(--spacing-xs, 4px);
+  font-size: var(--font-size-body-small);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-xs);
   word-wrap: break-word;
   word-break: break-word;
 }
@@ -114,24 +116,25 @@
 }
 
 .entity-card--heading .entity-card__primary {
-  font-size: 14px;
+  font-size: var(--font-size-body-small);
   margin-bottom: 0;
+  color: var(--color-text-primary);
 }
 
 .entity-card--contents .entity-card__primary {
-  font-size: 14px;
+  font-size: var(--font-size-body-small);
   margin-bottom: 0;
-  color: #fff;
+  color: var(--color-text-primary);
 }
 
 .entity-card__secondary-inline {
-  font-size: 13px;
-  color: var(--secondary-color, #666);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
   word-wrap: break-word;
 }
 
 .entity-card--contents .entity-card__secondary-inline {
-  color: #ccc;
+  color: var(--color-text-secondary);
 }
 
 .entity-card__badges--inline {
@@ -220,8 +223,9 @@
 .entity-card__show-button:hover,
 .entity-card__show-button:focus-visible {
   background-color: rgba(255, 255, 255, 0.1);
-  outline: 2px solid var(--primary-color, #1976d2);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
+  box-shadow: var(--shadow-glow-interactive);
 }
 
 .entity-card--contents .entity-card__show-button:hover,
@@ -233,11 +237,11 @@
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 14px;
-  padding: 4px 6px;
-  color: var(--primary-color, #1976d2);
-  border-radius: var(--border-radius-sm, 4px);
-  transition: background-color var(--transition-fast, 0.15s ease);
+  font-size: var(--font-size-body-small);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-accent-primary);
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
   line-height: 1;
   display: flex;
   align-items: center;
@@ -248,9 +252,10 @@
 
 .entity-card__expand-icon:hover,
 .entity-card__expand-icon:focus-visible {
-  background-color: #f0f0f0;
-  outline: 2px solid var(--primary-color, #1976d2);
+  background-color: var(--color-bg-tertiary);
+  outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;
+  box-shadow: var(--shadow-glow-interactive);
 }
 
 .entity-card__expand-icon-inline {
@@ -271,6 +276,122 @@
 }
 
 .entity-card[role='article']:not([href]):not([onclick]):hover {
-  box-shadow: var(--shadow-sm, 0 2px 4px rgba(0, 0, 0, 0.1));
-  border-color: #ddd;
+  box-shadow: var(--shadow-sm);
+  border-color: var(--color-border-primary);
+}
+
+/* Placeholder variant */
+.entity-card--placeholder {
+  background-color: var(--color-bg-primary);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  opacity: 0.7;
+  cursor: default;
+}
+
+.entity-card--placeholder:hover {
+  opacity: 0.8;
+}
+
+/* EntityCard button styles - using industrial button classes */
+.entity-card__edit-button,
+.entity-card__save-button,
+.entity-card__cancel-button,
+.entity-card__delete-button {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-body-small);
+  font-weight: var(--font-weight-semibold);
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+  font-family: var(--font-family-body);
+}
+
+.entity-card__edit-button {
+  background-color: var(--color-accent-secondary);
+  color: var(--color-text-inverse);
+}
+
+.entity-card__edit-button:hover {
+  background-color: var(--color-accent-interactive);
+  box-shadow: var(--shadow-sm), var(--shadow-glow-interactive);
+}
+
+.entity-card__save-button {
+  background-color: var(--color-success);
+  color: var(--color-text-inverse);
+}
+
+.entity-card__save-button:hover:not(:disabled) {
+  background-color: #3bc96a;
+  box-shadow: var(--shadow-sm), var(--shadow-glow-interactive);
+}
+
+.entity-card__save-button:disabled {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.entity-card__cancel-button {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+}
+
+.entity-card__cancel-button:hover {
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.entity-card__delete-button {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.entity-card__admin-nav-button {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  line-height: 1;
+  transition: background-color var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.entity-card__admin-nav-button:hover {
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.entity-card__delete-relationship-button {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-error);
+  color: var(--color-text-inverse);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  font-size: var(--font-size-h5);
+  line-height: 1;
+  font-weight: var(--font-weight-bold);
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+}
+
+.entity-card__delete-relationship-button:hover {
+  background-color: #d32f2f;
+  box-shadow: var(--shadow-sm), var(--shadow-glow-primary);
 }

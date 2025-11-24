@@ -16,9 +16,9 @@ The `autoComment` follows this format (blank fields omitted):
 - If Fabrica exists: `🏭: YYYY-MM-DD - [HH:]MM:SS` (omit HH: if hours are zero, use leading zeros for MM:SS)
 - `🎤: {Titulo}` (if title exists)
 - `📦: {Cancion}` (if Cancion exists, uses Cancion.title)
-- `🚚: {Autor} [; {Autor}]` (if Autores exist, multiple separated by `;`)
+- `🚚: {Autor} [; {Autor}] `(if Autores exist, multiple separated by `;`)
 - `🏷️: {Primary Tematica}` (if primary Tematica exists, uses Tematica.name where isPrimary=true)
-- `🔧: {Jinglero} [; {Jinglero}]` (if Jingleros exist, multiple separated by `;`)
+- `🔧: {Jinglero} [; {Jinglero}] `(if Jingleros exist, multiple separated by `;`)
 
 **Example**: `🏭: 2025-01-15 - 01:23:45, 🎤: Opening Theme, 📦: Song Title, 🚚: Artist One; Artist Two, 🏷️: ACTUALIDAD, 🔧: Performer One`
 **Example (no hours)**: `🏭: 2025-01-15 - 23:45, 🎤: Opening Theme`
@@ -59,9 +59,9 @@ The `autoComment` follows this format (blank fields omitted):
 2. Build comment parts in order:
 
 - Fabrica: Format date as YYYY-MM-DD, timestamp with special formatting:
- - If hours > 0: `HH:MM:SS` (with leading zeros)
- - If hours = 0: `MM:SS` (with leading zeros for minutes and seconds)
- - Example: `01:23:45` or `23:45` (if hours are zero)
+- If hours > 0: `HH:MM:SS` (with leading zeros)
+- If hours = 0: `MM:SS` (with leading zeros for minutes and seconds)
+- Example: `01:23:45` or `23:45` (if hours are zero)
 - Title: Use jingle.title if exists
 - Cancion: Use cancion.title if exists
 - Autores: Collect all Artista names from AUTOR_DE relationships, join with `;`

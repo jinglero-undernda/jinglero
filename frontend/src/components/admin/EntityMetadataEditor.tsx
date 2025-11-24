@@ -14,6 +14,7 @@ import { validateEntityField, validateEntityForm, getEntityFormWarnings } from '
 import { FieldErrorDisplay } from '../common/ErrorDisplay';
 import { EXCLUDED_FIELDS, FIELD_ORDER, FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
 import DatePickerField from '../common/DatePickerField';
+import FilterSwitch from '../common/FilterSwitch';
 import { formatDateDisplay, isValidISODate } from '../../lib/utils/dateUtils';
 import { sanitizeNumericField, sanitizeBooleanField } from '../../lib/utils/dataTypeSafety';
 
@@ -855,34 +856,13 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </div>
                     </>
                   ) : isBoolean ? (
-                    <>
-                      <input
-                        type="checkbox"
-                        checked={value === true}
-                        onChange={(e) => handleFieldChange(fieldName, e.target.checked)}
-                        style={{
-                          margin: 0,
-                          cursor: 'pointer',
-                          width: '16px',
-                          height: '16px',
-                        }}
-                      />
-                      <label
-                        style={{
-                          fontSize: '14px',
-                          color: '#fff',
-                          cursor: 'pointer',
-                          flex: 1,
-                          margin: 0,
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          handleFieldChange(fieldName, !value);
-                        }}
-                      >
-                        {fieldName}
-                      </label>
-                    </>
+                    <FilterSwitch
+                      checked={value === true}
+                      onChange={(checked) => handleFieldChange(fieldName, checked)}
+                      label={fieldName}
+                      size="small"
+                      ariaLabel={`Toggle ${fieldName}`}
+                    />
                   ) : (
                     <>
                       <label

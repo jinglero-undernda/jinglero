@@ -1,0 +1,172 @@
+/* ============================================
+   INDUSTRIAL BUTTON COMPONENT
+   Factory console-style buttons
+   ============================================ */
+
+.button {
+  /* Base styles */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  
+  /* Default state */
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   VARIANTS
+   ============================================ */
+
+/* Primary Button (Factory Control) */
+.button--primary {
+  background-color: var(--color-accent-primary);
+  color: var(--color-text-inverse);
+  font-family: var(--font-family-signage);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Secondary Button (Metal Panel) */
+.button--secondary {
+  background-color: var(--material-metal-control-bg);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-signage);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  font-weight: var(--font-weight-bold);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Tertiary Button (Recessed) */
+.button--tertiary {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-body);
+  text-transform: none;
+  letter-spacing: var(--letter-spacing-normal);
+  box-shadow: var(--shadow-inset);
+}
+
+/* Factory Signage Button (Navigation) */
+.button--signage {
+  background-color: var(--color-bg-secondary);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-signage);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  font-weight: var(--font-weight-bold);
+  border: 2px solid var(--color-border-accent);
+  box-shadow: var(--shadow-md);
+}
+
+/* ============================================
+   SIZES
+   ============================================ */
+
+.button--large {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: var(--font-size-h5);
+  font-weight: var(--font-weight-bold);
+}
+
+.button--medium {
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.button--small {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--font-size-body-small);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ============================================
+   INTERACTIVE STATES
+   ============================================ */
+
+/* Hover State */
+.button:hover:not(.button--disabled) {
+  box-shadow: var(--shadow-lg), var(--shadow-glow-interactive);
+  transform: scale(1.02);
+}
+
+.button--tertiary:hover:not(.button--disabled) {
+  box-shadow: var(--shadow-sm);
+  transform: scale(1.02);
+}
+
+/* Active/Pressed State */
+.button:active:not(.button--disabled) {
+  box-shadow: var(--shadow-inset);
+  transform: scale(0.98);
+}
+
+.button--primary:active:not(.button--disabled) {
+  background-color: #e55a2b; /* Slightly darker orange-red */
+}
+
+.button--secondary:active:not(.button--disabled) {
+  background-color: #333333; /* Slightly darker metal */
+}
+
+.button--signage:active:not(.button--disabled) {
+  background-color: var(--color-bg-tertiary);
+}
+
+/* Focus State */
+.button:focus,
+.button:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-md), var(--shadow-glow-primary);
+}
+
+.button--tertiary:focus,
+.button--tertiary:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-sm), var(--shadow-glow-primary);
+}
+
+/* Disabled State */
+.button--disabled,
+.button:disabled {
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: none;
+  transform: none;
+}
+
+.button--disabled:hover,
+.button:disabled:hover {
+  box-shadow: none;
+  transform: none;
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .button--large {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-body);
+  }
+  
+  .button--medium {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-body-small);
+  }
+}
+

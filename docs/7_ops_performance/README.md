@@ -106,10 +106,10 @@ Performance documents can be used to validate code by:
 
 | Category              | Status                 | Last Updated | Notes                                    |
 | --------------------- | ---------------------- | ------------ | ---------------------------------------- |
-| Performance Targets   | current_implementation | -            | Some targets defined (e.g., search <500ms) |
-| Performance Metrics   | current_implementation | -            | Metrics tracking pending                 |
-| Monitoring            | current_implementation | -            | Monitoring implementation pending        |
-| Optimization          | current_implementation | -            | Optimization opportunities pending        |
+| Performance Targets   | current_implementation | 2025-11-24   | Targets documented for API, database, and frontend |
+| Performance Metrics   | current_implementation | 2025-11-24   | Metrics defined but not yet collected   |
+| Monitoring            | current_implementation | 2025-11-24   | Monitoring strategy documented, implementation pending |
+| Optimization          | current_implementation | 2025-11-24   | Optimization opportunities identified    |
 
 ## Best Practices
 
@@ -148,7 +148,17 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 - Update targets
 - Audit performance
 
+## Performance Documentation
+
+### Overview
+- [Performance Overview](./PERFORMANCE_OVERVIEW.md) - High-level summary of all performance targets and status
+
+### Detailed Metrics
+- [API Performance](./metrics/api-performance.md) - API endpoint performance targets and metrics
+- [Database Performance](./metrics/database-performance.md) - Database query performance targets and metrics
+- [Frontend Performance](./metrics/frontend-performance.md) - Frontend application performance targets and metrics
+
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-24
 

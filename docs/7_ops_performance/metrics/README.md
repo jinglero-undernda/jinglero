@@ -6,7 +6,9 @@ This directory contains detailed performance metrics documentation for different
 
 ## Metrics Documents
 
-_Metrics documents will be created when documenting performance using PLAYBOOK_01._
+- [API Performance](./api-performance.md) - API endpoint performance targets, metrics, and monitoring
+- [Database Performance](./database-performance.md) - Database query performance targets, metrics, and monitoring
+- [Frontend Performance](./frontend-performance.md) - Frontend application performance targets, metrics, and monitoring
 
 ## Metrics Structure
 
@@ -38,5 +40,5 @@ See `../playbooks/PLAYBOOK_01_DOCUMENT_TARGETS.md` for instructions on documenti
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-24
 

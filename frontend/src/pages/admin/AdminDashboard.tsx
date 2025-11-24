@@ -81,6 +81,7 @@ import { adminApi } from '../../lib/api/client';
 import DataIntegrityChecker from '../../components/admin/DataIntegrityChecker';
 import { useToast } from '../../components/common/ToastContext';
 import EntitySearchAutocomplete from '../../components/admin/EntitySearchAutocomplete';
+import WarningLabel from '../../components/common/WarningLabel';
 import type { EntityType } from '../../lib/utils/entityDisplay';
 import { FIELD_OPTIONS, TEXTAREA_FIELDS } from '../../lib/config/fieldConfigs';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica, Usuario } from '../../types';
@@ -952,26 +953,39 @@ export default function AdminDashboard() {
               <div
                 key={entityType.type}
                 style={{
-                  border: '1px solid #ddd',
-                  borderRadius: '8px',
-                  padding: '1.5rem',
-                  backgroundColor: 'white',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                  border: `1px solid var(--color-border-primary)`,
+                  borderRadius: 'var(--border-radius-md)',
+                  padding: 'var(--spacing-lg)',
+                  backgroundColor: 'var(--color-bg-secondary)',
+                  boxShadow: 'var(--shadow-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: 'var(--spacing-md)',
                 }}
               >
-                <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1976d2', marginBottom: '0.5rem' }}>
-                  {countsLoading ? '...' : count}
-                </div>
-                <div style={{ fontSize: '1rem', color: '#666', marginBottom: '0.75rem' }}>
-                  {entityType.label}
-                </div>
+                <WarningLabel
+                  value={countsLoading ? '...' : count}
+                  label={entityType.label}
+                  size="medium"
+                />
                 <Link
                   to={`/admin/${entityType.routePrefix}`}
                   style={{
-                    color: '#1976d2',
+                    color: 'var(--color-accent-secondary)',
                     textDecoration: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
+                    fontSize: 'var(--font-size-body-small)',
+                    fontWeight: 'var(--font-weight-semibold)',
+                    fontFamily: 'var(--font-family-signage)',
+                    textTransform: 'uppercase',
+                    letterSpacing: 'var(--letter-spacing-wide)',
+                    transition: 'color var(--transition-fast)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = 'var(--color-accent-interactive)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = 'var(--color-accent-secondary)';
                   }}
                 >
                   Ver todas →

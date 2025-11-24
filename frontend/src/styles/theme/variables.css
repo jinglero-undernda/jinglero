@@ -1,42 +1,175 @@
 :root {
-  /* Color variables */
-  --primary-color: #1a73e8;
-  --secondary-color: #5f6368;
-  --background-color: #ffffff;
-  --text-color: #202124;
-  --error-color: #d93025;
-  --success-color: #1e8e3e;
-  --warning-color: #f9ab00;
-  
-  /* Typography */
-  --font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  --font-size-base: 16px;
-  --line-height-base: 1.5;
-  
-  /* Spacing */
+  /* ============================================
+     INDUSTRIAL DESIGN SYSTEM TOKENS
+     Based on Peronist-era industrial aesthetic
+     ============================================ */
+
+  /* ============================================
+     COLOR TOKENS - Dark Industrial Theme
+     ============================================ */
+
+  /* Base Colors - Dark Industrial Theme */
+  --color-bg-primary: #1a1a1a;        /* Dark charcoal, weathered concrete */
+  --color-bg-secondary: #242424;      /* Slightly lighter charcoal */
+  --color-bg-tertiary: #2d2d2d;       /* Medium grey, metal panels */
+  --color-bg-surface: #333333;        /* Lighter grey, active controls */
+
+  /* Text Colors */
+  --color-text-primary: #e0e0e0;      /* Light grey, high contrast */
+  --color-text-secondary: #b0b0b0;    /* Medium grey */
+  --color-text-tertiary: #808080;     /* Muted grey */
+  --color-text-inverse: #000000;      /* Black for light backgrounds */
+
+  /* Accent Colors - Vibrant, Reserved for Interactions */
+  --color-accent-primary: #ff6b35;     /* Vibrant orange-red, industrial warning */
+  --color-accent-secondary: #4ecdc4;  /* Cyan-turquoise, industrial indicator */
+  --color-accent-interactive: #ffe66d; /* Vibrant yellow, industrial highlight */
+
+  /* Peronist Colors - Available for Accent Use */
+  --color-peronist-blue: #1e3a8a;     /* Deep blue */
+  --color-peronist-white: #ffffff;     /* White */
+
+  /* Semantic Colors - Industrial Aesthetic */
+  --color-success: #4ade80;            /* Vibrant green, industrial "go" */
+  --color-error: #ef4444;              /* Vibrant red, industrial "stop" */
+  --color-warning: #fbbf24;           /* Amber, industrial caution */
+  --color-warning-label-bg: #000000; /* Black for warning labels */
+  --color-warning-label-text: #ffffff; /* White for warning label text */
+
+  /* Border Colors */
+  --color-border-primary: #404040;     /* Medium grey */
+  --color-border-secondary: #555555;  /* Lighter grey */
+  --color-border-accent: var(--color-accent-primary); /* Vibrant accent */
+
+  /* Legacy Color Variables (for backward compatibility) */
+  --primary-color: var(--color-accent-primary);
+  --secondary-color: var(--color-text-secondary);
+  --background-color: var(--color-bg-primary);
+  --text-color: var(--color-text-primary);
+  --error-color: var(--color-error);
+  --success-color: var(--color-success);
+  --warning-color: var(--color-warning);
+
+  /* ============================================
+     TYPOGRAPHY TOKENS - Factory Signage Style
+     ============================================ */
+
+  /* Font Families */
+  --font-family-signage: 'Bebas Neue', 'Impact', 'Arial Black', 'Helvetica Neue', sans-serif;
+  --font-family-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-family-monospace: 'Courier New', 'Courier', 'Lucida Console', monospace;
+
+  /* Legacy Font Family (for backward compatibility) */
+  --font-family: var(--font-family-body);
+
+  /* Font Sizes */
+  --font-size-display: 4rem;          /* 64px - Factory signage extra large */
+  --font-size-h1: 3rem;               /* 48px - Factory signage large */
+  --font-size-h2: 2.25rem;            /* 36px - Factory signage medium large */
+  --font-size-h3: 1.75rem;            /* 28px - Factory signage medium */
+  --font-size-h4: 1.5rem;             /* 24px - Factory signage small */
+  --font-size-h5: 1.25rem;            /* 20px - Navigation/controls */
+  --font-size-h6: 1rem;               /* 16px - Labels */
+  --font-size-body-large: 1.125rem;   /* 18px - Emphasized body */
+  --font-size-body: 1rem;             /* 16px - Standard body */
+  --font-size-body-small: 0.875rem;   /* 14px - Secondary text */
+  --font-size-caption: 0.75rem;       /* 12px - Small labels */
+
+  /* Legacy Font Size (for backward compatibility) */
+  --font-size-base: var(--font-size-body);
+
+  /* Font Weights */
+  --font-weight-bold: 700;
+  --font-weight-semibold: 600;
+  --font-weight-regular: 400;
+  --font-weight-light: 300;
+
+  /* Line Heights */
+  --line-height-tight: 1.1;
+  --line-height-normal: 1.5;
+  --line-height-relaxed: 1.6;
+
+  /* Legacy Line Height (for backward compatibility) */
+  --line-height-base: var(--line-height-normal);
+
+  /* Letter Spacing */
+  --letter-spacing-tight: -0.02em;
+  --letter-spacing-normal: 0;
+  --letter-spacing-wide: 0.05em;
+
+  /* ============================================
+     SPACING TOKENS
+     ============================================ */
+
   --spacing-xs: 4px;
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
-  
-  /* Border radius */
+
+  /* ============================================
+     BORDER TOKENS
+     ============================================ */
+
   --border-radius-sm: 4px;
   --border-radius-md: 8px;
   --border-radius-lg: 16px;
-  
-  /* Transitions */
+
+  /* ============================================
+     SHADOW TOKENS - Industrial Depth
+     ============================================ */
+
+  /* Subtle Depth - Concrete Texture */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.4), inset 0 1px 2px rgba(255, 255, 255, 0.05);
+
+  /* Standard Depth - Metal Panels */
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.5), 0 2px 4px rgba(0, 0, 0, 0.3), inset 0 1px 2px rgba(255, 255, 255, 0.08);
+  --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.6), 0 4px 8px rgba(0, 0, 0, 0.4), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+
+  /* Prominent Depth - Industrial Machinery */
+  --shadow-xl: 0 12px 24px rgba(0, 0, 0, 0.7), 0 6px 12px rgba(0, 0, 0, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.1);
+
+  /* Inset Shadows - Recessed Elements */
+  --shadow-inset: inset 0 2px 4px rgba(0, 0, 0, 0.6), inset 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  /* Glow Effects - Interactive States */
+  --shadow-glow-primary: 0 0 8px rgba(255, 107, 53, 0.4), 0 0 16px rgba(255, 107, 53, 0.2);
+  --shadow-glow-interactive: 0 0 6px rgba(255, 230, 109, 0.3), 0 0 12px rgba(255, 230, 109, 0.15);
+
+  /* ============================================
+     TRANSITION TOKENS
+     ============================================ */
+
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 350ms ease;
-  
-  /* Shadows */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-  
-  /* Z-index layers */
+
+  /* ============================================
+     Z-INDEX LAYERS
+     ============================================ */
+
   --z-index-dropdown: 1000;
   --z-index-modal: 2000;
   --z-index-tooltip: 3000;
+
+  /* ============================================
+     MATERIAL TEXTURE TOKENS
+     (Implementation via CSS classes/components)
+     ============================================ */
+
+  /* Concrete Surfaces */
+  --material-concrete-primary-bg: #1a1a1a;
+  --material-concrete-secondary-bg: #242424;
+  --material-concrete-surface-bg: #2d2d2d;
+
+  /* Metal Surfaces */
+  --material-metal-primary-bg: #2d2d2d;
+  --material-metal-secondary-bg: #333333;
+  --material-metal-control-bg: #3a3a3a;
+
+  /* Patina Effects (opacity values for overlays) */
+  --patina-light-opacity: 0.1;
+  --patina-medium-opacity: 0.2;
+  --patina-heavy-opacity: 0.3;
 }
