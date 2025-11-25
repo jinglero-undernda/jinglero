@@ -429,6 +429,62 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
 - [ ] Services start on boot (backend and nginx enabled)
 - [ ] SSL/TLS configured (if using HTTPS)
 
+## Troubleshooting
+
+### Frontend Build Errors
+
+**Issue**: TypeScript compilation errors during `npm run build` with "Cannot find module" errors.
+
+**Symptoms**:
+
+- Multiple TypeScript errors like `error TS2307: Cannot find module './lib/api/client'`
+- Build fails at `tsc -b` step
+- All errors are module resolution issues
+
+**Solution**:
+
+1. **Check TypeScript Configuration**: Ensure `tsconfig.app.json` has correct module resolution:
+
+   ```json
+   {
+     "compilerOptions": {
+       "moduleResolution": "node",
+       "baseUrl": ".",
+       "paths": {
+         "@/*": ["./src/*"],
+         "@lib/*": ["./src/lib/*"]
+       }
+     }
+   }
+   ```
+
+2. **Verify Files Exist**: Ensure all imported files exist:
+
+   ```bash
+   cd /home/pi/jinglero/frontend
+   ls -la src/lib/api/client.ts  # Should exist
+   ```
+
+3. **Clean and Rebuild**:
+
+   ```bash
+   cd /home/pi/jinglero/frontend
+   rm -rf node_modules dist
+   npm install
+   npm run build
+   ```
+
+4. **Alternative**: If TypeScript errors persist, you can skip type checking in build:
+   - Modify `package.json` build script: `"build": "vite build"` (remove `tsc -b &&`)
+   - Run type checking separately: `npm run type-check`
+
+**Code Reference**:
+
+- `frontend/tsconfig.app.json` (TypeScript configuration)
+- `frontend/package.json:8` (build script)
+
+---
+
 ## Change History
 
 | Date       | Change Description               | Changed By   |

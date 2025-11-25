@@ -16,11 +16,13 @@ This directory contains detailed infrastructure documentation for different infr
 Each infrastructure document should include:
 
 1. **Metadata**
+
    - Infrastructure area and category
    - Status (draft | current_implementation | validated | implemented | deprecated)
    - Last updated date
 
 2. **Infrastructure Definitions**
+
    - Infrastructure components
    - Infrastructure provisioning
    - Infrastructure management
@@ -37,4 +39,3 @@ See `../playbooks/PLAYBOOK_01_DOCUMENT_PROCESS.md` for instructions on documenti
 ---
 
 **Last Updated:** 2025-11-25
-
