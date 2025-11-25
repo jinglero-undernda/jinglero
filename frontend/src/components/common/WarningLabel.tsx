@@ -1,4 +1,3 @@
-import React from 'react';
 import '../../styles/components/warning-label.css';
 
 export interface WarningLabelProps {

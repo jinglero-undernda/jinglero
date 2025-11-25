@@ -1049,10 +1049,12 @@ router.get('/entities/tematicas/:id/related', async (req, res) => {
     const limit = neo4j.int(limitInt);
 
     // Get Jingles tagged with this Tematica, including Fabrica data
+    // BUG_0012: Get timestamp from APPEARS_IN relationship, not from Jingle node
     const jinglesByTematicaQuery = `
       MATCH (t:Tematica {id: $tId})<-[:TAGGED_WITH]-(j:Jingle)
       OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
-      RETURN j { .id, .title, .songTitle, .comment, .timestamp, .createdAt, .updatedAt, .isJinglazo, .isJinglazoDelDia, .isPrecario, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle,
+      RETURN j { .id, .title, .songTitle, .comment, .createdAt, .updatedAt, .isJinglazo, .isJinglazoDelDia, .isPrecario, .fabricaId, .fabricaDate, .isLive, .isRepeat } AS jingle,
+             appearsIn.timestamp AS timestamp,
              f { .id, .title, .date, .updatedAt } AS fabrica
       ORDER BY j.updatedAt DESC
       LIMIT $limit
@@ -1061,12 +1063,14 @@ router.get('/entities/tematicas/:id/related', async (req, res) => {
     const jinglesByTematica = await db.executeQuery<any>(jinglesByTematicaQuery, { tId: id, limit });
 
     // Include fabrica data with each jingle for EntityCard display
+    // BUG_0012: Include timestamp from APPEARS_IN relationship
     const filteredJingles = jinglesByTematica.filter((r: any) => r && r.jingle);
     const convertedJingles = filteredJingles.map((r: any) => {
       const jingle = convertNeo4jDates(r.jingle);
       const fabrica = r.fabrica ? convertNeo4jDates(r.fabrica) : null;
       return {
         ...jingle,
+        timestamp: r.timestamp ?? null, // Include timestamp from APPEARS_IN relationship (may be null)
         fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
       };
     });

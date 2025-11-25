@@ -6,7 +6,10 @@ This directory contains detailed infrastructure documentation for different infr
 
 ## Infrastructure Documents
 
-_Infrastructure documents will be created when documenting deployment using PLAYBOOK_01._
+- **`raspberry-pi-deployment.md`** - Complete deployment process for Raspberry Pi 3B
+- **`environments.md`** - Environment configuration for production deployment
+- **`hardware.md`** - Hardware infrastructure specifications and management
+- **`deployment-overview.md`** - High-level deployment overview and summary
 
 ## Infrastructure Structure
 
@@ -33,5 +36,5 @@ See `../playbooks/PLAYBOOK_01_DOCUMENT_PROCESS.md` for instructions on documenti
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-25
 

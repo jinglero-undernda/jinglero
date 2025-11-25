@@ -106,9 +106,9 @@ Deployment documents can be used to validate code by:
 
 | Category              | Status                 | Last Updated | Notes                                    |
 | --------------------- | ---------------------- | ------------ | ---------------------------------------- |
-| Deployment Processes  | current_implementation | -            | Deployment processes pending             |
-| Environment Config    | current_implementation | -            | Environment configuration pending        |
-| Infrastructure        | current_implementation | -            | Infrastructure as code pending           |
+| Deployment Processes  | current_implementation | 2025-11-25   | Raspberry Pi 3B deployment documented    |
+| Environment Config    | current_implementation | 2025-11-25   | Production environment configuration documented |
+| Infrastructure        | current_implementation | 2025-11-25   | Raspberry Pi 3B hardware documented      |
 | CI/CD Pipelines       | current_implementation | -            | CI/CD pipeline configuration pending    |
 
 ## Best Practices
@@ -150,5 +150,5 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-11-25
 
