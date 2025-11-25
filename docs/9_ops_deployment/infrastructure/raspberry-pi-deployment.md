@@ -440,15 +440,22 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
 - Multiple TypeScript errors like `error TS2307: Cannot find module './lib/api/client'`
 - Build fails at `tsc -b` step
 - All errors are module resolution issues
+- Errors occur because `tsc -b` doesn't support `moduleResolution: "bundler"` required for Vite
+
+**Root Cause**:
+
+The build script uses `tsc -b` (TypeScript build with project references), which doesn't work with `moduleResolution: "bundler"` mode required by Vite. The solution is to use `tsc --noEmit` for type checking instead, letting Vite handle the actual build.
 
 **Solution**:
 
-1. **Check TypeScript Configuration**: Ensure `tsconfig.app.json` has correct module resolution:
+1. **Verify TypeScript Configuration**: Ensure `tsconfig.app.json` uses bundler mode (required for Vite):
 
    ```json
    {
      "compilerOptions": {
-       "moduleResolution": "node",
+       "moduleResolution": "bundler",
+       "allowImportingTsExtensions": true,
+       "verbatimModuleSyntax": true,
        "baseUrl": ".",
        "paths": {
          "@/*": ["./src/*"],
@@ -458,14 +465,24 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
    }
    ```
 
-2. **Verify Files Exist**: Ensure all imported files exist:
+2. **Verify Build Script**: Ensure `package.json` uses `tsc --noEmit` instead of `tsc -b`:
+
+   ```json
+   {
+     "scripts": {
+       "build": "tsc --noEmit && vite build"
+     }
+   }
+   ```
+
+3. **Verify Files Exist**: Ensure all imported files exist:
 
    ```bash
    cd /home/pi/jinglero/frontend
    ls -la src/lib/api/client.ts  # Should exist
    ```
 
-3. **Clean and Rebuild**:
+4. **Clean and Rebuild**:
 
    ```bash
    cd /home/pi/jinglero/frontend
@@ -474,9 +491,12 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
    npm run build
    ```
 
-4. **Alternative**: If TypeScript errors persist, you can skip type checking in build:
-   - Modify `package.json` build script: `"build": "vite build"` (remove `tsc -b &&`)
-   - Run type checking separately: `npm run type-check`
+**Explanation**:
+
+- `tsc --noEmit` performs type checking without emitting files, compatible with bundler mode
+- `tsc -b` uses project references and doesn't support bundler mode
+- Vite handles the actual build with its own bundler resolution
+- This configuration works identically on local machines and Raspberry Pi
 
 **Code Reference**:
 

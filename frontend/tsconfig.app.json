@@ -10,9 +10,9 @@
     "incremental": true,
 
     /* Bundler mode */
-    "moduleResolution": "node",
-    "allowImportingTsExtensions": false,
-    "verbatimModuleSyntax": false,
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
     "moduleDetection": "force",
     "noEmit": true,
     "jsx": "react-jsx",
