@@ -1,6 +1,7 @@
 # Deployment Overview
 
 ## Status
+
 - **Status**: current_implementation
 - **Last Updated**: 2025-11-25
 - **Version**: 1.0
@@ -41,16 +42,16 @@ This document provides a high-level overview of the Jinglero application deploym
 
 ### Current Implementation Status
 
-| Process | Status | Document | Last Updated |
-|---------|--------|----------|--------------|
-| Hardware Setup | current_implementation | `hardware.md` | 2025-11-25 |
-| Node.js Installation | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25 |
-| Application Deployment | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25 |
-| Environment Configuration | current_implementation | `environments.md` | 2025-11-25 |
-| Backend Service Setup | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25 |
-| Frontend Web Server Setup | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25 |
-| Firewall Configuration | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25 |
-| SSL/TLS Configuration | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25 |
+| Process                   | Status                 | Document                     | Last Updated |
+| ------------------------- | ---------------------- | ---------------------------- | ------------ |
+| Hardware Setup            | current_implementation | `hardware.md`                | 2025-11-25   |
+| Node.js Installation      | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
+| Application Deployment    | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
+| Environment Configuration | current_implementation | `environments.md`            | 2025-11-25   |
+| Backend Service Setup     | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
+| Frontend Web Server Setup | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
+| Firewall Configuration    | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
+| SSL/TLS Configuration     | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
 
 ### Process Summary
 
@@ -74,6 +75,7 @@ This document provides a high-level overview of the Jinglero application deploym
 - **Database**: Neo4j Aura (cloud-hosted)
 
 **Key Environment Variables**:
+
 - `PORT`: Backend server port (default: 3000)
 - `NEO4J_URI`: Neo4j Aura connection URI
 - `NEO4J_PASSWORD`: Neo4j database password
@@ -86,6 +88,7 @@ See `environments.md` for complete environment variable documentation.
 ### Hardware Components
 
 1. **Raspberry Pi 3B**: Single-board computer
+
    - CPU: Quad-core Cortex-A53 @ 1.2GHz
    - RAM: 1GB
    - Storage: microSD card (minimum 16GB)
@@ -98,16 +101,19 @@ See `environments.md` for complete environment variable documentation.
 ### Software Components
 
 1. **Backend**: Node.js/Express/TypeScript API server
+
    - Runs as systemd service
    - Listens on port 3000
    - Connects to Neo4j Aura database
 
 2. **Frontend**: React/Vite application
+
    - Built as static files
    - Served by nginx
    - Proxies API requests to backend
 
 3. **Web Server**: Nginx
+
    - Serves frontend static files
    - Proxies `/api` requests to backend
    - Handles SSL/TLS (if configured)
@@ -124,6 +130,7 @@ See `hardware.md` for detailed infrastructure documentation.
 **Status**: Not yet implemented
 
 Currently, deployment is manual. Future enhancements may include:
+
 - Automated deployment scripts
 - CI/CD pipeline for automated testing and deployment
 - Version management and rollback capabilities
@@ -174,16 +181,19 @@ Estimated deployment time: **2-3 hours** for initial setup
 ### Regular Maintenance Tasks
 
 1. **System Updates**: Monthly
+
    - `sudo apt update && sudo apt upgrade`
    - Update Node.js if needed
    - Update application dependencies
 
 2. **Backup**: Weekly
+
    - Backup application data
    - Backup configuration files
    - Backup environment variables (securely)
 
 3. **Monitoring**: Daily
+
    - Check service status
    - Monitor resource usage
    - Review logs for errors
@@ -196,6 +206,7 @@ Estimated deployment time: **2-3 hours** for initial setup
 ### Troubleshooting
 
 Common issues and solutions documented in:
+
 - `raspberry-pi-deployment.md` - Deployment process troubleshooting
 - `environments.md` - Environment configuration troubleshooting
 - `hardware.md` - Hardware and infrastructure troubleshooting
@@ -219,7 +230,6 @@ Common issues and solutions documented in:
 
 ## Change History
 
-| Date       | Change Description                    | Changed By |
-| ---------- | ------------------------------------- | ---------- |
-| 2025-11-25 | Initial deployment overview          | AI Assistant |
-
+| Date       | Change Description          | Changed By   |
+| ---------- | --------------------------- | ------------ |
+| 2025-11-25 | Initial deployment overview | AI Assistant |

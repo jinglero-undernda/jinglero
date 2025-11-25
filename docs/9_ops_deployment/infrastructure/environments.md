@@ -1,6 +1,7 @@
 # Environment Configuration
 
 ## Status
+
 - **Status**: current_implementation
 - **Last Updated**: 2025-11-25
 - **Last Validated**: not yet validated
@@ -15,33 +16,34 @@ This document describes the environment configuration for the Jinglero applicati
 
 **Purpose**: Production environment running on Raspberry Pi 3B hardware.
 
-**Variables**: 
+**Variables**:
 
 #### Required Environment Variables
 
-| Variable | Description | Example | Code Reference |
-|----------|-------------|---------|----------------|
-| `PORT` | Backend server port | `3000` | `backend/src/server/index.ts:11` |
-| `NEO4J_URI` | Neo4j Aura database connection URI | `neo4j+s://your-instance.databases.neo4j.io` | `backend/src/server/db/index.ts:17` |
-| `NEO4J_PASSWORD` | Neo4j database password | `your-secure-password` | `backend/src/server/db/index.ts:20` |
+| Variable         | Description                        | Example                                      | Code Reference                      |
+| ---------------- | ---------------------------------- | -------------------------------------------- | ----------------------------------- |
+| `PORT`           | Backend server port                | `3000`                                       | `backend/src/server/index.ts:11`    |
+| `NEO4J_URI`      | Neo4j Aura database connection URI | `neo4j+s://your-instance.databases.neo4j.io` | `backend/src/server/db/index.ts:17` |
+| `NEO4J_PASSWORD` | Neo4j database password            | `your-secure-password`                       | `backend/src/server/db/index.ts:20` |
 
 #### Optional Environment Variables
 
-| Variable | Description | Default | Code Reference |
-|----------|-------------|---------|----------------|
-| `NODE_ENV` | Node.js environment | `production` (when set) | Used by various dependencies |
-| `NEO4J_AURA_CLIENT_ID` | Neo4j Aura API client ID (for auto-resume) | Not set | `backend/src/server/db/aura-manager.ts:24` |
-| `NEO4J_AURA_CLIENT_SECRET` | Neo4j Aura API client secret (for auto-resume) | Not set | `backend/src/server/db/aura-manager.ts:25` |
-| `NEO4J_AURA_API_TOKEN` | Neo4j Aura API token (alternative to client ID/secret) | Not set | `backend/src/server/db/aura-manager.ts:26` |
-| `NEO4J_AURA_API_USERNAME` | Neo4j Aura API username (alternative auth) | Not set | `backend/src/server/db/aura-manager.ts:27` |
-| `NEO4J_AURA_API_PASSWORD` | Neo4j Aura API password (alternative auth) | Not set | `backend/src/server/db/aura-manager.ts:28` |
-| `NEO4J_AURA_INSTANCE_ID` | Neo4j Aura instance ID (for auto-resume) | Not set | `backend/src/server/db/aura-manager.ts:29` |
-| `NEO4J_AUTO_RESUME_ENABLED` | Enable automatic resume of paused Aura instances | `true` | `backend/src/server/db/aura-manager.ts:32` |
-| `NEO4J_RESUME_RETRY_MAX` | Maximum retry attempts for database operations | `3` | `backend/src/server/db/index.ts:36` |
-| `NEO4J_RESUME_INITIAL_DELAY` | Initial delay before retry (ms) | `15000` | `backend/src/server/db/index.ts:37` |
-| `NEO4J_RESUME_COOLDOWN` | Cooldown period between resume attempts (ms) | `60000` | `backend/src/server/db/aura-manager.ts:35-37` |
+| Variable                     | Description                                            | Default                 | Code Reference                                |
+| ---------------------------- | ------------------------------------------------------ | ----------------------- | --------------------------------------------- |
+| `NODE_ENV`                   | Node.js environment                                    | `production` (when set) | Used by various dependencies                  |
+| `NEO4J_AURA_CLIENT_ID`       | Neo4j Aura API client ID (for auto-resume)             | Not set                 | `backend/src/server/db/aura-manager.ts:24`    |
+| `NEO4J_AURA_CLIENT_SECRET`   | Neo4j Aura API client secret (for auto-resume)         | Not set                 | `backend/src/server/db/aura-manager.ts:25`    |
+| `NEO4J_AURA_API_TOKEN`       | Neo4j Aura API token (alternative to client ID/secret) | Not set                 | `backend/src/server/db/aura-manager.ts:26`    |
+| `NEO4J_AURA_API_USERNAME`    | Neo4j Aura API username (alternative auth)             | Not set                 | `backend/src/server/db/aura-manager.ts:27`    |
+| `NEO4J_AURA_API_PASSWORD`    | Neo4j Aura API password (alternative auth)             | Not set                 | `backend/src/server/db/aura-manager.ts:28`    |
+| `NEO4J_AURA_INSTANCE_ID`     | Neo4j Aura instance ID (for auto-resume)               | Not set                 | `backend/src/server/db/aura-manager.ts:29`    |
+| `NEO4J_AUTO_RESUME_ENABLED`  | Enable automatic resume of paused Aura instances       | `true`                  | `backend/src/server/db/aura-manager.ts:32`    |
+| `NEO4J_RESUME_RETRY_MAX`     | Maximum retry attempts for database operations         | `3`                     | `backend/src/server/db/index.ts:36`           |
+| `NEO4J_RESUME_INITIAL_DELAY` | Initial delay before retry (ms)                        | `15000`                 | `backend/src/server/db/index.ts:37`           |
+| `NEO4J_RESUME_COOLDOWN`      | Cooldown period between resume attempts (ms)           | `60000`                 | `backend/src/server/db/aura-manager.ts:35-37` |
 
-**Code Reference**: 
+**Code Reference**:
+
 - `backend/src/server/index.ts:8` (dotenv.config())
 - `backend/src/server/db/index.ts:16-38` (Neo4j configuration)
 - `backend/src/server/db/aura-manager.ts:22-64` (Aura Manager configuration)
@@ -55,6 +57,7 @@ Environment variables are loaded from a `.env` file in the `backend/` directory 
 3. Never be committed to version control (should be in `.gitignore`)
 
 Example `.env` file:
+
 ```env
 # Server Configuration
 PORT=3000
@@ -149,6 +152,7 @@ Development environment uses the same `.env` file structure but with development
 ### Environment Variable Validation
 
 Run validation script (to be created):
+
 ```bash
 cd /home/pi/jinglero/backend
 node -e "
@@ -197,7 +201,6 @@ console.log('All required environment variables are set');
 
 ## Change History
 
-| Date       | Change Description                    | Changed By |
-| ---------- | ------------------------------------- | ---------- |
+| Date       | Change Description                              | Changed By   |
+| ---------- | ----------------------------------------------- | ------------ |
 | 2025-11-25 | Initial environment configuration documentation | AI Assistant |
-

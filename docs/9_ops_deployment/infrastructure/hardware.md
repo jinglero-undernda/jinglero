@@ -1,6 +1,7 @@
 # Infrastructure: Raspberry Pi 3B Hardware
 
 ## Status
+
 - **Status**: current_implementation
 - **Last Updated**: 2025-11-25
 - **Last Validated**: not yet validated
@@ -16,10 +17,11 @@ This document describes the hardware infrastructure for the Jinglero application
 **Type**: Single-Board Computer (SBC)
 
 **Specifications**:
+
 - **CPU**: Broadcom BCM2837, Quad-core Cortex-A53 (ARMv8) 64-bit @ 1.2GHz
 - **RAM**: 1GB LPDDR2 SDRAM
 - **Storage**: microSD card (minimum 16GB, Class 10 recommended)
-- **Networking**: 
+- **Networking**:
   - 10/100 Ethernet
   - 2.4GHz 802.11n Wireless LAN
   - Bluetooth 4.1
@@ -33,14 +35,14 @@ This document describes the hardware infrastructure for the Jinglero application
 **Provisioning**:
 
 1. **Hardware Acquisition**: Obtain Raspberry Pi 3B board
-2. **Storage Setup**: 
+2. **Storage Setup**:
    - Format microSD card (minimum 16GB, Class 10)
    - Flash Raspberry Pi OS (64-bit recommended) using Raspberry Pi Imager
 3. **Initial Configuration**:
    - Enable SSH by creating empty `ssh` file in boot partition
    - Configure WiFi (if using) via `wpa_supplicant.conf` in boot partition
 4. **Power and Boot**: Connect power supply and boot the device
-5. **Network Configuration**: 
+5. **Network Configuration**:
    - Connect via SSH: `ssh pi@<raspberry-pi-ip>`
    - Optionally configure static IP address
 6. **System Updates**: `sudo apt update && sudo apt upgrade -y`
@@ -48,7 +50,7 @@ This document describes the hardware infrastructure for the Jinglero application
 **Management**:
 
 1. **Remote Access**: SSH access for administration
-2. **System Monitoring**: 
+2. **System Monitoring**:
    - Temperature monitoring: `vcgencmd measure_temp`
    - CPU usage: `top` or `htop`
    - Memory usage: `free -h`
@@ -120,6 +122,7 @@ This document describes the hardware infrastructure for the Jinglero application
 **Type**: Network Configuration
 
 **Components**:
+
 - **Ethernet**: 10/100 Ethernet connection (recommended for server use)
 - **WiFi**: 2.4GHz 802.11n (optional, for wireless deployment)
 - **Firewall**: ufw (Uncomplicated Firewall)
@@ -141,11 +144,11 @@ This document describes the hardware infrastructure for the Jinglero application
 
 **Management**:
 
-1. **Network Monitoring**: 
+1. **Network Monitoring**:
    - Check connectivity: `ping google.com`
    - Check IP address: `hostname -I`
    - Monitor network traffic: `iftop` or `nethogs`
-2. **Firewall Management**: 
+2. **Firewall Management**:
    - View rules: `sudo ufw status verbose`
    - Add rules: `sudo ufw allow <port>/<protocol>`
    - View logs: `sudo tail -f /var/log/ufw.log`
@@ -171,6 +174,7 @@ This document describes the hardware infrastructure for the Jinglero application
 **Type**: Storage
 
 **Components**:
+
 - **Primary Storage**: microSD card (minimum 16GB, Class 10)
 - **Backup Storage**: External USB drive or network storage (optional)
 
@@ -184,14 +188,14 @@ This document describes the hardware infrastructure for the Jinglero application
 
 **Management**:
 
-1. **Disk Monitoring**: 
+1. **Disk Monitoring**:
    - Check disk usage: `df -h`
    - Check disk health: `sudo smartctl -a /dev/mmcblk0` (if supported)
 2. **Backup Strategy**:
    - Regular backups of application data
    - Backup configuration files
    - Consider automated backup scripts
-3. **Disk Cleanup**: 
+3. **Disk Cleanup**:
    - Remove old logs: `sudo journalctl --vacuum-time=7d`
    - Clean package cache: `sudo apt-get clean`
    - Remove unused packages: `sudo apt-get autoremove`
@@ -215,6 +219,7 @@ This document describes the hardware infrastructure for the Jinglero application
 ### External Services
 
 1. **Neo4j Aura**: Cloud-hosted Neo4j database (no local database required)
+
    - Connection via internet
    - Requires `NEO4J_URI` and `NEO4J_PASSWORD` environment variables
    - Optional: Aura Management API for auto-resume functionality
@@ -271,7 +276,6 @@ This document describes the hardware infrastructure for the Jinglero application
 
 ## Change History
 
-| Date       | Change Description                    | Changed By |
-| ---------- | ------------------------------------- | ---------- |
+| Date       | Change Description                            | Changed By   |
+| ---------- | --------------------------------------------- | ------------ |
 | 2025-11-25 | Initial hardware infrastructure documentation | AI Assistant |
-
