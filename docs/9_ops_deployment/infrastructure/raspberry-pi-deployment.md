@@ -444,7 +444,8 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
 
 **Root Cause**:
 
-The build script uses `tsc -b` (TypeScript build with project references), which doesn't work with `moduleResolution: "bundler"` mode required by Vite. The solution is to use `tsc --noEmit` for type checking instead, letting Vite handle the actual build.
+1. The build script uses `tsc -b` (TypeScript build with project references), which doesn't work with `moduleResolution: "bundler"` mode required by Vite. The solution is to use `tsc --noEmit` for type checking instead, letting Vite handle the actual build.
+2. Vite/Rollup may fail to resolve TypeScript imports without explicit extensions if `resolve.extensions` is not configured in `vite.config.ts`.
 
 **Solution**:
 
@@ -475,14 +476,28 @@ The build script uses `tsc -b` (TypeScript build with project references), which
    }
    ```
 
-3. **Verify Files Exist**: Ensure all imported files exist:
+3. **Verify Vite Configuration**: Ensure `vite.config.ts` includes `resolve.extensions` for TypeScript file resolution:
+
+   ```typescript
+   export default defineConfig({
+     resolve: {
+       alias: {
+         // ... aliases ...
+       },
+       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
+     },
+     // ... rest of config ...
+   })
+   ```
+
+4. **Verify Files Exist**: Ensure all imported files exist:
 
    ```bash
    cd /home/pi/jinglero/frontend
    ls -la src/lib/api/client.ts  # Should exist
    ```
 
-4. **Clean and Rebuild**:
+5. **Clean and Rebuild**:
 
    ```bash
    cd /home/pi/jinglero/frontend
@@ -502,6 +517,7 @@ The build script uses `tsc -b` (TypeScript build with project references), which
 
 - `frontend/tsconfig.app.json` (TypeScript configuration)
 - `frontend/package.json:8` (build script)
+- `frontend/vite.config.ts:19` (resolve.extensions configuration)
 
 ---
 
