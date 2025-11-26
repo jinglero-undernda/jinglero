@@ -52,7 +52,7 @@ This document describes the environment configuration for the Jinglero applicati
 
 Environment variables are loaded from a `.env` file in the `backend/` directory using the `dotenv` package. The file should:
 
-1. Be located at `/home/pi/jinglero/backend/.env`
+1. Be located at `/var/www/jinglero/backend/.env`
 2. Have secure file permissions: `chmod 600 .env`
 3. Never be committed to version control (should be in `.gitignore`)
 
@@ -87,11 +87,11 @@ NEO4J_RESUME_COOLDOWN=60000
 
 **Validation**:
 
-1. Verify `.env` file exists: `ls -la /home/pi/jinglero/backend/.env`
-2. Verify file permissions: `ls -l /home/pi/jinglero/backend/.env` (should show `-rw-------`)
+1. Verify `.env` file exists: `ls -la /var/www/jinglero/backend/.env`
+2. Verify file permissions: `ls -l /var/www/jinglero/backend/.env` (should show `-rw-------`)
 3. Verify required variables are set:
    ```bash
-   cd /home/pi/jinglero/backend
+   cd /var/www/jinglero/backend
    node -e "require('dotenv').config(); console.log('PORT:', process.env.PORT); console.log('NEO4J_URI:', process.env.NEO4J_URI ? 'Set' : 'Not set'); console.log('NEO4J_PASSWORD:', process.env.NEO4J_PASSWORD ? 'Set' : 'Not set');"
    ```
 4. Test database connection: Start backend server and verify it connects to Neo4j
@@ -134,7 +134,7 @@ Development environment uses the same `.env` file structure but with development
 
 ### Initial Setup
 
-1. Navigate to backend directory: `cd /home/pi/jinglero/backend`
+1. Navigate to backend directory: `cd /var/www/jinglero/backend`
 2. Create `.env` file: `nano .env`
 3. Add required environment variables (see example above)
 4. Save file: `Ctrl+X`, `Y`, `Enter`
@@ -143,7 +143,7 @@ Development environment uses the same `.env` file structure but with development
 
 ### Updating Environment Variables
 
-1. Edit `.env` file: `nano /home/pi/jinglero/backend/.env`
+1. Edit `.env` file: `nano /var/www/jinglero/backend/.env`
 2. Make changes to environment variables
 3. Save file
 4. Restart backend service: `sudo systemctl restart jinglero-backend.service`
@@ -154,7 +154,7 @@ Development environment uses the same `.env` file structure but with development
 Run validation script (to be created):
 
 ```bash
-cd /home/pi/jinglero/backend
+cd /var/www/jinglero/backend
 node -e "
 require('dotenv').config();
 const required = ['PORT', 'NEO4J_URI', 'NEO4J_PASSWORD'];

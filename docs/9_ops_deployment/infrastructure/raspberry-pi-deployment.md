@@ -105,26 +105,30 @@ Node.js is required to run the backend server. The LTS version is recommended fo
 1. Install Git if not already installed: `sudo apt-get install -y git`
 2. Clone the repository:
    ```bash
-   cd /home/pi
-   git clone <repository-url> jinglero
+   cd /var/www
+   sudo git clone <repository-url> jinglero
    cd jinglero
    ```
-3. Install backend dependencies:
+3. Set proper ownership and permissions (required since `/var/www` is typically owned by root):
+   ```bash
+   sudo chown -R pi:pi /var/www/jinglero
+   ```
+4. Install backend dependencies:
    ```bash
    cd backend
    npm install
    ```
-4. Install frontend dependencies:
+5. Install frontend dependencies:
    ```bash
    cd ../frontend
    npm install
    ```
-5. Build backend TypeScript code:
+6. Build backend TypeScript code:
    ```bash
    cd ../backend
    npm run build
    ```
-6. Build frontend React application:
+7. Build frontend React application:
    ```bash
    cd ../frontend
    npm run build
@@ -138,7 +142,7 @@ Node.js is required to run the backend server. The LTS version is recommended fo
 - `frontend/package.json:6-9` (build script)
 
 **Context**:
-This process sets up the application code on the server. The backend is compiled from TypeScript to JavaScript, and the frontend is built into static files for serving.
+This process sets up the application code on the server. The backend is compiled from TypeScript to JavaScript, and the frontend is built into static files for serving. The application is stored in `/var/www/jinglero` following standard web server conventions. Since `/var/www` is typically owned by root, ownership must be changed to the `pi` user so the systemd service can access the files.
 
 **Validation**:
 
@@ -161,7 +165,7 @@ This process sets up the application code on the server. The backend is compiled
 
 1. Create backend `.env` file:
    ```bash
-   cd /home/pi/jinglero/backend
+   cd /var/www/jinglero/backend
    nano .env
    ```
 2. Add required environment variables (see `infrastructure/environments.md` for details):
@@ -220,7 +224,7 @@ Environment variables configure the application's connection to Neo4j Aura datab
    [Service]
    Type=simple
    User=pi
-   WorkingDirectory=/home/pi/jinglero/backend
+   WorkingDirectory=/var/www/jinglero/backend
    Environment="NODE_ENV=production"
    ExecStart=/usr/bin/node dist/server/index.js
    Restart=always
@@ -282,7 +286,7 @@ Running the backend as a systemd service ensures it starts automatically on boot
        server_name _;  # Replace with domain name if available
 
        # Serve frontend static files
-       root /home/pi/jinglero/frontend/dist;
+       root /var/www/jinglero/frontend/dist;
        index index.html;
 
        # Frontend routes (SPA routing)
@@ -484,23 +488,23 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
        alias: {
          // ... aliases ...
        },
-       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
+       extensions: [".mjs", ".js", ".mts", ".ts", ".jsx", ".tsx", ".json"],
      },
      // ... rest of config ...
-   })
+   });
    ```
 
 4. **Verify Files Exist**: Ensure all imported files exist:
 
    ```bash
-   cd /home/pi/jinglero/frontend
+   cd /var/www/jinglero/frontend
    ls -la src/lib/api/client.ts  # Should exist
    ```
 
 5. **Clean and Rebuild**:
 
    ```bash
-   cd /home/pi/jinglero/frontend
+   cd /var/www/jinglero/frontend
    rm -rf node_modules dist
    npm install
    npm run build
