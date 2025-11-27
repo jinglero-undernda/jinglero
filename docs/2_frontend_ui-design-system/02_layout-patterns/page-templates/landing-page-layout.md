@@ -3,10 +3,13 @@
 ## Status
 
 - **Status**: draft
-- **Last Updated**: 2025-01-20
-- **Last Validated**: not yet validated
+- **Last Updated**: 2025-11-26
+- **Last Validated**: 2025-11-26
+- **Validation Report**: `landing-page-layout-validation-2025-11-26.md`
+- **Gap Analysis**: `landing-page-layout-gap-analysis-2025-11-26.md`
 - **Code Reference**: `frontend/src/pages/Home.tsx:57-108`, `frontend/src/styles/pages/home.css:1-146`
 - **Workflow Reference**: `WORKFLOW_010_basic-navigation-access.md`
+- **Design Intent Interview**: 2025-11-26
 
 ## Overview
 
@@ -28,82 +31,138 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 - **Styles**: `frontend/src/styles/pages/home.css`
 - **User Role**: GUEST (public access)
 
+## Visual Metaphor
+
+**Design Concept**: The landing page represents a supervisor walking through the factory floor, with progressive reveal of content sections as the user scrolls. The initial view shows a factory entrance sign (Filete-style welcome sign), which disappears on scroll to reveal the factory floor (content sections).
+
 ## Layout Structure
 
 ### Overall Page Container
 
 ```
 ┌─────────────────────────────────────────┐
+│  <header className="floating-header">   │  (Floating, semi-transparent)
+│  - Advanced Search Button               │
+│  - Login/Authentication Button          │
+└─────────────────────────────────────────┘
+┌─────────────────────────────────────────┐
 │  <main className="home-page">           │
 │  ┌───────────────────────────────────┐  │
-│  │  Hero Section                     │  │
-│  │  - Title                          │  │
-│  │  - Subtitle                       │  │
-│  │  - Global Search Interface        │  │
+│  │  Hero Section (Filete Sign)       │  │
+│  │  - "Bienvenidos a la Usina..."    │  │
+│  │  - Colorful Filete decorations    │  │
+│  │  - Disappears on scroll            │  │
 │  └───────────────────────────────────┘  │
 │  ┌───────────────────────────────────┐  │
-│  │  Featured Content Section          │  │
-│  │  - Featured Fabrica Display       │  │
-│  │  - Featured Entities Section      │  │
+│  │  Full-Width Search Bar             │  │
+│  │  - Appears when scrolling          │  │
+│  │  - Sticky/fixed behavior           │  │
 │  └───────────────────────────────────┘  │
 │  ┌───────────────────────────────────┐  │
-│  │  Navigation Links Section          │  │
-│  │  - Advanced Search Link           │  │
-│  │  - Login/Authentication Link      │  │
+│  │  Featured Fabrica Placeholder      │  │
+│  │  - 16:9 aspect ratio               │  │
+│  │  - Full page width                 │  │
+│  │  - "PROXIMAMENTE..." message       │  │
+│  └───────────────────────────────────┘  │
+│  ┌───────────────────────────────────┐  │
+│  │  Volumetric Indicators Section    │  │
+│  │  - Entity counts (WarningLabel)    │  │
+│  │  - 6 entity types                 │  │
+│  └───────────────────────────────────┘  │
+│  ┌───────────────────────────────────┐  │
+│  │  Featured Entities Section        │  │
+│  │  - 5 Fabricas                     │  │
+│  │  - 5 Canciones                    │  │
+│  │  - 5 Proveedores                   │  │
+│  │  - 5 Jingleros                    │  │
+│  │  - 5 Jingles                      │  │
+│  │  - 5 Temáticas                    │  │
 │  └───────────────────────────────────┘  │
 └─────────────────────────────────────────┘
 ```
 
 ### Layout Zones
 
-1. **Hero Zone** (Top section, centered)
+1. **Hero Zone** (Initial view, centered, full viewport)
 
-   - Primary branding and messaging
-   - Global search interface (prominent placement)
-   - Maximum visual impact
+   - Filete-style welcome sign
+   - Disappears on scroll (parallax/sticky effect)
+   - Maximum visual impact on initial load
 
-2. **Featured Content Zone** (Main content area)
+2. **Search Zone** (Full-width, sticky)
 
-   - Featured Fabrica display
-   - Featured entities section
-   - Content discovery focus
+   - Full-width search bar
+   - Appears when scrolling through page
+   - Sticky/fixed positioning
 
-3. **Navigation Zone** (Supporting navigation)
-   - Advanced Search access
-   - Authentication access
-   - Additional navigation options
+3. **Featured Content Zone** (Progressive reveal)
+
+   - Featured Fabrica placeholder (16:9, full-width)
+   - Volumetric indicators (entity counts)
+   - Featured entities by type (6 subsections)
+
+4. **Navigation Zone** (Floating header)
+   - Semi-transparent floating header
+   - Factory signage aesthetic buttons
+   - Advanced Search and Login access
 
 ## Component Composition
 
-### 1. Hero Section
+### 1. Hero Section - Filete Welcome Sign
 
-**Location**: Top of page, centered
-**Code Reference**: `frontend/src/pages/Home.tsx:59-70`, `frontend/src/styles/pages/home.css:7-64`
+**Location**: Initial viewport, centered, full viewport height
+**Code Reference**: To be implemented
+**Design Reference**: `docs/2_frontend_ui-design-system/05_visual-references/Filete-Cartel-entrada.png`
 
 **Components**:
 
-- Page title (`<h1>`): "La Usina de la Fábrica de Jingles"
-- Subtitle (`<p>`): "Plataforma de curación de clips y jingles"
-- Global Search Bar (`SearchBar` component)
+- **Filete Sign Component**: Decorative wooden sign with colorful Filete borders
+  - Main text: "Bienvenidos a la Usina de la Fábrica de Jingles"
+  - Subtitle: Can be included in sign or act as bridge to page content
+  - Colorful Filete decorations: Floral and scrollwork motifs (red, orange, yellow, green, blue, gold)
+  - Dark blue frame with ornate decorative elements
+  - Cream/wooden background texture
 
 **Layout Specifications**:
 
-- Centered alignment
-- Maximum width: 1200px (container)
-- Search bar max-width: 600px
-- Vertical spacing: 2rem padding top/bottom
-- Bottom margin: 3rem
+- **Initial State**: Centered in viewport, full viewport height
+- **Scroll Behavior**: Disappears/fades out when user scrolls down (parallax effect)
+- **Background**: Base page background color (`--color-bg-primary`)
+- **Positioning**: Fixed/absolute positioning for scroll effect
+- **Responsive**: Scales appropriately for mobile/tablet
 
-**Visual Hierarchy**:
+**Visual Specifications**:
 
-- Title: Large, prominent (2.5rem desktop, 2rem mobile)
-- Subtitle: Secondary text (1.25rem desktop, 1.1rem mobile)
-- Search: Prominent, accessible, clear call-to-action
+- **Typography**: Factory signage font (`--font-family-signage`)
+- **Main Title**: Large, bold, uppercase letters
+  - Color: Vibrant red with dark blue outline (or design system accent colors)
+  - Size: Display size (`--font-size-display`) or H1 (`--font-size-h1`)
+  - Style: Decorative, condensed serif (factory signage aesthetic)
+- **Filete Decorations**:
+  - Border frame: Dark blue with ornate floral/scrollwork motifs
+  - Colors: Red, orange, yellow, green, blue, gold accents
+  - Style: Elaborate, colorful, vintage Argentine Filete style
+- **Background Texture**: Cream/wooden planks (horizontal grain texture)
 
-### 2. Global Search Interface
+**Design Intent**:
 
-**Location**: Within Hero Section
-**Code Reference**: `frontend/src/pages/Home.tsx:64-69`, `frontend/src/components/search/SearchBar.tsx`
+- Mimics vintage factory entrance sign
+- Creates strong first impression
+- Establishes industrial aesthetic
+- Disappears on scroll to reveal factory floor (content sections)
+
+**Implementation Notes**:
+
+- Component: `FileteSign` or `WelcomeSign` (to be created)
+- CSS: Custom styling for Filete decorations (SVG or CSS patterns)
+- Animation: Fade out/parallax on scroll
+- Image reference: Use `Filete-Cartel-entrada.png` as visual guide
+
+### 2. Full-Width Search Bar
+
+**Location**: Below hero section, full page width, sticky/fixed on scroll
+**Code Reference**: To be implemented (currently in hero section)
+**Design Intent**: Full-width search bar that appears when scrolling through the page
 
 **Functionality** (per WORKFLOW_010):
 
@@ -114,127 +173,339 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 
 **Layout Specifications**:
 
-- Centered within hero section
-- Max-width: 600px
-- Dropdown suggestions: Positioned absolutely below search bar
-- Z-index: 1000 (for dropdown overlay)
-- Responsive: Full width on mobile
+- **Width**: Full page width (100vw or container width)
+- **Positioning**:
+  - Initial: Below hero section
+  - On Scroll: Sticky/fixed positioning (stays visible while scrolling)
+- **Height**: Proportional to design system (to be refined in iterations)
+- **Padding**: Appropriate spacing from edges
+- **Background**: Base background or subtle elevation
+- **Z-index**: Appropriate for sticky behavior (above content, below floating header)
+
+**Visual Specifications**:
+
+- **Search Input**: Full-width input field
+- **Styling**: Industrial aesthetic, consistent with design system
+- **Placeholder**: "Buscar jingles, canciones, artistas, temáticas, fábricas..."
+- **Dropdown**: Positioned below search bar, full-width or proportional
+- **Results Display**: Inline entity list (dropdown/overlay)
 
 **States**:
 
-- Default: Empty search field with placeholder
-- Active: User typing, suggestions displayed
-- Results: Entity list displayed in dropdown
-- Empty query: No results or prevented submission
+- **Default**: Empty search field with placeholder
+- **Active**: User typing, suggestions displayed
+- **Results**: Entity list displayed in dropdown
+- **Empty Query**: No results or prevented submission
+- **Sticky**: Fixed position when scrolling past initial position
 
-### 3. Featured Fabrica Display
+**Design Intent**:
 
-**Location**: Below Hero Section
-**Code Reference**: `frontend/src/pages/Home.tsx:85-106`, `frontend/src/styles/pages/home.css:86-107`
+- Prominent, accessible search functionality
+- Always available as user scrolls through content
+- Full-width for maximum usability
+- Iterative refinement of proportions and details
+
+**Implementation Notes**:
+
+- Component: `SearchBar` (existing) or `FullWidthSearchBar` (new variant)
+- Behavior: Sticky/fixed positioning on scroll
+- Responsive: Adapts to mobile/tablet screen sizes
+
+### 3. Featured Fabrica Placeholder
+
+**Location**: Below search bar, full page width
+**Code Reference**: To be implemented
+**Design Intent**: Placeholder for future Featured Fabrica component (will be refactored from Show route)
 
 **Components**:
 
-- Section title: "Fábricas Destacadas" with icon (🏭)
-- Grid of EntityCard components (up to 6 Fabricas)
-- Empty state message (when no Fabricas available)
+- **Placeholder Container**: 16:9 aspect ratio container
+- **Message**: "PROXIMAMENTE VEA AQUI LA FABRICA MAS RECIENTE"
+- **Background**: Base background or subtle styling
 
 **Layout Specifications**:
 
-- Grid layout: `repeat(auto-fill, minmax(300px, 1fr))`
-- Gap: 1rem between cards
-- Responsive: Single column on mobile (< 768px)
-- Section margin-top: 3rem
+- **Aspect Ratio**: 16:9 (standard video/display ratio)
+- **Width**: Full page width (100% of container)
+- **Height**: Calculated based on 16:9 ratio
+- **Positioning**: Block-level element, full-width
+- **Spacing**: Appropriate margin-top/bottom for section separation
 
-**Content**:
+**Visual Specifications**:
 
-- Displays 6 most recent Fabricas (sorted by date DESC)
-- Each card shows Fabrica entity information
-- Cards are clickable, navigate to Fabrica inspection page
+- **Typography**: Factory signage font for message
+- **Text**: "PROXIMAMENTE VEA AQUI LA FABRICA MAS RECIENTE"
+- **Styling**: Centered text, appropriate size
+- **Background**: Base background color or subtle treatment
+- **Border/Frame**: Optional subtle border or frame treatment
 
-**States**:
+**Design Intent**:
 
-- Loading: Loading message displayed
-- Error: Error message displayed with error styling
-- Empty: "No hay Fábricas disponibles en este momento"
-- Populated: Grid of EntityCard components
+- Placeholder for future Featured Fabrica display
+- Will be replaced with nested component from Show route refactoring
+- Maintains layout structure and spacing
+- Clear indication of upcoming feature
 
-### 4. Featured Entities Section
+**Implementation Notes**:
 
-**Location**: Below Featured Fabrica Display (to be implemented)
+- Temporary placeholder component
+- Will be replaced with actual Featured Fabrica component
+- Maintains responsive behavior (16:9 ratio preserved)
+
+### 4. Volumetric Indicators Section
+
+**Location**: Below Featured Fabrica placeholder
+**Code Reference**: To be implemented
+**Design Reference**: Admin Dashboard (`frontend/src/pages/admin/AdminDashboard.tsx:950-995`)
+
+**Purpose**:
+
+- Raise awareness of large volume of data in Knowledge DB
+- Display total count per entity type
+- Visual reference: Food warning octagons (WarningLabel component)
+
+**Components**:
+
+- **WarningLabel Components**: Black octagon style indicators
+  - 6 entity types: Fabricas, Jingles, Canciones, Proveedores, Jingleros, Temáticas
+  - Each displays total count for that entity type
+  - No interaction (static display)
+
+**Layout Specifications**:
+
+- **Grid Layout**: Responsive grid (similar to Admin Dashboard)
+  - Desktop: `repeat(auto-fit, minmax(200px, 1fr))` or similar
+  - Mobile: Stack or rearrange for smaller screens
+- **Spacing**: Appropriate gap between indicators
+- **Alignment**: Centered or justified
+
+**Entity Type Definitions**:
+
+- **Fabricas**: Total count of Fabricas
+- **Jingles**: Total count of Jingles
+- **Canciones**: Total count of Canciones
+- **Proveedores**: Count of Artistas with at least one `AUTOR_DE` relationship
+- **Jingleros**: Count of Artistas with at least one `JINGLERO_DE` relationship
+- **Temáticas**: Total count of Temáticas
+
+**Visual Specifications**:
+
+- **Component**: `WarningLabel` (existing component)
+  - Size: Medium or large (to be determined)
+  - Style: Black octagon with white text (food warning label aesthetic)
+  - Typography: Factory signage font
+- **Layout**: Grid of 6 indicators
+- **Colors**:
+  - Octagon: `--color-warning-label-bg` (black)
+  - Text: `--color-warning-label-text` (white)
+  - Label: `--color-text-primary`
+
+**Design Intent**:
+
+- Visual impact to show data volume
+- Industrial aesthetic (warning label style)
+- Clear, readable statistics
+- No interaction (awareness only)
+
+**Responsive Behavior**:
+
+- **Desktop/Landscape**: Side-by-side with Featured Entities (if combined)
+- **Mobile/Portrait**: May stack or alternate with Featured Entities sections
+- **Combined Layout**: Consider combining with Featured Entities for space efficiency
+
+**Implementation Notes**:
+
+- Use existing `WarningLabel` component
+- API: Fetch entity counts (may need new endpoints for Proveedores/Jingleros)
+- Code Reference: `frontend/src/components/common/WarningLabel.tsx`
+
+### 5. Featured Entities Section
+
+**Location**: Below Volumetric Indicators
 **Code Reference**: To be implemented
 
 **Purpose** (per WORKFLOW_010):
 
-- Display featured entities (Jingles, Canciones, Artistas, Temáticas)
+- Display featured entities by type
 - Provide navigation to entity inspection pages
 - Support content discovery
 
-**Layout Specifications** (Target):
+**Layout Structure**:
 
-- Similar grid layout to Featured Fabricas
-- Section title with appropriate icon
-- EntityCard components for each entity type
-- Responsive grid layout
+- **Series of Boxes by Entity Type**: 6 subsections, one per entity type
+- **Each Subsection**:
+  - Section title with entity type name
+  - Grid/list of 5 featured entities
+  - EntityCard components for each entity
 
-**Note**: This section is required by WORKFLOW_010 but not yet implemented in current code. This is a TARGET specification.
+**Entity Subsections**:
 
-### 5. Navigation Links Section
+1. **Featured Fabricas** (5 entities)
+   - Sorted by: Recency or popularity (to be determined)
+   - Display: EntityCard components
+2. **Featured Canciones** (5 entities)
+   - Sorted by: Recency or popularity
+   - Display: EntityCard components
+3. **Featured Proveedores** (5 entities)
+   - Sorted by: Recency or popularity
+   - Display: EntityCard components (Artistas with AUTOR_DE relationship)
+4. **Featured Jingleros** (5 entities)
+   - Sorted by: Recency or popularity
+   - Display: EntityCard components (Artistas with JINGLERO_DE relationship)
+5. **Featured Jingles** (5 entities)
+   - Sorted by: Recency or popularity
+   - Display: EntityCard components
+6. **Featured Temáticas** (5 entities)
+   - Sorted by: Recency or popularity
+   - Display: EntityCard components
 
-**Location**: Below Featured Content (to be implemented)
+**Layout Specifications**:
+
+- **Section Structure**: Each entity type in its own subsection
+- **Grid Layout**: Similar to current Featured Fabricas grid
+  - Desktop: `repeat(auto-fill, minmax(300px, 1fr))` or similar
+  - Mobile: Single column or stacked
+- **Spacing**: Large spacing between sections (acceptable, can refine later)
+- **Full Width**: Sections use full page width
+
+**Visual Specifications**:
+
+- **Section Titles**: Factory signage font, appropriate size
+- **Entity Cards**: Use existing `EntityCard` component
+- **Icons**: Optional icons for each entity type section
+- **Background**: Base background (no distinct background colors)
+
+**Combined Layout Opportunity**:
+
+- **Desktop/Landscape**: Consider side-by-side layout with Volumetric Indicators
+  - Volumetric Indicators on left/right
+  - Featured Entities list on opposite side
+- **Mobile/Portrait**: Alternate Volumetric Indicators and Featured Entities
+  - Long scroll with alternating sections
+  - Space-efficient layout
+
+**Design Intent**:
+
+- Progressive reveal of content (factory floor metaphor)
+- Clear organization by entity type
+- Easy content discovery
+- Large spacing acceptable (can refine later)
+
+**Implementation Notes**:
+
+- Component: Multiple subsections, each with EntityCard grid
+- API: Fetch featured entities for each type (5 per type)
+- Sorting: By recency or popularity (to be determined)
+- Responsive: Stack or rearrange for smaller screens
+
+### 6. Floating Header Navigation
+
+**Location**: Fixed/floating at top of viewport
 **Code Reference**: To be implemented
 
 **Components** (per WORKFLOW_010):
 
-- Advanced Search link/button
-- Login/Authentication link/button
+- **Advanced Search Button**: Navigate to Advanced Search page
+- **Login/Authentication Button**: Navigate to Login sequence
 
-**Layout Specifications** (Target):
+**Layout Specifications**:
 
-- Accessible navigation options
-- Clear visual hierarchy
-- Prominent but not competing with primary content
+- **Positioning**: Fixed/floating above page content
+- **Transparency**: Semi-transparent background
+- **Width**: Full page width
+- **Height**: Appropriate for button height + padding
+- **Z-index**: Above page content, below modals/overlays
+- **Visibility**: Always visible while scrolling
 
-**Note**: Currently, navigation to Login is available via header navigation (`frontend/src/App.tsx:109`). Per WORKFLOW_010, these navigation options should be accessible from the landing page itself.
+**Visual Specifications**:
+
+- **Button Style**: Factory signage aesthetic
+  - Typography: Factory signage font (`--font-family-signage`)
+  - Styling: Industrial, bold, uppercase (optional)
+  - Colors: Design system colors (accent or primary)
+- **Background**: Semi-transparent overlay
+  - Background color: `--color-bg-secondary` or `--color-bg-tertiary` with opacity
+  - Backdrop blur: Optional for modern effect
+- **Spacing**: Appropriate padding for buttons
+- **Alignment**: Buttons aligned (left/right or centered)
+
+**Design Intent**:
+
+- Subtle, non-intrusive navigation
+- Always accessible while scrolling
+- Factory signage aesthetic for buttons
+- Semi-transparent to maintain visual connection with content
+
+**Implementation Notes**:
+
+- Component: `FloatingHeader` or similar
+- Styling: Semi-transparent background, factory signage buttons
+- Behavior: Fixed positioning, always visible
+- Responsive: Adapts to mobile (may stack buttons or use hamburger menu)
 
 ## Visual Hierarchy
 
 ### Primary Elements (Highest Priority)
 
-1. **Global Search Interface** - Most prominent, primary call-to-action
-2. **Page Title** - Brand identity
-3. **Featured Fabrica Display** - Content discovery
+1. **Filete Welcome Sign** - Initial visual impact, brand identity
+2. **Full-Width Search Bar** - Primary call-to-action, always accessible
+3. **Featured Fabrica Placeholder** - Prominent content area
 
 ### Secondary Elements
 
-1. **Featured Entities Section** - Additional content discovery
-2. **Subtitle** - Supporting information
+1. **Volumetric Indicators** - Data awareness, statistics
+2. **Featured Entities Sections** - Content discovery by type
 
 ### Tertiary Elements
 
-1. **Navigation Links** - Supporting navigation options
-2. **Advanced Search Link** - Alternative search access
+1. **Floating Header Navigation** - Supporting navigation options
+2. **Advanced Search Button** - Alternative search access
+3. **Login Button** - Authentication access
 
 ## Responsive Behavior
 
-### Desktop (> 768px)
+### Desktop (> 768px, Landscape)
 
-- Container max-width: 1200px
-- Centered layout with padding: 2rem 1rem
-- Grid: Multiple columns (auto-fill, min 300px)
-- Hero title: 2.5rem
-- Search bar: Max-width 600px
+- **Container**: Full width (no max-width constraint)
+- **Filete Sign**: Full viewport height, centered
+- **Search Bar**: Full width, sticky on scroll
+- **Featured Fabrica**: Full width, 16:9 aspect ratio
+- **Volumetric Indicators**: Grid layout (side-by-side with Featured Entities if combined)
+- **Featured Entities**: Grid layout, multiple columns
+- **Floating Header**: Full width, buttons aligned
 
-### Mobile (≤ 768px)
+### Tablet (Portrait/Landscape)
 
-- Container padding: 1rem 0.5rem
-- Single column layout
-- Hero title: 2rem
-- Subtitle: 1.1rem
-- Section title: 1.5rem
-- Grid: Single column (1fr)
-- Gap: 0.75rem
+- **Filete Sign**: Scales appropriately
+- **Search Bar**: Full width
+- **Volumetric Indicators**: May combine with Featured Entities (side-by-side in landscape)
+- **Featured Entities**: Grid adapts to screen width
+- **Floating Header**: Adapts button layout
 
-**Code Reference**: `frontend/src/styles/pages/home.css:125-146`
+### Mobile (≤ 768px, Portrait)
+
+- **Container**: Full width, minimal padding
+- **Filete Sign**: Scales to viewport, may adjust aspect ratio
+- **Search Bar**: Full width
+- **Featured Fabrica**: Full width, 16:9 preserved
+- **Volumetric Indicators**:
+  - May stack vertically
+  - May alternate with Featured Entities sections (long scroll)
+- **Featured Entities**:
+  - Single column or stacked layout
+  - May alternate with Volumetric Indicators
+- **Floating Header**:
+  - Buttons may stack vertically
+  - May use hamburger menu for compact layout
+
+### Responsive Considerations
+
+- **Portrait vs Landscape**: Different layouts for portrait/landscape orientations
+- **Section Visibility**: All sections remain visible (may stack or rearrange)
+- **Combined Layouts**: Volumetric Indicators and Featured Entities may combine for space efficiency
+- **Progressive Reveal**: Maintains factory floor metaphor across all screen sizes
+
+**Code Reference**: `frontend/src/styles/pages/home.css:125-146` (current), to be updated
 
 ## States and Variations
 
@@ -251,12 +522,28 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 - **Styling**: `frontend/src/styles/pages/home.css:117-122`
 - **Visual**: Red text, light red background, border radius
 
-### Empty State
+### Empty States
 
-- **Display**: Empty state message for Featured Fabricas
-- **Code Reference**: `frontend/src/pages/Home.tsx:102-104`
-- **Styling**: `frontend/src/styles/pages/home.css:111-115`
-- **Message**: "No hay Fábricas disponibles en este momento"
+**Clarification Needed**: Specific empty state requirements to be determined.
+
+**Current Considerations**:
+
+- **No Featured Entities**: What to display when no entities available for a type?
+- **No Volumetric Data**: What to display when counts are unavailable?
+- **No Search Results**: Already handled in search component
+
+**Proposed Approach** (to be confirmed):
+
+- **Featured Entities Empty**: Show message "No [entity type] disponibles" or hide section
+- **Volumetric Indicators Empty**: Show "0" or loading state
+- **Overall Empty**: Graceful degradation, show available content
+
+**Design Intent**:
+
+- Maintain industrial aesthetic
+- Clear messaging
+- No broken layouts
+- Graceful handling of missing data
 
 ### Populated State
 
@@ -267,51 +554,107 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 
 ### Colors
 
-- Text Primary: `var(--color-text-primary, #333)` - `frontend/src/styles/pages/home.css:16`
-- Text Secondary: `var(--color-text-secondary, #666)` - `frontend/src/styles/pages/home.css:21`
-- Border: `var(--color-border, #ddd)` - `frontend/src/styles/pages/home.css:41`
-- Primary: `var(--color-primary, #007bff)` - `frontend/src/styles/pages/home.css:48`
-- Error: `var(--color-error, #d32f2f)` - `frontend/src/styles/pages/home.css:118`
-- Error Background: `var(--color-error-bg, #ffebee)` - `frontend/src/styles/pages/home.css:119`
+- **Background Primary**: `--color-bg-primary` (dark charcoal, weathered concrete)
+- **Background Secondary**: `--color-bg-secondary` (slightly lighter charcoal)
+- **Background Tertiary**: `--color-bg-tertiary` (medium grey, metal panels)
+- **Text Primary**: `--color-text-primary` (light grey, high contrast)
+- **Text Secondary**: `--color-text-secondary` (medium grey)
+- **Accent Colors**: `--color-accent-primary`, `--color-accent-interactive` (for Filete decorations, buttons)
+- **Warning Label Background**: `--color-warning-label-bg` (black)
+- **Warning Label Text**: `--color-warning-label-text` (white)
 
 ### Spacing
 
-- Container padding: 2rem 1rem (desktop), 1rem 0.5rem (mobile)
-- Hero padding: 2rem 0
-- Hero margin-bottom: 3rem
-- Section margin-top: 3rem
-- Grid gap: 1rem (desktop), 0.75rem (mobile)
+- **Large Spacing**: `--spacing-xl` (32px) - Major section spacing
+- **Medium Spacing**: `--spacing-lg` (24px) - Section spacing
+- **Standard Spacing**: `--spacing-md` (16px) - Component gaps
+- **Small Spacing**: `--spacing-sm` (8px) - Tight spacing
+- **Container Padding**: Full width (no max-width), minimal padding
+- **Section Margins**: Large spacing acceptable (can refine later)
 
 ### Typography
 
-- Hero title: 2.5rem (desktop), 2rem (mobile)
-- Subtitle: 1.25rem (desktop), 1.1rem (mobile)
-- Section title: 1.75rem (desktop), 1.5rem (mobile)
+- **Factory Signage Font**: `--font-family-signage` (Bebas Neue, Impact, Arial Black)
+  - Filete Sign title
+  - Section titles
+  - Floating header buttons
+  - WarningLabel values and labels
+- **Body Font**: `--font-family-body` (system fonts)
+  - General content, descriptions
+- **Display Size**: `--font-size-display` (4rem) - Filete Sign title
+- **H1 Size**: `--font-size-h1` (3rem) - Major headings
+- **H2 Size**: `--font-size-h2` (2.25rem) - Section headings
+- **H3 Size**: `--font-size-h3` (1.75rem) - Subsection headings
 
 ### Layout
 
-- Container max-width: 1200px
-- Search bar max-width: 600px
-- Grid: `repeat(auto-fill, minmax(300px, 1fr))` (desktop), `1fr` (mobile)
+- **Container**: Full width (100vw or container width)
+- **Grid Layout**: `repeat(auto-fill, minmax(300px, 1fr))` for entity grids
+- **Aspect Ratio**: 16:9 for Featured Fabrica placeholder
+- **Responsive Breakpoints**: 768px (mobile/desktop), consider portrait/landscape
 
 ## Implementation Details
 
 ### Current Implementation
 
-- ✅ Hero section with title, subtitle, and search bar
+- ✅ Basic hero section with title, subtitle, and search bar
 - ✅ Featured Fabricas section (6 most recent)
 - ✅ Loading and error states
-- ✅ Empty state handling
-- ✅ Responsive design
+- ✅ Basic responsive design
 - ✅ Search functionality (navigates to `/search`)
 
-### Target Implementation (per WORKFLOW_010)
+### Target Implementation (Design Intent - 2025-11-26)
 
-- ⏳ Featured Entities section (Jingles, Canciones, Artistas, Temáticas)
-- ⏳ Advanced Search navigation link/button
-- ⏳ Login/Authentication link/button on landing page
-- ⏳ Global search with inline entity list (currently navigates to search page)
-- ⏳ Featured Fabrica interaction (embedded player/preview)
+#### Phase 1: Core Layout Structure
+
+- ⏳ **Filete Welcome Sign Component**
+
+  - Decorative sign with colorful Filete borders
+  - "Bienvenidos a la Usina de la Fábrica de Jingles" text
+  - Scroll behavior (disappears on scroll)
+  - Full viewport height initial display
+
+- ⏳ **Full-Width Search Bar**
+
+  - Full page width search interface
+  - Sticky/fixed positioning on scroll
+  - Inline entity results (per WORKFLOW_010)
+
+- ⏳ **Featured Fabrica Placeholder**
+  - 16:9 aspect ratio, full width
+  - "PROXIMAMENTE VEA AQUI LA FABRICA MAS RECIENTE" message
+  - Placeholder for future refactored component
+
+#### Phase 2: Content Sections
+
+- ⏳ **Volumetric Indicators Section**
+
+  - 6 WarningLabel components (entity counts)
+  - Fabricas, Jingles, Canciones, Proveedores, Jingleros, Temáticas
+  - Grid layout, responsive
+  - No interaction (awareness only)
+
+- ⏳ **Featured Entities Section**
+  - 6 subsections (one per entity type)
+  - 5 entities per type (sorted by recency or popularity)
+  - EntityCard components in grid layout
+  - Large spacing between sections
+
+#### Phase 3: Navigation
+
+- ⏳ **Floating Header Navigation**
+  - Semi-transparent floating header
+  - Advanced Search button (factory signage aesthetic)
+  - Login/Authentication button (factory signage aesthetic)
+  - Always visible while scrolling
+
+#### Implementation Notes
+
+- **Visual Metaphor**: Supervisor walking through factory floor (progressive reveal)
+- **Layout**: Full width, no max-width constraints
+- **Spacing**: Large spacing acceptable, can refine later
+- **Responsive**: Consider portrait/landscape, mobile/desktop
+- **Combined Layouts**: Volumetric Indicators and Featured Entities may combine for space efficiency
 
 **Note**: The current implementation navigates to `/search` on search submission. Per WORKFLOW_010 Step 5, the global search should display matching entities inline on the landing page, allowing direct selection without navigation.
 
@@ -319,19 +662,94 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 
 ### Required Components
 
+#### Existing Components
+
 - `SearchBar` - Global search interface
+
   - **Code Reference**: `frontend/src/components/search/SearchBar.tsx`
-  - **Usage**: Hero section, prominent placement
+  - **Usage**: Full-width search bar, sticky on scroll
+  - **Modification**: May need full-width variant or styling updates
+
 - `EntityCard` - Entity display cards
+
   - **Code Reference**: `frontend/src/components/common/EntityCard.tsx`
-  - **Usage**: Featured Fabricas grid, Featured Entities grid
-  - **Variant**: `contents` (for Featured Fabricas)
+  - **Usage**: Featured Entities grids (all 6 entity types)
+  - **Variant**: `contents` or appropriate variant
+
+- `WarningLabel` - Volumetric indicators
+  - **Code Reference**: `frontend/src/components/common/WarningLabel.tsx`
+  - **Usage**: Entity count displays (6 indicators)
+  - **Size**: Medium or large (to be determined)
+
+#### New Components to Create
+
+- `FileteSign` or `WelcomeSign` - Hero section sign
+
+  - **Purpose**: Decorative welcome sign with Filete decorations
+  - **Features**:
+    - Colorful Filete border decorations
+    - Factory signage typography
+    - Scroll behavior (fade out on scroll)
+  - **Reference**: `docs/2_frontend_ui-design-system/05_visual-references/Filete-Cartel-entrada.png`
+
+- `FloatingHeader` - Navigation header
+
+  - **Purpose**: Semi-transparent floating navigation
+  - **Features**:
+    - Fixed positioning
+    - Semi-transparent background
+    - Factory signage buttons
+    - Advanced Search and Login buttons
+
+- `FeaturedFabricaPlaceholder` - Placeholder component
+
+  - **Purpose**: 16:9 placeholder for future Featured Fabrica
+  - **Features**:
+    - 16:9 aspect ratio
+    - Full width
+    - "PROXIMAMENTE..." message
+
+- `VolumetricIndicators` - Entity count section
+
+  - **Purpose**: Display entity counts using WarningLabel components
+  - **Features**:
+    - Grid of 6 WarningLabel components
+    - Responsive layout
+    - Entity count fetching
+
+- `FeaturedEntitiesSection` - Entity discovery section
+  - **Purpose**: Display featured entities by type
+  - **Features**:
+    - 6 subsections (one per entity type)
+    - 5 entities per type
+    - EntityCard grid layout
+    - Responsive behavior
 
 ### API Dependencies
 
+#### Existing Endpoints
+
 - `publicApi.getFabricas()` - Fetch featured Fabricas
   - **Code Reference**: `frontend/src/pages/Home.tsx:22`
-  - **Usage**: Load featured Fabricas on page mount
+  - **Usage**: Load featured Fabricas (currently 6, will change to 5)
+
+#### New Endpoints Needed
+
+- **Entity Counts**: Fetch total counts for all entity types
+
+  - Fabricas, Jingles, Canciones, Temáticas: Direct counts
+  - Proveedores: Count of Artistas with `AUTOR_DE` relationship
+  - Jingleros: Count of Artistas with `JINGLERO_DE` relationship
+  - **Usage**: Volumetric Indicators section
+
+- **Featured Entities**: Fetch 5 featured entities per type
+  - `getFeaturedJingles()` - 5 most recent or popular
+  - `getFeaturedCanciones()` - 5 most recent or popular
+  - `getFeaturedProveedores()` - 5 Artistas with AUTOR_DE (most recent or popular)
+  - `getFeaturedJingleros()` - 5 Artistas with JINGLERO_DE (most recent or popular)
+  - `getFeaturedTematicas()` - 5 most recent or popular
+  - **Usage**: Featured Entities sections
+  - **Sorting**: By recency or popularity (to be determined)
 
 ## Navigation Flow Integration
 
@@ -414,6 +832,39 @@ This layout supports the following navigation paths (per WORKFLOW_010):
 
 ## Change History
 
-| Version | Date       | Change                  | Author | Rationale                        |
-| ------- | ---------- | ----------------------- | ------ | -------------------------------- |
-| 1.0     | 2025-01-20 | Initial layout document | -      | Document layout per WORKFLOW_010 |
+| Version | Date       | Change                               | Author | Rationale                                    |
+| ------- | ---------- | ------------------------------------ | ------ | -------------------------------------------- |
+| 2.0     | 2025-11-26 | Complete design intent documentation | -      | Design intent interview, comprehensive specs |
+| 1.0     | 2025-01-20 | Initial layout document              | -      | Document layout per WORKFLOW_010             |
+
+## Design Intent Interview Summary (2025-11-26)
+
+**Interviewer**: Senior UI Designer  
+**Interviewee**: UX Designer  
+**Date**: 2025-11-26
+
+### Key Design Decisions Documented
+
+1. **Hero Section**: Filete-style welcome sign with colorful decorations, disappears on scroll
+2. **Search Bar**: Full-width, sticky/fixed on scroll
+3. **Volumetric Indicators**: WarningLabel components (black octagons) showing entity counts
+4. **Featured Fabrica**: 16:9 placeholder with "PROXIMAMENTE..." message
+5. **Featured Entities**: 6 subsections, 5 entities per type, large spacing
+6. **Navigation**: Floating semi-transparent header with factory signage buttons
+7. **Layout**: Full width, progressive reveal, factory floor metaphor
+8. **Responsive**: Portrait/landscape considerations, combined layouts for efficiency
+
+### Visual References
+
+- **Filete Sign**: `docs/2_frontend_ui-design-system/05_visual-references/Filete-Cartel-entrada.png`
+- **WarningLabel**: Admin Dashboard implementation (`frontend/src/pages/admin/AdminDashboard.tsx`)
+- **Design System**: Industrial dark theme with vibrant accents
+
+### Next Steps
+
+1. Create FileteSign component specifications
+2. Design full-width search bar variant
+3. Implement volumetric indicators section
+4. Design featured entities subsections
+5. Create floating header component
+6. Refine responsive behavior and combined layouts

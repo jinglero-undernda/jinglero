@@ -2,9 +2,10 @@
 
 ## Status
 
-- **Status**: current_implementation
-- **Last Updated**: 2025-11-19
+- **Status**: draft (design intent documented)
+- **Last Updated**: 2025-11-26
 - **Code Reference**: `frontend/src/pages/Home.tsx`
+- **Design Intent**: Complete design specifications documented (2025-11-26)
 
 ## Overview
 
@@ -18,24 +19,41 @@ The landing page serves as the entry point to the application, featuring search 
 
 ## Layout Structure
 
-For detailed layout specifications based on workflow requirements, see `landing-page-layout.md`.
+For detailed layout specifications based on workflow requirements and design intent interview, see `landing-page-layout.md`.
 
-**Key Layout Zones**:
+**Key Layout Zones** (Design Intent - 2025-11-26):
 
-- Hero Section (title, subtitle, global search)
-- Featured Content Section (Featured Fabricas, Featured Entities)
-- Navigation Links Section (Advanced Search, Login)
+- **Floating Header**: Semi-transparent navigation (Advanced Search, Login)
+- **Hero Section**: Filete-style welcome sign (disappears on scroll)
+- **Full-Width Search Bar**: Sticky search interface
+- **Featured Fabrica Placeholder**: 16:9 aspect ratio placeholder
+- **Volumetric Indicators**: Entity count displays (WarningLabel components)
+- **Featured Entities Section**: 6 subsections (5 entities per type)
 
 ## Component Composition
 
-- SearchBar component (prominent search interface)
-- Featured Fabricas list (6 most recent)
-- Navigation elements
+**New Components** (Design Intent - 2025-11-26):
+
+- **FileteSign**: Decorative welcome sign with Filete decorations
+- **FloatingHeader**: Semi-transparent navigation header
+- **FullWidthSearchBar**: Full-width sticky search interface
+- **VolumetricIndicators**: Entity count section (WarningLabel components)
+- **FeaturedFabricaPlaceholder**: 16:9 placeholder for future component
+- **FeaturedEntitiesSection**: 6 subsections with 5 entities each
+
+**Existing Components**:
+
+- SearchBar component (to be adapted for full-width variant)
+- EntityCard components (for featured entities)
+- WarningLabel components (for volumetric indicators)
 
 ## Responsive Behavior
 
-- **Desktop (> 768px)**: Multi-column grid, max-width 1200px container
-- **Mobile (≤ 768px)**: Single column layout, reduced spacing
+**Design Intent** (2025-11-26):
+
+- **Desktop/Landscape**: Full-width layout, side-by-side volumetric indicators and featured entities (optional)
+- **Mobile/Portrait**: Stacked layout, alternating volumetric indicators and featured entities sections
+- **All Screens**: Full width (no max-width constraint), progressive reveal
 
 For detailed responsive specifications, see `landing-page-layout.md`.
 
@@ -46,9 +64,13 @@ For detailed responsive specifications, see `landing-page-layout.md`.
 
 ## Related Documentation
 
-- **Detailed Layout**: `landing-page-layout.md` (comprehensive layout specification per WORKFLOW_010)
+- **Detailed Layout**: `landing-page-layout.md` (comprehensive layout specification with design intent)
 - **Workflow**: `../../1_frontend_ux-workflows/workflows/navigation/WORKFLOW_010_basic-navigation-access.md`
 - **Routes**: `../routes.md`
 - **Components**:
+  - FileteSign: `../../03_components/composite/filete-sign.md` (new)
+  - FloatingHeader: `../../03_components/composite/floating-header.md` (new)
   - SearchBar: `../../03_components/composite/search-bar.md`
   - EntityCard: `../../03_components/composite/entity-card.md`
+  - WarningLabel: `../../03_components/primitives/warning-label.md`
+- **Visual Reference**: `../../05_visual-references/Filete-Cartel-entrada.png`

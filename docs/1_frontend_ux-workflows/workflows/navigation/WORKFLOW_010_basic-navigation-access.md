@@ -47,7 +47,7 @@ See `WORKFLOW_010_basic-navigation-access_diagram.md` for the complete Mermaid f
 - Landing Page → Featured Fabrica Interaction
 - Landing Page → Featured Entity Inspection
 - Landing Page → Global Search (entity list) → Entity Inspection
-- Landing Page → Advanced Search Page → Search Results Page
+- Landing Page → Advanced Search Page → Entity Inspection
 
 ## UX Flow
 
@@ -58,6 +58,7 @@ See `WORKFLOW_010_basic-navigation-access_diagram.md` for the complete Mermaid f
 **System Response**:
 
 - Display landing page with navigation options
+- Display volumetric indicators for each entity type (Fabricas, Jingles, Canciones, Proveedores, Jingleros, Temáticas)
 - Show featured Fabrica (if available)
 - Display featured entities section
 - Show global search interface
@@ -110,7 +111,7 @@ See `WORKFLOW_010_basic-navigation-access_diagram.md` for the complete Mermaid f
 **UI State**:
 
 - Page: Landing Page (with Fabrica interaction)
-- User Role: GUEST
+- User Role: GUEST / USER / ADMIN
 
 **Data Changes**: None (interaction only, may load Fabrica data if not preloaded)
 

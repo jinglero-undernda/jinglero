@@ -50,10 +50,10 @@ export async function validateRepeatsDirection(
   const result = await db.executeQuery<{
     startId: string;
     startFabricaDate: Date | null;
-    startCreatedAt: Date;
+    startCreatedAt: Date | null;
     endId: string;
     endFabricaDate: Date | null;
-    endCreatedAt: Date;
+    endCreatedAt: Date | null;
   }>(query, { startId, endId });
   
   if (result.length === 0) {
@@ -63,8 +63,8 @@ export async function validateRepeatsDirection(
   const data = result[0];
   const startFabricaDate = data.startFabricaDate ? new Date(data.startFabricaDate) : null;
   const endFabricaDate = data.endFabricaDate ? new Date(data.endFabricaDate) : null;
-  const startCreatedAt = new Date(data.startCreatedAt);
-  const endCreatedAt = new Date(data.endCreatedAt);
+  const startCreatedAt = data.startCreatedAt ? new Date(data.startCreatedAt) : null;
+  const endCreatedAt = data.endCreatedAt ? new Date(data.endCreatedAt) : null;
   
   let correctStart: string;
   let correctEnd: string;
@@ -99,7 +99,16 @@ export async function validateRepeatsDirection(
   }
   // Rule 3: Both Inedito
   else {
-    if (startCreatedAt > endCreatedAt) {
+    // If either createdAt is null, we cannot determine direction by date
+    // Fall back to using IDs as tiebreaker (maintain original direction)
+    if (!startCreatedAt || !endCreatedAt) {
+      correctStart = startId;
+      correctEnd = endId;
+      const missingDates = [];
+      if (!startCreatedAt) missingDates.push(`${startId} (start)`);
+      if (!endCreatedAt) missingDates.push(`${endId} (end)`);
+      reason = `Both Inedito: Cannot determine direction (missing createdAt on ${missingDates.join(', ')}), using original direction`;
+    } else if (startCreatedAt > endCreatedAt) {
       // Start is newer → correct direction
       correctStart = startId;
       correctEnd = endId;
