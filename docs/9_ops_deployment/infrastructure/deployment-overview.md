@@ -52,6 +52,7 @@ This document provides a high-level overview of the Jinglero application deploym
 | Frontend Web Server Setup | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
 | Firewall Configuration    | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
 | SSL/TLS Configuration     | current_implementation | `raspberry-pi-deployment.md` | 2025-11-25   |
+| Manual Update Process     | current_implementation | `manual-update-process.md`   | 2025-11-27   |
 
 ### Process Summary
 
@@ -208,6 +209,7 @@ Estimated deployment time: **2-3 hours** for initial setup
 Common issues and solutions documented in:
 
 - `raspberry-pi-deployment.md` - Deployment process troubleshooting
+- `manual-update-process.md` - Update process troubleshooting and rollback procedures
 - `environments.md` - Environment configuration troubleshooting
 - `hardware.md` - Hardware and infrastructure troubleshooting
 
@@ -224,6 +226,7 @@ Common issues and solutions documented in:
 ## Related Documentation
 
 - `raspberry-pi-deployment.md` - Detailed deployment process
+- `manual-update-process.md` - Step-by-step manual update process after git changes
 - `environments.md` - Environment configuration
 - `hardware.md` - Hardware infrastructure
 - `../README.md` - Deployment documentation overview
