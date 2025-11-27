@@ -1,50 +1,15 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { publicApi } from '../lib/api/client';
 import { SearchBar } from '../components/search/SearchBar';
-import EntityCard from '../components/common/EntityCard';
-import type { Fabrica } from '../types';
+import FloatingHeader from '../components/composite/FloatingHeader';
+import FileteSign from '../components/composite/FileteSign';
+import FeaturedFabricaPlaceholder from '../components/composite/FeaturedFabricaPlaceholder';
+import VolumetricIndicators from '../components/sections/VolumetricIndicators';
+import FeaturedEntitiesSection from '../components/sections/FeaturedEntitiesSection';
 import '../styles/pages/home.css';
+import '../styles/patterns/combined-layout.css';
 
 export default function Home() {
   const navigate = useNavigate();
-  const [featuredFabricas, setFeaturedFabricas] = useState<Fabrica[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // Fetch featured Fabricas (most recent, limit to 6)
-    const fetchFeaturedFabricas = async () => {
-      try {
-        setLoading(true);
-        // Use the public API to get Fabricas, ordered by date (most recent first)
-        // The API returns them ordered by createdAt DESC, but we want by date DESC
-        const fabricas = await publicApi.getFabricas();
-        // Sort by date descending and take first 6
-        const sorted = fabricas
-          .filter((f: Fabrica) => f.date)
-          .sort((a: Fabrica, b: Fabrica) => {
-            try {
-              const dateA = new Date(a.date).getTime();
-              const dateB = new Date(b.date).getTime();
-              if (isNaN(dateA) || isNaN(dateB)) return 0;
-              return dateB - dateA;
-            } catch {
-              return 0;
-            }
-          })
-          .slice(0, 6);
-        setFeaturedFabricas(sorted);
-        setLoading(false);
-      } catch (err: any) {
-        setError(err.message || 'Error al cargar las Fábricas');
-        setLoading(false);
-        setFeaturedFabricas([]);
-      }
-    };
-
-    fetchFeaturedFabricas();
-  }, []);
 
   const handleSearch = (searchQuery: string) => {
     if (searchQuery.trim()) {
@@ -55,12 +20,11 @@ export default function Home() {
   };
 
   return (
-    <main className="home-page">
+    <>
+      <FloatingHeader />
+      <main className="home-page">
+      <FileteSign subtitle="Jingles a medida y al instante" />
       <div className="home-page__hero">
-        <h1>La Usina de la Fábrica de Jingles</h1>
-        <p className="home-page__subtitle">
-          Plataforma de curación de clips y jingles
-        </p>
         <div className="home-page__search-bar">
           <SearchBar 
             onSearch={handleSearch} 
@@ -69,42 +33,17 @@ export default function Home() {
         </div>
       </div>
 
-      {loading && (
-        <div className="home-page__loading">
-          <p>Cargando...</p>
-        </div>
-      )}
+      <FeaturedFabricaPlaceholder />
 
-      {error && (
-        <div className="home-page__error">
-          <p>Error: {error}</p>
+      <div className="combined-layout">
+        <div className="combined-layout__indicators">
+          <VolumetricIndicators />
         </div>
-      )}
-
-      {!loading && !error && (
-        <section className="home-page__featured">
-          <h2 className="home-page__section-title">
-            <span className="home-page__section-icon">🏭</span>
-            Fábricas Destacadas
-          </h2>
-          {featuredFabricas.length > 0 ? (
-            <div className="home-page__fabricas-grid">
-              {featuredFabricas.map((fabrica) => (
-                <EntityCard
-                  key={fabrica.id}
-                  entity={fabrica}
-                  entityType="fabrica"
-                  variant="contents"
-                />
-              ))}
-            </div>
-          ) : (
-            <p className="home-page__empty">
-              No hay Fábricas disponibles en este momento.
-            </p>
-          )}
-        </section>
-      )}
+        <div className="combined-layout__entities">
+          <FeaturedEntitiesSection />
+        </div>
+      </div>
     </main>
+    </>
   );
 }

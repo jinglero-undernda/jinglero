@@ -1,0 +1,40 @@
+.volumetric-indicators {
+  width: 100%;
+  margin: var(--spacing-xl) 0;
+  padding: var(--spacing-lg) 0;
+}
+
+.volumetric-indicators__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--spacing-lg);
+  align-items: start;
+}
+
+.volumetric-indicators__loading,
+.volumetric-indicators__error {
+  text-align: center;
+  padding: var(--spacing-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+}
+
+.volumetric-indicators__error {
+  color: var(--color-error);
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .volumetric-indicators__grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-md);
+  }
+}
+
+@media (max-width: 480px) {
+  .volumetric-indicators__grid {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-md);
+  }
+}
+

@@ -1,0 +1,41 @@
+.featured-fabrica-placeholder {
+  width: 100%;
+  margin: var(--spacing-xl) 0;
+}
+
+.featured-fabrica-placeholder__container {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background-color: var(--color-bg-secondary);
+  border: 2px solid var(--color-border-primary);
+  border-radius: var(--border-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-lg);
+}
+
+.featured-fabrica-placeholder__message {
+  font-family: var(--font-family-signage);
+  font-size: var(--font-size-h3);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-secondary);
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  margin: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .featured-fabrica-placeholder__message {
+    font-size: var(--font-size-h4);
+  }
+}
+
+@media (max-width: 480px) {
+  .featured-fabrica-placeholder__message {
+    font-size: var(--font-size-h5);
+  }
+}
+

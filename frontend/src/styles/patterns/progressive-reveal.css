@@ -1,0 +1,31 @@
+/* Progressive Reveal Pattern
+ * Factory floor metaphor - content reveals as user scrolls
+ */
+
+.progressive-reveal {
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
+  will-change: opacity, transform;
+}
+
+.progressive-reveal--fade-out {
+  opacity: 0;
+  transform: translateY(-20px);
+}
+
+.progressive-reveal--fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Respect reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .progressive-reveal {
+    transition: none;
+  }
+  
+  .progressive-reveal--fade-out {
+    opacity: 1;
+    transform: none;
+  }
+}
+

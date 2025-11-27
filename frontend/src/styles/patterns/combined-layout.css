@@ -1,0 +1,45 @@
+/* Responsive Combined Layout Pattern
+ * For volumetric indicators and featured entities sections
+ * Desktop/Landscape: Side-by-side
+ * Mobile/Portrait: Alternating sections
+ */
+
+.combined-layout {
+  display: grid;
+  gap: var(--spacing-xl);
+  width: 100%;
+}
+
+/* Desktop/Landscape: Side-by-side layout */
+@media (min-width: 1024px) and (orientation: landscape) {
+  .combined-layout {
+    grid-template-columns: 1fr 2fr;
+    align-items: start;
+  }
+
+  .combined-layout__indicators {
+    position: sticky;
+    top: calc(var(--spacing-xl) + 60px); /* Account for FloatingHeader */
+  }
+}
+
+/* Tablet/Landscape: Side-by-side with adjusted spacing */
+@media (min-width: 768px) and (orientation: landscape) {
+  .combined-layout {
+    grid-template-columns: 1fr 1.5fr;
+    gap: var(--spacing-lg);
+  }
+}
+
+/* Mobile/Portrait: Stacked (alternating) */
+@media (max-width: 1023px), (orientation: portrait) {
+  .combined-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Ensure proper spacing between sections */
+.combined-layout > * {
+  width: 100%;
+}
+
