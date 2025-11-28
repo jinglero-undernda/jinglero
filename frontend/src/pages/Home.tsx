@@ -23,7 +23,7 @@ export default function Home() {
     <>
       <FloatingHeader />
       <main className="home-page">
-      <FileteSign subtitle="Jingles a medida y al instante" />
+      <FileteSign />
       <div className="home-page__hero">
         <div className="home-page__search-bar">
           <SearchBar 

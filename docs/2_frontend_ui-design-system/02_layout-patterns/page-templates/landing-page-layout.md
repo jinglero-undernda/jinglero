@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: draft
-- **Last Updated**: 2025-11-26
+- **Last Updated**: 2025-11-28
 - **Last Validated**: 2025-11-26
 - **Validation Report**: `landing-page-layout-validation-2025-11-26.md`
 - **Gap Analysis**: `landing-page-layout-gap-analysis-2025-11-26.md`
@@ -116,12 +116,17 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 
 **Components**:
 
-- **Filete Sign Component**: Decorative wooden sign with colorful Filete borders
-  - Main text: "Bienvenidos a la Usina de la Fábrica de Jingles"
-  - Subtitle: Can be included in sign or act as bridge to page content
-  - Colorful Filete decorations: Floral and scrollwork motifs (red, orange, yellow, green, blue, gold)
-  - Dark blue frame with ornate decorative elements
-  - Cream/wooden background texture
+- **Filete Sign Component**: Decorative sign with colorful Filete borders (SVG implementation)
+  - Three-line text layout:
+    - Top: "Bienvenido a la" (Rye font, 45px, white)
+    - Main: "USINA" (Sancreek font, 80px, gold gradient)
+    - Bottom: "de la Fábrica de Jingles" (Rye font, 40px, white)
+  - Dark background board (`#1a1a1a`) with gold gradient border frame
+  - Red accent border (`#e03131`)
+  - Colorful Filete decorations: 4 corner scroll ornaments, 2 central flowers, decorative swirls
+  - SVG-based implementation with reusable components
+  - **Code Reference**: `docs/2_frontend_ui-design-system/05_visual-references/filete.html`
+  - **Component Spec**: `docs/2_frontend_ui-design-system/03_components/composite/filete-sign.md`
 
 **Layout Specifications**:
 
@@ -133,16 +138,18 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 
 **Visual Specifications**:
 
-- **Typography**: Factory signage font (`--font-family-signage`)
-- **Main Title**: Large, bold, uppercase letters
-  - Color: Vibrant red with dark blue outline (or design system accent colors)
-  - Size: Display size (`--font-size-display`) or H1 (`--font-size-h1`)
-  - Style: Decorative, condensed serif (factory signage aesthetic)
-- **Filete Decorations**:
-  - Border frame: Dark blue with ornate floral/scrollwork motifs
-  - Colors: Red, orange, yellow, green, blue, gold accents
-  - Style: Elaborate, colorful, vintage Argentine Filete style
-- **Background Texture**: Cream/wooden planks (horizontal grain texture)
+- **Typography**: Decorative serif fonts (Rye, Sancreek from Google Fonts)
+  - Top/Bottom lines: Rye font, white text with 3D shadow
+  - Main title: Sancreek font, gold gradient fill with dark brown stroke
+  - Text shadow filter: Creates fake 3D shadow effect typical of Fileteo signs
+- **Filete Decorations** (SVG-based):
+  - Border frame: Gold gradient (`#FFF5C3` → `#FFD700` → `#DAA520`) with red accent (`#e03131`)
+  - Corner ornaments: 4 corner scrolls with gold spirals, green leaves, red decorative balls
+  - Central flowers: 2 side accent flowers (5-petal, red gradient with gold centers)
+  - Decorative lines: Turquoise swirls (`#63e6be`) above and below text
+  - Colors: Gold, red, green/turquoise gradients for volume and depth
+  - Style: Elaborate, colorful, vintage Argentine Fileteo Porteño style
+- **Background**: Dark board (`#1a1a1a`) with rounded corners, medium grey border
 
 **Design Intent**:
 
@@ -154,9 +161,12 @@ The Landing Page serves as the primary entry point for all users (GUEST role) an
 **Implementation Notes**:
 
 - Component: `FileteSign` or `WelcomeSign` (to be created)
-- CSS: Custom styling for Filete decorations (SVG or CSS patterns)
-- Animation: Fade out/parallax on scroll
-- Image reference: Use `Filete-Cartel-entrada.png` as visual guide
+- Implementation: SVG-based with reusable components (corner scrolls, flowers)
+- Structure: ViewBox 1000x350 (3:1 aspect ratio), preserves aspect ratio on resize
+- CSS: Custom styling for Filete decorations (SVG graphics with gradients)
+- Animation: Fade out/parallax on scroll (to be implemented in React component)
+- Reference: `docs/2_frontend_ui-design-system/05_visual-references/filete.html` (complete SVG implementation)
+- Component Spec: `docs/2_frontend_ui-design-system/03_components/composite/filete-sign.md` (updated 2025-11-28)
 
 ### 2. Full-Width Search Bar
 
@@ -832,10 +842,11 @@ This layout supports the following navigation paths (per WORKFLOW_010):
 
 ## Change History
 
-| Version | Date       | Change                               | Author | Rationale                                    |
-| ------- | ---------- | ------------------------------------ | ------ | -------------------------------------------- |
-| 2.0     | 2025-11-26 | Complete design intent documentation | -      | Design intent interview, comprehensive specs |
-| 1.0     | 2025-01-20 | Initial layout document              | -      | Document layout per WORKFLOW_010             |
+| Version | Date       | Change                                                     | Author | Rationale                                    |
+| ------- | ---------- | ---------------------------------------------------------- | ------ | -------------------------------------------- |
+| 2.1     | 2025-11-28 | Updated Filete Sign specifications with SVG implementation | -      | Documented filete.html implementation        |
+| 2.0     | 2025-11-26 | Complete design intent documentation                       | -      | Design intent interview, comprehensive specs |
+| 1.0     | 2025-01-20 | Initial layout document                                    | -      | Document layout per WORKFLOW_010             |
 
 ## Design Intent Interview Summary (2025-11-26)
 
@@ -856,7 +867,10 @@ This layout supports the following navigation paths (per WORKFLOW_010):
 
 ### Visual References
 
-- **Filete Sign**: `docs/2_frontend_ui-design-system/05_visual-references/Filete-Cartel-entrada.png`
+- **Filete Sign**:
+  - SVG Implementation: `docs/2_frontend_ui-design-system/05_visual-references/filete.html` (updated 2025-11-28)
+  - Original Reference: `docs/2_frontend_ui-design-system/05_visual-references/Filete-Cartel-entrada.png`
+  - Component Spec: `docs/2_frontend_ui-design-system/03_components/composite/filete-sign.md`
 - **WarningLabel**: Admin Dashboard implementation (`frontend/src/pages/admin/AdminDashboard.tsx`)
 - **Design System**: Industrial dark theme with vibrant accents
 
