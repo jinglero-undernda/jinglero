@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-23
+- **Last Updated**: 2025-11-27
 - **Last Validated**: not yet validated
 - **Version**: 1.0
 - **Code Reference**: `backend/src/server/api/public.ts:1-1143`
@@ -51,6 +51,117 @@ The Public API provides read-only access to all entities and relationships in th
 
 ```bash
 curl -X GET /api/public/schema
+```
+
+---
+
+### Statistics Endpoints
+
+#### GET /api/public/volumetrics
+
+**Method**: GET  
+**Path**: `/api/public/volumetrics`  
+**Code Reference**: `backend/src/server/api/public.ts` (line 1145)
+
+**Description**: Returns total counts for all entity types and derived counts (Jingleros, Proveedores) in a single lightweight response. This endpoint is optimized for frontend components that need to display volumetric indicators without fetching all entity data. Used by both `VolumetricIndicators` component and `AdminDashboard`.
+
+**Query Parameters**: None
+
+**Success Response (200)**
+
+```json
+{
+  "fabricas": 42,
+  "jingles": 1234,
+  "canciones": 567,
+  "usuarios": 89,
+  "tematicas": 123,
+  "artistas": 456,
+  "jingleros": 234,
+  "proveedores": 156
+}
+```
+
+**Response Fields**
+
+- `fabricas` (integer): Total count of Fabrica entities
+- `jingles` (integer): Total count of Jingle entities
+- `canciones` (integer): Total count of Cancion entities
+- `usuarios` (integer): Total count of Usuario entities
+- `tematicas` (integer): Total count of Tematica entities
+- `artistas` (integer): Total count of Artista entities
+- `jingleros` (integer): Count of distinct Artistas with at least one JINGLERO_DE relationship
+- `proveedores` (integer): Count of distinct Artistas with at least one AUTOR_DE relationship
+
+**Error Responses**
+
+- **500**: Internal Server Error - Database query error
+
+**Example Request**
+
+```bash
+curl -X GET /api/public/volumetrics
+```
+
+**Example Response**
+
+```json
+{
+  "fabricas": 42,
+  "jingles": 1234,
+  "canciones": 567,
+  "usuarios": 89,
+  "tematicas": 123,
+  "artistas": 456,
+  "jingleros": 234,
+  "proveedores": 156
+}
+```
+
+**Special Notes**
+
+- This endpoint uses a single optimized Cypher query to count all entities
+- Jingleros and Proveedores are derived counts based on relationship existence, not direct entity counts
+- Designed to replace inefficient frontend patterns that fetch all entities with high limits just to count them
+- Response is lightweight and fast, suitable for frequent polling or real-time updates
+
+**Implementation Notes**
+
+The endpoint uses a single Cypher query:
+
+```cypher
+MATCH (f:Fabrica)
+WITH count(f) AS fabricas
+MATCH (j:Jingle)
+WITH fabricas, count(j) AS jingles
+MATCH (c:Cancion)
+WITH fabricas, jingles, count(c) AS canciones
+MATCH (u:Usuario)
+WITH fabricas, jingles, canciones, count(u) AS usuarios
+MATCH (t:Tematica)
+WITH fabricas, jingles, canciones, usuarios, count(t) AS tematicas
+MATCH (a:Artista)
+WITH fabricas, jingles, canciones, usuarios, tematicas, count(a) AS artistas
+OPTIONAL MATCH (jinglero:Artista)-[:JINGLERO_DE]->(:Jingle)
+OPTIONAL MATCH (proveedor:Artista)-[:AUTOR_DE]->(:Cancion)
+RETURN
+  fabricas,
+  jingles,
+  canciones,
+  usuarios,
+  tematicas,
+  artistas,
+  count(DISTINCT jinglero) AS jingleros,
+  count(DISTINCT proveedor) AS proveedores
+```
+
+**Frontend Usage**
+
+This endpoint replaces inefficient patterns in both `VolumetricIndicators.tsx` (7 separate API calls) and `AdminDashboard.tsx` (6 separate API calls) that used `limit=10000` to count entities. Both components now use:
+
+```typescript
+const response = await publicApi.get<EntityCounts>("/volumetrics");
+setCounts(response);
 ```
 
 ---
@@ -1197,4 +1308,6 @@ All endpoints maintain backward compatibility. Breaking changes will be communic
 
 ## Change History
 
+- **2025-11-27**: Implemented volumetrics endpoint (GET /api/public/volumetrics) with 8 fields including tematicas and artistas
+- **2025-11-27**: Added volumetrics endpoint documentation (GET /api/public/volumetrics)
 - **2025-11-19**: Initial baseline documentation created from code analysis

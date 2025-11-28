@@ -30,40 +30,9 @@ export default function VolumetricIndicators() {
         setLoading(true);
         setError(null);
 
-        // Fetch all entities in parallel with high limit to get total counts
-        // Using direct API calls with limit=10000 to ensure we get all entities
-        const [fabricas, jingles, canciones, artistas, tematicas, autorDeRels, jingleroDeRels] = await Promise.all([
-          publicApi.get<unknown[]>('/fabricas?limit=10000'),
-          publicApi.get<unknown[]>('/jingles?limit=10000'),
-          publicApi.get<unknown[]>('/canciones?limit=10000'),
-          publicApi.get<unknown[]>('/artistas?limit=10000'),
-          publicApi.get<unknown[]>('/tematicas?limit=10000'),
-          // Get relationships for Proveedores and Jingleros
-          publicApi.get<unknown[]>('/relationships/autor_de?limit=10000').catch(() => []),
-          publicApi.get<unknown[]>('/relationships/jinglero_de?limit=10000').catch(() => []),
-        ]);
-
-        // Get unique artist IDs from relationships
-        const proveedoresIds = new Set(
-          (autorDeRels as Array<{ from?: { id?: string }; start?: { id?: string } }>)
-            .map((rel) => rel.from?.id || rel.start?.id)
-            .filter((id): id is string => Boolean(id))
-        );
-
-        const jinglerosIds = new Set(
-          (jingleroDeRels as Array<{ from?: { id?: string }; start?: { id?: string } }>)
-            .map((rel) => rel.from?.id || rel.start?.id)
-            .filter((id): id is string => Boolean(id))
-        );
-
-        setCounts({
-          fabricas: fabricas.length,
-          jingles: jingles.length,
-          canciones: canciones.length,
-          proveedores: proveedoresIds.size,
-          jingleros: jinglerosIds.size,
-          tematicas: tematicas.length,
-        });
+        // Fetch all counts from optimized volumetrics endpoint
+        const response = await publicApi.get<EntityCounts>('/volumetrics');
+        setCounts(response);
       } catch (err: any) {
         console.error('Error fetching volumetric indicators:', err);
         setError(err.message || 'Error al cargar los indicadores');

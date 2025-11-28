@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-19
+- **Last Updated**: 2025-11-27
 - **Version**: 1.0
 
 ## Overview
@@ -26,6 +26,10 @@ This document provides an overview of all API contracts in the Jinglero system. 
 
 - `GET /api/public/schema` - Schema introspection
 - `GET /api/public/health` - Health check
+
+**Statistics:**
+
+- `GET /api/public/volumetrics` - Entity counts and derived statistics
 
 **Direct Entity Endpoints:**
 
@@ -66,7 +70,7 @@ This document provides an overview of all API contracts in the Jinglero system. 
 
 - `GET /api/public/search` - Simple global search
 
-**Total: 27 endpoints**
+**Total: 28 endpoints**
 
 ### Admin API Endpoints
 
@@ -266,6 +270,14 @@ APPEARS_IN relationships have an `order` property that is system-managed:
 
 ## Change History
 
+- **2025-11-27**: Implemented volumetrics endpoint in Public API
+  - Implemented GET /api/public/volumetrics endpoint with 8 fields (fabricas, jingles, canciones, usuarios, tematicas, artistas, jingleros, proveedores)
+  - Migrated VolumetricIndicators component to use volumetrics endpoint
+  - Migrated Admin Dashboard to use volumetrics endpoint
+  - Updated documentation with implementation details
+- **2025-11-27**: Added volumetrics endpoint to Public API
+  - Documented GET /api/public/volumetrics endpoint
+  - Updated Public API endpoint count to 28
 - **2025-11-19**: Initial baseline documentation created
   - Documented Public API (27 endpoints)
   - Documented Admin API (23 endpoints)
@@ -274,4 +286,4 @@ APPEARS_IN relationships have an `order` property that is system-managed:
 
 ---
 
-**Last Updated:** 2025-11-19
+**Last Updated:** 2025-11-27

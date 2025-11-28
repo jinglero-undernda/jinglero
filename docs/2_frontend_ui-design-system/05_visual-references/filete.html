@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartel Fileteo Porteño</title>
+    <!-- Importing a font that matches the Fileteo style (Western/Circus/Decorative) -->
+    <link href="https://fonts.googleapis.com/css2?family=Rye&family=Sancreek&display=swap" rel="stylesheet">
+    <!-- Tailwind for layout centering -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: sans-serif;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+        }
+
+        /* SVG Animation for a subtle "painted" feel */
+        .filete-shine {
+            animation: shine 4s infinite linear;
+        }
+        
+        @keyframes shine {
+            0% { stop-color: #FFD700; }
+            50% { stop-color: #FFA500; }
+            100% { stop-color: #FFD700; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 
+            Fileteo Porteño SVG 
+            viewBox is set to typical sign proportions (approx 3:1)
+        -->
+        <svg viewBox="0 0 1000 350" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" class="w-full drop-shadow-2xl">
+            
+            <defs>
+                <!-- GRADIENTS: Essential for the "volume" look of Fileteo -->
+                <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" style="stop-color:#FFF5C3;stop-opacity:1" />
+                    <stop offset="30%" style="stop-color:#FFD700;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+                </linearGradient>
+
+                <linearGradient id="flowerGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#c92a2a;stop-opacity:1" />
+                </linearGradient>
+
+                <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#63e6be;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#0ca678;stop-opacity:1" />
+                </linearGradient>
+
+                <!-- TEXT FILTERS: To create the fake 3D shadow typical of the signs -->
+                <filter id="textShadow">
+                    <feDropShadow dx="3" dy="3" stdDeviation="0" flood-color="#000" flood-opacity="1"/>
+                    <feDropShadow dx="2" dy="2" stdDeviation="1" flood-color="#000" flood-opacity="0.5"/>
+                </filter>
+
+                <!-- ORNAMENT COMPONENT: One corner scroll to be reused 4 times -->
+                <g id="cornerScroll">
+                    <!-- Main Spiral -->
+                    <path d="M 10 10 C 50 10, 80 40, 90 80 C 95 100, 85 110, 75 100 C 65 90, 70 70, 80 70" 
+                          fill="none" stroke="url(#goldGrad)" stroke-width="4" stroke-linecap="round" />
+                    
+                    <!-- Stylized Acanthus Leaves -->
+                    <path d="M 10 10 Q 40 20 60 5 S 80 30 50 40" fill="url(#leafGrad)" stroke="#000" stroke-width="0.5" />
+                    <path d="M 10 10 Q 20 50 5 70 S 40 80 50 50" fill="url(#leafGrad)" stroke="#000" stroke-width="0.5" />
+                    
+                    <!-- Inner Volute Details -->
+                    <path d="M 20 20 C 35 25, 45 45, 35 55" fill="none" stroke="#FFF" stroke-width="1" opacity="0.6"/>
+
+                    <!-- The decorative "Ball" often seen in joints -->
+                    <circle cx="10" cy="10" r="8" fill="url(#flowerGrad)" stroke="#333" stroke-width="1"/>
+                </g>
+
+                <!-- FLOWER COMPONENT -->
+                <g id="fileteoFlower">
+                    <path d="M0 -15 Q 10 -30 20 -15 Q 10 0 0 0" fill="url(#flowerGrad)" /> <!-- Petal 1 -->
+                    <path d="M0 0 Q 30 -10 30 10 Q 10 10 0 0" fill="url(#flowerGrad)" />   <!-- Petal 2 -->
+                    <path d="M0 0 Q 20 25 0 30 Q -20 25 0 0" fill="url(#flowerGrad)" />    <!-- Petal 3 -->
+                    <path d="M0 0 Q -30 10 -30 -10 Q -10 0 0 0" fill="url(#flowerGrad)" /> <!-- Petal 4 -->
+                    <path d="M0 0 Q -20 -15 -10 -30 Q 0 -15 0 0" fill="url(#flowerGrad)" /> <!-- Petal 5 -->
+                    <circle cx="0" cy="0" r="5" fill="#FFD700" />
+                </g>
+            </defs>
+
+            <!-- BACKGROUND BOARD -->
+            <rect x="10" y="10" width="980" height="330" rx="15" fill="#1a1a1a" stroke="#4a4a4a" stroke-width="2"/>
+            
+            <!-- INNER BORDER (The 'Lineing') -->
+            <rect x="25" y="25" width="950" height="300" rx="10" fill="none" stroke="url(#goldGrad)" stroke-width="3" />
+            <rect x="32" y="32" width="936" height="286" rx="5" fill="none" stroke="#e03131" stroke-width="1.5" />
+
+            <!-- CORNER ORNAMENTS (Rotated and Placed) -->
+            <!-- Top Left -->
+            <use href="#cornerScroll" transform="translate(35, 35) scale(1.5)" />
+            <!-- Top Right (Mirrored X) -->
+            <use href="#cornerScroll" transform="translate(965, 35) scale(-1.5, 1.5)" />
+            <!-- Bottom Left (Mirrored Y) -->
+            <use href="#cornerScroll" transform="translate(35, 315) scale(1.5, -1.5)" />
+            <!-- Bottom Right (Mirrored X & Y) -->
+            <use href="#cornerScroll" transform="translate(965, 315) scale(-1.5, -1.5)" />
+
+            <!-- CENTRAL FLOWERS (Side Accents) -->
+            <use href="#fileteoFlower" transform="translate(130, 175) scale(1.2) rotate(90)" />
+            <use href="#fileteoFlower" transform="translate(870, 175) scale(1.2) rotate(-90)" />
+
+            <!-- DECORATIVE LINES (Swirls connecting text area) -->
+            <path d="M 200 80 Q 500 120 800 80" fill="none" stroke="#63e6be" stroke-width="2" opacity="0.8" />
+            <path d="M 200 270 Q 500 230 800 270" fill="none" stroke="#63e6be" stroke-width="2" opacity="0.8" />
+
+            <!-- TEXT CONTENT -->
+            <!-- Note: Using 'Rye' font for that authentic decorative look -->
+            
+            <!-- Top Line: "Bienvenido a la" -->
+            <text x="500" y="130" 
+                  font-family="'Rye', serif" 
+                  font-size="45" 
+                  fill="#FFF" 
+                  text-anchor="middle" 
+                  filter="url(#textShadow)"
+                  letter-spacing="2">
+                Bienvenido a la
+            </text>
+
+            <!-- Middle Line: Main Title "USINA" -->
+            <!-- Fileteo often highlights the main noun in a much larger, curved or distinct style -->
+            <text x="500" y="200" 
+                  font-family="'Sancreek', serif" 
+                  font-size="80" 
+                  fill="url(#goldGrad)" 
+                  stroke="#5c4208"
+                  stroke-width="1.5"
+                  text-anchor="middle" 
+                  filter="url(#textShadow)"
+                  letter-spacing="3">
+                USINA
+            </text>
+
+            <!-- Bottom Line: "de la Fábrica de Jingles" -->
+            <text x="500" y="260" 
+                  font-family="'Rye', serif" 
+                  font-size="40" 
+                  fill="#FFF" 
+                  text-anchor="middle" 
+                  filter="url(#textShadow)"
+                  letter-spacing="1">
+                de la Fábrica de Jingles
+            </text>
+
+        </svg>
+    </div>
+
+</body>
+</html>

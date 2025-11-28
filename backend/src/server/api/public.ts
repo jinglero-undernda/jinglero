@@ -1140,6 +1140,68 @@ router.get('/search', async (req, res) => {
     res.status(500).json({ error: error?.message || 'Internal server error' });
   }
 });
+
+// Volumetrics endpoint - returns entity counts
+router.get('/volumetrics', async (req, res) => {
+  try {
+    const query = `
+      MATCH (f:Fabrica)
+      WITH count(f) AS fabricas
+      MATCH (j:Jingle)
+      WITH fabricas, count(j) AS jingles
+      MATCH (c:Cancion)
+      WITH fabricas, jingles, count(c) AS canciones
+      MATCH (u:Usuario)
+      WITH fabricas, jingles, canciones, count(u) AS usuarios
+      MATCH (t:Tematica)
+      WITH fabricas, jingles, canciones, usuarios, count(t) AS tematicas
+      MATCH (a:Artista)
+      WITH fabricas, jingles, canciones, usuarios, tematicas, count(a) AS artistas
+      OPTIONAL MATCH (jinglero:Artista)-[:JINGLERO_DE]->(:Jingle)
+      OPTIONAL MATCH (proveedor:Artista)-[:AUTOR_DE]->(:Cancion)
+      RETURN
+        fabricas,
+        jingles,
+        canciones,
+        usuarios,
+        tematicas,
+        artistas,
+        count(DISTINCT jinglero) AS jingleros,
+        count(DISTINCT proveedor) AS proveedores
+    `;
+    
+    const result = await db.executeQuery(query);
+    
+    if (result.length === 0) {
+      return res.json({
+        fabricas: 0,
+        jingles: 0,
+        canciones: 0,
+        usuarios: 0,
+        tematicas: 0,
+        artistas: 0,
+        jingleros: 0,
+        proveedores: 0
+      });
+    }
+    
+    // Convert Neo4j integers to JavaScript numbers
+    const counts = result[0] as any;
+    res.json({
+      fabricas: typeof counts.fabricas === 'object' && counts.fabricas?.low !== undefined ? counts.fabricas.low : Number(counts.fabricas),
+      jingles: typeof counts.jingles === 'object' && counts.jingles?.low !== undefined ? counts.jingles.low : Number(counts.jingles),
+      canciones: typeof counts.canciones === 'object' && counts.canciones?.low !== undefined ? counts.canciones.low : Number(counts.canciones),
+      usuarios: typeof counts.usuarios === 'object' && counts.usuarios?.low !== undefined ? counts.usuarios.low : Number(counts.usuarios),
+      tematicas: typeof counts.tematicas === 'object' && counts.tematicas?.low !== undefined ? counts.tematicas.low : Number(counts.tematicas),
+      artistas: typeof counts.artistas === 'object' && counts.artistas?.low !== undefined ? counts.artistas.low : Number(counts.artistas),
+      jingleros: typeof counts.jingleros === 'object' && counts.jingleros?.low !== undefined ? counts.jingleros.low : Number(counts.jingleros),
+      proveedores: typeof counts.proveedores === 'object' && counts.proveedores?.low !== undefined ? counts.proveedores.low : Number(counts.proveedores)
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error?.message || 'Internal server error' });
+  }
+});
+
 // Health check endpoint
 router.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

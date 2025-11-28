@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-25
+- **Last Updated**: 2025-11-27
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/index.ts:1-43`, `frontend/vite.config.ts:1-44`
 
@@ -289,28 +289,34 @@ Running the backend as a systemd service ensures it starts automatically on boot
        root /var/www/jinglero/frontend/dist;
        index index.html;
 
-       # Frontend routes (SPA routing)
-       location / {
-           try_files $uri $uri/ /index.html;
-       }
+      # Frontend routes (SPA routing)
+      location / {
+          try_files $uri $uri/ /index.html;
+      }
 
-       # Proxy API requests to backend
-       location /api {
-           proxy_pass http://localhost:3000;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection 'upgrade';
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header X-Forwarded-Proto $scheme;
-           proxy_cache_bypass $http_upgrade;
-       }
+      # Health check endpoint - map /api/health to root /health
+      # This must come before the general /api block for proper matching
+      location /api/health {
+          proxy_pass http://localhost:3000/health;
+          proxy_http_version 1.1;
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+      }
 
-       # Health check endpoint
-       location /health {
-           proxy_pass http://localhost:3000/health;
-       }
+      # Proxy API requests to backend
+      location /api {
+          proxy_pass http://localhost:3000;
+          proxy_http_version 1.1;
+          proxy_set_header Upgrade $http_upgrade;
+          proxy_set_header Connection 'upgrade';
+          proxy_set_header Host $host;
+          proxy_set_header X-Real-IP $remote_addr;
+          proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+          proxy_set_header X-Forwarded-Proto $scheme;
+          proxy_cache_bypass $http_upgrade;
+      }
    }
    ```
 
@@ -527,6 +533,7 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
 
 ## Change History
 
-| Date       | Change Description               | Changed By   |
-| ---------- | -------------------------------- | ------------ |
-| 2025-11-25 | Initial deployment documentation | AI Assistant |
+| Date       | Change Description                                 | Changed By   |
+| ---------- | -------------------------------------------------- | ------------ |
+| 2025-11-27 | Fixed nginx configuration for /api/health endpoint | AI Assistant |
+| 2025-11-25 | Initial deployment documentation                   | AI Assistant |

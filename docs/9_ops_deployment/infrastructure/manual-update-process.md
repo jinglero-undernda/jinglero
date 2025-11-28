@@ -369,6 +369,20 @@ This step ensures that any new or updated dependencies are installed before buil
 - **Configuration errors**: Fix nginx configuration file: `/etc/nginx/sites-available/jinglero`
 - **Permission issues**: Verify nginx can read `frontend/dist/` directory
 - **Port conflicts**: Check if port 80 is available: `sudo lsof -i :80`
+- **API proxy returns "Not Found" for `/api/health`**: This occurs when nginx proxies `/api/health` to `http://localhost:3000/api/health`, but the backend only has `/health` (root level) and `/api/public/health`, not `/api/health`. Fix by adding a specific location block for `/api/health` in the nginx configuration:
+  ```nginx
+  # Health check endpoint - map /api/health to root /health
+  # This must come before the general /api block for proper matching
+  location /api/health {
+      proxy_pass http://localhost:3000/health;
+      proxy_http_version 1.1;
+      proxy_set_header Host $host;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header X-Forwarded-Proto $scheme;
+  }
+  ```
+  Place this block **before** the general `/api` location block in `/etc/nginx/sites-available/jinglero`, then test and reload: `sudo nginx -t && sudo systemctl reload nginx`
 
 **Code Reference**:
 
@@ -614,9 +628,10 @@ sudo chown -R pi:pi /var/www/jinglero
 
 ## Change History
 
-| Date       | Change Description                          | Changed By   |
-| ---------- | ------------------------------------------- | ------------ |
-| 2025-11-27 | Initial manual update process documentation | AI Assistant |
+| Date       | Change Description                                | Changed By   |
+| ---------- | ------------------------------------------------- | ------------ |
+| 2025-11-27 | Added troubleshooting for /api/health nginx issue | AI Assistant |
+| 2025-11-27 | Initial manual update process documentation       | AI Assistant |
 
 ---
 

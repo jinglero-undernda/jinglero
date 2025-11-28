@@ -77,7 +77,7 @@
 
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { adminApi } from '../../lib/api/client';
+import { adminApi, publicApi } from '../../lib/api/client';
 import DataIntegrityChecker from '../../components/admin/DataIntegrityChecker';
 import { useToast } from '../../components/common/ToastContext';
 import EntitySearchAutocomplete from '../../components/admin/EntitySearchAutocomplete';
@@ -142,28 +142,18 @@ export default function AdminDashboard() {
       setCountsLoading(true);
 
       try {
-        const counts: EntityCounts = {
-          fabricas: 0,
-          jingles: 0,
-          canciones: 0,
-          artistas: 0,
-          tematicas: 0,
-          usuarios: 0,
-        };
-
-        // Fetch counts for each entity type
-        const promises = ENTITY_TYPES.map(async (entityType) => {
-          try {
-            const entities = await adminApi.get<unknown[]>(`/${entityType.type}`);
-            counts[entityType.type as keyof EntityCounts] = entities.length;
-          } catch (err) {
-            console.error(`Error loading ${entityType.label}:`, err);
-            // Continue with other types even if one fails
-          }
+        // Fetch all counts from optimized volumetrics endpoint
+        const response = await publicApi.get<EntityCounts & { jingleros?: number; proveedores?: number }>('/volumetrics');
+        
+        // Map response to EntityCounts (excluding jingleros and proveedores which are not used in Admin Dashboard)
+        setEntityCounts({
+          fabricas: response.fabricas,
+          jingles: response.jingles,
+          canciones: response.canciones,
+          artistas: response.artistas,
+          tematicas: response.tematicas,
+          usuarios: response.usuarios,
         });
-
-        await Promise.all(promises);
-        setEntityCounts(counts);
         setLastUpdated(new Date());
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Error al cargar los conteos';
