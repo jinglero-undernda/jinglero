@@ -884,6 +884,191 @@ export class AdminApiClient extends PublicApiClient {
   }): Promise<{ success: boolean; message: string; issue: typeof issue }> {
     return this.post<{ success: boolean; message: string; issue: typeof issue }>('/validate/fix', { issue });
   }
+
+  // Cleanup API methods
+  async getCleanupScripts(): Promise<{
+    scripts: Array<{
+      id: string;
+      name: string;
+      description: string;
+      entityType: string;
+      category: 'fabricas' | 'jingles' | 'canciones' | 'artistas' | 'general';
+      automatable: boolean;
+      estimatedDuration: string;
+      usesMusicBrainz: boolean;
+    }>;
+    total: number;
+  }> {
+    return this.get<{
+      scripts: Array<{
+        id: string;
+        name: string;
+        description: string;
+        entityType: string;
+        category: 'fabricas' | 'jingles' | 'canciones' | 'artistas' | 'general';
+        automatable: boolean;
+        estimatedDuration: string;
+        usesMusicBrainz: boolean;
+      }>;
+      total: number;
+    }>('/cleanup/scripts');
+  }
+
+  async executeCleanupScript(scriptId: string): Promise<{
+    scriptId: string;
+    scriptName: string;
+    totalFound: number;
+    executionTime: number;
+    timestamp: string;
+    entities: Array<{
+      entityType: string;
+      entityId: string;
+      entityTitle?: string;
+      issue: string;
+      currentValue: any;
+      suggestion?: {
+        type: 'update' | 'create' | 'delete' | 'relationship';
+        field?: string;
+        recommendedValue?: any;
+        automatable: boolean;
+        requiresManualReview: boolean;
+        musicBrainzMatch?: {
+          musicBrainzId: string;
+          title: string;
+          artist?: string;
+          confidence: number;
+          source: 'musicbrainz_search' | 'musicbrainz_lookup';
+          alternatives?: Array<{
+            musicBrainzId: string;
+            title: string;
+            artist?: string;
+            confidence: number;
+          }>;
+        };
+      };
+    }>;
+    suggestions: Array<{
+      type: string;
+      field?: string;
+      count: number;
+      automatable: number;
+      requiresReview: number;
+    }>;
+    musicBrainzCalls?: number;
+    musicBrainzErrors?: Array<{
+      entityId: string;
+      error: string;
+      retryable: boolean;
+    }>;
+  }> {
+    return this.post<{
+      scriptId: string;
+      scriptName: string;
+      totalFound: number;
+      executionTime: number;
+      timestamp: string;
+      entities: Array<{
+        entityType: string;
+        entityId: string;
+        entityTitle?: string;
+        issue: string;
+        currentValue: any;
+        suggestion?: {
+          type: 'update' | 'create' | 'delete' | 'relationship';
+          field?: string;
+          recommendedValue?: any;
+          automatable: boolean;
+          requiresManualReview: boolean;
+          musicBrainzMatch?: {
+            musicBrainzId: string;
+            title: string;
+            artist?: string;
+            confidence: number;
+            source: 'musicbrainz_search' | 'musicbrainz_lookup';
+            alternatives?: Array<{
+              musicBrainzId: string;
+              title: string;
+              artist?: string;
+              confidence: number;
+            }>;
+          };
+        };
+      }>;
+      suggestions: Array<{
+        type: string;
+        field?: string;
+        count: number;
+        automatable: number;
+        requiresReview: number;
+      }>;
+      musicBrainzCalls?: number;
+      musicBrainzErrors?: Array<{
+        entityId: string;
+        error: string;
+        retryable: boolean;
+      }>;
+    }>(`/cleanup/${scriptId}/execute`, {});
+  }
+
+  async automateCleanupFixes(
+    scriptId: string,
+    entityIds: string[],
+    applyLowConfidence: boolean = false
+  ): Promise<{
+    scriptId: string;
+    totalRequested: number;
+    totalApplied: number;
+    successful: number;
+    failed: number;
+    skipped: number;
+    results: Array<{
+      entityId: string;
+      status: 'success' | 'failed';
+      changes?: Record<string, any>;
+      musicBrainzId?: string;
+      confidence?: number;
+      error?: string;
+    }>;
+    skippedEntities?: Array<{
+      entityId: string;
+      reason: string;
+      confidence?: number;
+    }>;
+    errors: Array<{
+      entityId: string;
+      error: string;
+      code?: string;
+      retryable: boolean;
+    }>;
+  }> {
+    return this.post<{
+      scriptId: string;
+      totalRequested: number;
+      totalApplied: number;
+      successful: number;
+      failed: number;
+      skipped: number;
+      results: Array<{
+        entityId: string;
+        status: 'success' | 'failed';
+        changes?: Record<string, any>;
+        musicBrainzId?: string;
+        confidence?: number;
+        error?: string;
+      }>;
+      skippedEntities?: Array<{
+        entityId: string;
+        reason: string;
+        confidence?: number;
+      }>;
+      errors: Array<{
+        entityId: string;
+        error: string;
+        code?: string;
+        retryable: boolean;
+      }>;
+    }>(`/cleanup/${scriptId}/automate`, { entityIds, applyLowConfidence });
+  }
 }
 
 // Export singleton instances

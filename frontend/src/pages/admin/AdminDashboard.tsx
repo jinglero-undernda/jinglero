@@ -1114,6 +1114,37 @@ export default function AdminDashboard() {
             </div>
           </div>
 
+          {/* Database Cleanup */}
+          <div
+            style={{
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              padding: '1.5rem',
+              backgroundColor: 'white',
+            }}
+          >
+            <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1.1rem' }}>Limpieza en la Base de Datos</h3>
+            <p style={{ margin: '0 0 1rem 0', fontSize: '0.875rem', color: '#666' }}>
+              Ejecuta scripts de limpieza para identificar y resolver problemas de calidad de datos
+            </p>
+            <Link
+              to="/admin/cleanup"
+              style={{
+                display: 'inline-block',
+                padding: '0.5rem 1rem',
+                backgroundColor: '#2e7d32',
+                color: 'white',
+                textDecoration: 'none',
+                borderRadius: '4px',
+                fontSize: '0.875rem',
+                textAlign: 'center',
+                width: '100%',
+              }}
+            >
+              Ir a Limpieza →
+            </Link>
+          </div>
+
           {/* Import CSV (Placeholder for Phase 4) */}
           <div
             style={{

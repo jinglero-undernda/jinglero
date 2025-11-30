@@ -164,6 +164,7 @@ Workflow documents can be used to validate code by:
 | WORKFLOW_008 | Entity Inspection               | Guest Experience | planned  | -            |
 | WORKFLOW_009 | Admin Authentication            | Authentication   | planned  | -            |
 | WORKFLOW_010 | Basic Navigation Access         | Navigation       | draft    | 2025-01-20   |
+| WORKFLOW_011 | Database Cleanup and Validation | Admin Experience | draft    | 2025-11-28   |
 
 ## Organizing Workflows by Experience Type
 

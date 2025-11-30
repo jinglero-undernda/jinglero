@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-19
+- **Last Updated**: 2025-11-29
 - **Code Reference**: `frontend/src/lib/api/client.ts`, `backend/src/server/api/`, `backend/src/server/db/index.ts`
 
 ## Overview
@@ -143,6 +143,182 @@ graph TD
 - **Pattern**: Singleton Neo4jClient with retry logic
 - **Features**: Connection pooling, transaction management, error handling
 
+## Cleanup Feature Data Flow
+
+### Overview
+
+The cleanup feature provides database maintenance operations through a dedicated API. Some cleanup scripts integrate with external MusicBrainz API to fetch metadata and suggest matches.
+
+**Workflow Reference**: See `docs/1_frontend_ux-workflows/workflows/admin-experience/WORKFLOW_011_database-cleanup.md`
+
+**API Reference**: See `docs/5_backend_api-contracts/contracts/admin-api-cleanup.md`
+
+### Cleanup Script Execution Flow
+
+1. **Frontend Request**:
+   - User clicks cleanup script button in `DatabaseCleanupPage`
+   - Component calls `adminApi.executeCleanupScript(scriptId)`
+   - API client sends POST request to `/api/admin/cleanup/:scriptId/execute`
+   - **Code Reference**: `frontend/src/pages/admin/DatabaseCleanupPage.tsx` (to be created), `frontend/src/lib/api/client.ts` (to be added)
+
+2. **Backend Script Execution**:
+   - Express router receives request at `/api/admin/cleanup/:scriptId/execute`
+   - Router loads script module from `backend/src/server/db/cleanup/`
+   - Script executes database queries to identify issues
+   - **Code Reference**: `backend/src/server/api/admin.ts` (to be created)
+
+3. **Database Query Execution**:
+   - Script uses Neo4jClient to execute Cypher queries
+   - Queries identify entities with issues (missing relationships, incomplete data, etc.)
+   - Results collected and formatted
+   - **Code Reference**: `backend/src/server/db/cleanup/` (to be created)
+
+4. **Results Processing**:
+   - Script formats results with entity details and suggestions
+   - Suggestions include automatable fixes
+   - Results returned to frontend
+   - **Code Reference**: `backend/src/server/db/cleanup/` (to be created)
+
+5. **Frontend Display**:
+   - Results displayed in `CleanupResultsModal`
+   - User can review issues and suggested fixes
+   - User can trigger automation for automatable fixes
+   - **Code Reference**: `frontend/src/components/admin/CleanupResultsModal.tsx` (to be created)
+
+### MusicBrainz Integration Flow
+
+**Scripts Using MusicBrainz**: Scripts 5, 6, 8, 9, 10 (see cleanup operations documentation)
+
+1. **MusicBrainz API Call**:
+   - Backend script makes GET request to MusicBrainz API
+   - Base URL: `https://musicbrainz.org/ws/2/`
+   - Endpoints used:
+     - Search: `/recording/?query={query}&fmt=json`
+     - Lookup: `/recording/{mbid}?fmt=json&inc=artist-credits+releases`
+     - Artist Search: `/artist/?query={query}&fmt=json`
+   - **Rate Limiting**: 1 request per second (enforced by backend)
+   - **Code Reference**: `backend/src/server/db/cleanup/musicbrainz-client.ts` (to be created)
+
+2. **MusicBrainz Response Processing**:
+   - MusicBrainz API returns JSON response
+   - Backend parses response and extracts relevant data
+   - Confidence score calculated based on match quality:
+     - Exact title match: 0.9-1.0
+     - Title + artist match: 0.85-0.95
+     - Partial match: 0.6-0.8
+     - Low confidence: < 0.6
+   - **Code Reference**: `backend/src/server/db/cleanup/musicbrainz-client.ts` (to be created)
+
+3. **Data Transformation**:
+   - MusicBrainz data transformed to internal format
+   - MusicBrainz ID assigned to entity
+   - `musicBrainzConfidence` property set (0.0 to 1.0)
+   - Missing metadata backfilled (album, year, genre, etc.)
+   - **Code Reference**: `backend/src/server/db/cleanup/` (to be created)
+
+4. **Error Handling**:
+   - MusicBrainz API failures handled gracefully
+   - Errors logged and reported in script results
+   - Script continues execution even if MusicBrainz API unavailable
+   - Retry logic with exponential backoff for transient failures
+   - **Code Reference**: `backend/src/server/db/cleanup/musicbrainz-client.ts` (to be created)
+
+### Automation Flow
+
+1. **Frontend Request**:
+   - User clicks "Automate Suggested Fixes" in results modal
+   - Component calls `adminApi.automateCleanupFixes(scriptId, entityIds, applyLowConfidence)`
+   - API client sends POST request to `/api/admin/cleanup/:scriptId/automate`
+   - **Code Reference**: `frontend/src/components/admin/CleanupResultsModal.tsx` (to be created)
+
+2. **Backend Automation**:
+   - Express router receives automation request
+   - Router loads script module and applies fixes
+   - For each entity:
+     - Checks `musicBrainzConfidence` property (if applicable)
+     - If confidence < 0.8 and `applyLowConfidence: false`, skips automation
+     - If confidence >= 0.8, applies fix automatically
+     - Updates entity properties or creates relationships
+   - **Code Reference**: `backend/src/server/api/admin.ts` (to be created)
+
+3. **Database Updates**:
+   - Neo4jClient executes write operations
+   - Properties updated (e.g., `musicBrainzId`, `musicBrainzConfidence`)
+   - Relationships created (e.g., `AUTOR_DE`, `APPEARS_IN`)
+   - Entities created (e.g., new `Artista` nodes)
+   - **Code Reference**: `backend/src/server/db/cleanup/` (to be created)
+
+4. **Results Processing**:
+   - Automation results collected (successful, failed, skipped)
+   - Results returned to frontend
+   - Frontend updates results modal to show applied fixes
+   - **Code Reference**: `backend/src/server/api/admin.ts` (to be created)
+
+### Cleanup Feature Data Flow Diagram
+
+```mermaid
+graph TD
+    A[DatabaseCleanupPage] -->|Click Script| B[API Client]
+    B -->|POST /cleanup/:id/execute| C[Express Router]
+    C -->|Load Script| D[Cleanup Script]
+    D -->|Query| E[Neo4j Database]
+    E -->|Results| D
+    
+    D -->|Uses MusicBrainz?| F{MusicBrainz Script?}
+    F -->|Yes| G[MusicBrainz Client]
+    G -->|GET Request| H[MusicBrainz API]
+    H -->|JSON Response| G
+    G -->|Parse & Calculate Confidence| D
+    
+    D -->|Format Results| C
+    C -->|JSON Response| B
+    B -->|Display| I[CleanupResultsModal]
+    
+    I -->|Automate| J[API Client]
+    J -->|POST /cleanup/:id/automate| C
+    C -->|Check Confidence| K{Confidence >= 0.8?}
+    K -->|Yes| L[Apply Fix]
+    K -->|No| M[Skip Fix]
+    L -->|Update| E
+    M -->|Report| C
+    C -->|Results| J
+    J -->|Update Modal| I
+```
+
+### Component Architecture
+
+**Frontend Components**:
+- `DatabaseCleanupPage`: Main page component managing script execution state
+- `CleanupScriptButton`: Individual script button with loading state
+- `CleanupResultsModal`: Modal displaying results and automation options
+- `CleanupScriptSection`: Section grouping scripts by entity type
+
+**State Management**:
+- `scripts`: List of available cleanup scripts
+- `runningScripts`: Set of currently executing script IDs
+- `results`: Current script execution results
+- `showResultsModal`: Modal visibility state
+- `selectedScript`: Currently selected script ID
+- `automating`: Automation in progress state
+
+**Code Reference**: `frontend/src/pages/admin/DatabaseCleanupPage.tsx` (to be created)
+
+### Performance Considerations
+
+- **Script Execution**: Scripts execute asynchronously, may take 5-60 seconds
+- **MusicBrainz Rate Limiting**: 1 request per second enforced to respect API limits
+- **Large Result Sets**: Results paginated for scripts finding many issues
+- **Concurrent Execution**: Multiple scripts can run simultaneously (if backend supports)
+- **Caching**: MusicBrainz responses not cached (always fresh data)
+
+### Error Handling
+
+- **Script Execution Errors**: Reported in script results with error details
+- **MusicBrainz API Errors**: Handled gracefully, errors reported in results
+- **Automation Errors**: Partial success supported, individual failures reported
+- **Network Errors**: Retry logic with exponential backoff
+- **Timeout Handling**: 30-second timeout for MusicBrainz API calls
+
 ## Change History
 
 - **2025-11-19**: Initial baseline documentation
@@ -150,3 +326,8 @@ graph TD
   - Documented API client patterns
   - Documented Neo4j query patterns
   - Documented client-side caching implementation
+- **2025-11-29**: Added cleanup feature data flow
+  - Documented cleanup script execution flow
+  - Documented MusicBrainz integration architecture
+  - Documented automation flow
+  - Documented component architecture and state management

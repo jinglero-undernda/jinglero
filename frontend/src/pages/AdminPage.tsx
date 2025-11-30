@@ -4,6 +4,7 @@ import AdminDashboard from './admin/AdminDashboard';
 import AdminEntityAnalyze from './admin/AdminEntityAnalyze';
 import AdminEntityList from './admin/AdminEntityList';
 import AdminLogin from './admin/AdminLogin';
+import DatabaseCleanupPage from './admin/DatabaseCleanupPage';
 import DesignSystemShowcase from './admin/design-system/DesignSystemShowcase';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 
@@ -60,6 +61,15 @@ export default function AdminPage() {
           element={
             <ProtectedRoute>
               <DesignSystemShowcase />
+            </ProtectedRoute>
+          }
+        />
+        {/* Database Cleanup route */}
+        <Route
+          path="cleanup"
+          element={
+            <ProtectedRoute>
+              <DatabaseCleanupPage />
             </ProtectedRoute>
           }
         />

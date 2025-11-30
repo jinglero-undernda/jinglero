@@ -1,0 +1,78 @@
+/**
+ * Timestamp parsing utilities for extracting timestamps from text
+ * Handles extraction of MM:SS or HH:MM:SS format from arbitrary text
+ * 
+ * Similar to frontend/src/lib/utils/timestampParser.ts but for backend use
+ */
+
+/**
+ * Parses a timestamp (MM:SS or HH:MM:SS) from text and returns normalized HH:MM:SS format
+ * 
+ * @param text - Text that may contain a timestamp
+ * @returns Normalized timestamp string in HH:MM:SS format, or null if not found
+ * 
+ * @example
+ * parseTimestampFromText('This happens at 02:30 in the video') // '00:02:30'
+ * parseTimestampFromText('Timestamp: 01:15:45') // '01:15:45'
+ * parseTimestampFromText('No timestamp here') // null
+ * parseTimestampFromText('Multiple times: 02:30 and 03:45') // '00:02:30' (first match)
+ */
+export function parseTimestampFromText(text: string | null | undefined): string | null {
+  if (!text || typeof text !== 'string') {
+    return null;
+  }
+
+  // Regex patterns:
+  // HH:MM:SS pattern: 0-23 hours, 0-59 minutes, 0-59 seconds
+  // MM:SS pattern: 0-59 minutes, 0-59 seconds
+  const hhmmssPattern = /\b([0-1]?[0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])\b/;
+  const mmssPattern = /\b([0-5][0-9]):([0-5][0-9])\b/;
+
+  // Try HH:MM:SS first (more specific)
+  const hhmmssMatch = text.match(hhmmssPattern);
+  if (hhmmssMatch) {
+    const hours = parseInt(hhmmssMatch[1], 10);
+    const minutes = parseInt(hhmmssMatch[2], 10);
+    const seconds = parseInt(hhmmssMatch[3], 10);
+
+    // Validate ranges (regex should catch most, but double-check)
+    if (
+      hours >= 0 && hours <= 23 &&
+      minutes >= 0 && minutes <= 59 &&
+      seconds >= 0 && seconds <= 59
+    ) {
+      const pad = (num: number): string => num.toString().padStart(2, '0');
+      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    }
+  }
+
+  // Try MM:SS pattern (less specific, but common)
+  const mmssMatch = text.match(mmssPattern);
+  if (mmssMatch) {
+    const minutes = parseInt(mmssMatch[1], 10);
+    const seconds = parseInt(mmssMatch[2], 10);
+
+    // Validate ranges
+    if (minutes >= 0 && minutes <= 59 && seconds >= 0 && seconds <= 59) {
+      const pad = (num: number): string => num.toString().padStart(2, '0');
+      // Convert MM:SS to HH:MM:SS by prepending "00:"
+      return `00:${pad(minutes)}:${pad(seconds)}`;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Convert timestamp string (HH:MM:SS) to seconds (integer)
+ */
+export function timestampToSeconds(timestamp: string): number {
+  if (!timestamp) return 0;
+  const parts = timestamp.split(':');
+  if (parts.length !== 3) return 0;
+  const hours = parseInt(parts[0], 10) || 0;
+  const minutes = parseInt(parts[1], 10) || 0;
+  const seconds = parseInt(parts[2], 10) || 0;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+

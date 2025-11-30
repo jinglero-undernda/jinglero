@@ -403,7 +403,7 @@ Jingle represents a clip or segment from a Fabrica (stream). Each Jingle appears
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-23
+- **Last Updated**: 2025-11-29
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:125-143`
 
@@ -517,6 +517,20 @@ Artista represents a musical artist or performer. Artists can author Canciones, 
 - **Description**: MusicBrainz ID for linking to external MusicBrainz database. Used to tie database to external source of accurate data.
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:140`
 
+### musicBrainzConfidence
+
+- **Type**: number (float, optional)
+- **Required**: No
+- **Default**: None
+- **Range**: 0.0 to 1.0
+- **Description**: Confidence score for MusicBrainz ID match. Indicates the quality/reliability of the MusicBrainz ID assignment. Values below 0.8 indicate low confidence and require manual review before automation. Set when MusicBrainz ID is assigned via cleanup scripts. Updated when MusicBrainz match is re-evaluated. Cleared (set to null) when MusicBrainz ID is manually changed or removed.
+- **Thresholds**: 
+  - High Confidence (>= 0.8): Can be automated without review
+  - Low Confidence (< 0.8): Requires manual review before automation
+  - Very Low Confidence (< 0.6): Likely incorrect match, should not be automated
+- **Code Reference**: `backend/src/server/db/schema/schema.ts` (to be added)
+- **Related Documentation**: `docs/4_backend_database-schema/schema/cleanup-operations.md`
+
 ### status
 
 - **Type**: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED)
@@ -585,7 +599,7 @@ Artista represents a musical artist or performer. Artists can author Canciones, 
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-23
+- **Last Updated**: 2025-11-29
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:145-159`
 
@@ -666,6 +680,20 @@ Cancion represents a song or musical composition. Songs can have multiple author
 - **Default**: None
 - **Description**: MusicBrainz ID for linking to external MusicBrainz database. Used to tie database to external source of accurate data.
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:159`
+
+### musicBrainzConfidence
+
+- **Type**: number (float, optional)
+- **Required**: No
+- **Default**: None
+- **Range**: 0.0 to 1.0
+- **Description**: Confidence score for MusicBrainz ID match. Indicates the quality/reliability of the MusicBrainz ID assignment. Values below 0.8 indicate low confidence and require manual review before automation. Set when MusicBrainz ID is assigned via cleanup scripts. Updated when MusicBrainz match is re-evaluated. Cleared (set to null) when MusicBrainz ID is manually changed or removed.
+- **Thresholds**: 
+  - High Confidence (>= 0.8): Can be automated without review
+  - Low Confidence (< 0.8): Requires manual review before automation
+  - Very Low Confidence (< 0.6): Likely incorrect match, should not be automated
+- **Code Reference**: `backend/src/server/db/schema/schema.ts` (to be added)
+- **Related Documentation**: `docs/4_backend_database-schema/schema/cleanup-operations.md`
 
 ### status
 

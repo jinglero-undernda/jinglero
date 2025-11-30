@@ -9,7 +9,7 @@ import {
   createConstraint, 
   dropConstraint 
 } from '../db/schema/setup';
-import { asyncHandler, BadRequestError, NotFoundError, ConflictError, UnauthorizedError } from './core';
+import { asyncHandler, BadRequestError, NotFoundError, ConflictError, UnauthorizedError, InternalServerError } from './core';
 import { optionalAdminAuth, requireAdminAuth } from '../middleware/auth';
 import {
   validateEntity,
@@ -28,6 +28,13 @@ import {
   checkConcurrentInboundOutbound
 } from '../db/validation/repeats-validation';
 import { updateJingleAutoComment } from '../utils/jingleAutoComment';
+import {
+  getAllScripts,
+  getScriptMetadata,
+  executeScript,
+  automateScript,
+  isScriptAutomatable,
+} from '../db/cleanup';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -1308,6 +1315,108 @@ router.post('/validate/fix', asyncHandler(async (req, res) => {
     message: 'Issue fixed successfully',
     issue,
   });
+}));
+
+// ============================================================================
+// Cleanup Endpoints
+// ============================================================================
+
+/**
+ * GET /api/admin/cleanup/scripts
+ * List all available cleanup scripts with metadata
+ */
+router.get('/cleanup/scripts', asyncHandler(async (req, res) => {
+  const scripts = getAllScripts();
+  res.json({
+    scripts,
+    total: scripts.length,
+  });
+}));
+
+/**
+ * POST /api/admin/cleanup/:scriptId/execute
+ * Execute a cleanup script
+ */
+router.post('/cleanup/:scriptId/execute', asyncHandler(async (req, res) => {
+  const { scriptId } = req.params;
+  
+  // Validate script exists
+  const metadata = getScriptMetadata(scriptId);
+  if (!metadata) {
+    throw new NotFoundError(`Script not found: ${scriptId}`);
+  }
+  
+  // Execute script
+  const startTime = Date.now();
+  try {
+    const result = await executeScript(scriptId);
+    const executionTime = Date.now() - startTime;
+    
+    // Ensure executionTime is set (use actual if script didn't set it)
+    if (!result.executionTime) {
+      result.executionTime = executionTime;
+    }
+    
+    // Ensure timestamp is set
+    if (!result.timestamp) {
+      result.timestamp = new Date().toISOString();
+    }
+    
+    res.json(result);
+  } catch (error: any) {
+    // Handle script execution errors
+    if (error.message && error.message.includes('not found')) {
+      throw new NotFoundError(error.message);
+    }
+    // Re-throw as internal server error
+    throw new InternalServerError(`Script execution failed: ${error.message || 'Unknown error'}`);
+  }
+}));
+
+/**
+ * POST /api/admin/cleanup/:scriptId/automate
+ * Apply automated fixes suggested by a cleanup script
+ */
+router.post('/cleanup/:scriptId/automate', asyncHandler(async (req, res) => {
+  const { scriptId } = req.params;
+  const { entityIds, applyLowConfidence = false } = req.body;
+  
+  // Validate script exists
+  const metadata = getScriptMetadata(scriptId);
+  if (!metadata) {
+    throw new NotFoundError(`Script not found: ${scriptId}`);
+  }
+  
+  // Validate script supports automation
+  if (!isScriptAutomatable(scriptId)) {
+    throw new BadRequestError(`Script does not support automation: ${scriptId}`);
+  }
+  
+  // Validate entityIds
+  if (!Array.isArray(entityIds) || entityIds.length === 0) {
+    throw new BadRequestError('entityIds must be a non-empty array');
+  }
+  
+  // Validate all entityIds are strings
+  if (!entityIds.every(id => typeof id === 'string')) {
+    throw new BadRequestError('All entityIds must be strings');
+  }
+  
+  // Execute automation
+  try {
+    const result = await automateScript(scriptId, entityIds, applyLowConfidence);
+    res.json(result);
+  } catch (error: any) {
+    // Handle automation errors
+    if (error.message && error.message.includes('not found')) {
+      throw new NotFoundError(error.message);
+    }
+    if (error.message && error.message.includes('does not support')) {
+      throw new BadRequestError(error.message);
+    }
+    // Re-throw as internal server error
+    throw new InternalServerError(`Automation failed: ${error.message || 'Unknown error'}`);
+  }
 }));
 
 // Entity endpoints
