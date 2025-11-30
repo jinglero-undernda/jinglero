@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FabricaTimestampFixModal from './FabricaTimestampFixModal';
 
 interface ScriptExecutionResponse {
   scriptId: string;
@@ -82,6 +83,9 @@ export default function CleanupResultsModal({
   const [automating, setAutomating] = useState(false);
   const [applyLowConfidence, setApplyLowConfidence] = useState(false);
   const [automationResults, setAutomationResults] = useState<any>(null);
+  // WORKFLOW_011: Step 1 - State for Fabrica timestamp fix modal
+  const [showFabricaFixModal, setShowFabricaFixModal] = useState(false);
+  const [selectedFabricaId, setSelectedFabricaId] = useState<string | null>(null);
 
   if (!isOpen || !results) return null;
 
@@ -89,6 +93,12 @@ export default function CleanupResultsModal({
     const routePrefix = ENTITY_TYPE_ROUTES[entityType.toLowerCase()] || entityType.toLowerCase();
     navigate(`/admin/${routePrefix}/${entityId}`);
     onClose();
+  };
+
+  // WORKFLOW_011: Step 1 - Handler for "ARREGLAR" button
+  const handleFixFabrica = (fabricaId: string) => {
+    setSelectedFabricaId(fabricaId);
+    setShowFabricaFixModal(true);
   };
 
   const handleAutomate = async () => {
@@ -317,20 +327,39 @@ export default function CleanupResultsModal({
                         {entity.entityType}
                       </span>
                     </div>
-                    <button
-                      onClick={() => handleNavigateToEntity(entity.entityType, entity.entityId)}
-                      style={{
-                        padding: '0.25rem 0.5rem',
-                        backgroundColor: '#1976d2',
-                        color: '#fff',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontSize: '0.875rem',
-                      }}
-                    >
-                      Ver entidad
-                    </button>
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                      <button
+                        onClick={() => handleNavigateToEntity(entity.entityType, entity.entityId)}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          backgroundColor: '#1976d2',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                        }}
+                      >
+                        Ver entidad
+                      </button>
+                      {/* WORKFLOW_011: Step 1 - "ARREGLAR" button for Fabrica entities */}
+                      {(entity.entityType.toLowerCase() === 'fabrica' || entity.entityType.toLowerCase() === 'fabricas') && (
+                        <button
+                          onClick={() => handleFixFabrica(entity.entityId)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: '#1976d2',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          ARREGLAR
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
                     <strong>Problema:</strong> {entity.issue}
@@ -426,6 +455,18 @@ export default function CleanupResultsModal({
           </button>
         </div>
       </div>
+
+      {/* WORKFLOW_011: Step 1 - Fabrica Timestamp Fix Modal */}
+      {selectedFabricaId && (
+        <FabricaTimestampFixModal
+          fabricaId={selectedFabricaId}
+          isOpen={showFabricaFixModal}
+          onClose={() => {
+            setShowFabricaFixModal(false);
+            setSelectedFabricaId(null);
+          }}
+        />
+      )}
     </div>
   );
 }

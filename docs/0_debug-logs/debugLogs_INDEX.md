@@ -74,3 +74,4 @@ In some cases, we observe regressions of bugs that were previously resolved. In 
 [ ] BUG_0012: Tematica page doesn't show Jingles with null timestamps - Root cause: Schema validation fails when timestamp is null (see `BUG_0012.md`)
 [ ] BUG_0013: Relationship deletion fails: Payload must include start and end ids to delete - Root cause: Frontend sends start/end as query params but API expects request body (see `BUG_0013.md`)
 [ ] BUG_0014: REPEATS relationship creation fails with "Invalid time value" error - Root cause: validateRepeatsDirection doesn't handle null createdAt values (see `BUG_0014.md`)
+[ ] BUG_0015: Fabrica cleanup script wipes contenido property and throws false negatives (see `BUG_0015.md`)

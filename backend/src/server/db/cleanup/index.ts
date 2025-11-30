@@ -226,10 +226,10 @@ registerScript(
   {
     id: 'find-fabricas-missing-jingles',
     name: 'Find Fabricas where not all Jingles are listed',
-    description: 'Identifies Fabricas where the contents property contains Jingle references that are not present in the APPEARS_IN relationships',
+    description: 'Identifies Fabricas where the contents property has a different count of timestamps than the number of APPEARS_IN relationships. Contents is optional - missing contents is not an issue. Flags mismatches as warnings requiring manual review.',
     entityType: 'fabricas',
     category: 'fabricas',
-    automatable: true,
+    automatable: false, // Cannot automate - timestamps cannot be automatically matched to Jingles
     estimatedDuration: '5-30s',
     usesMusicBrainz: false,
   },

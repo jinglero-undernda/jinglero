@@ -3,9 +3,9 @@
 ## Status
 
 - **Status**: validated
-- **Last Updated**: 2025-11-29
+- **Last Updated**: 2025-11-30
 - **Last Validated**: 2025-11-29
-- **Version**: 1.0
+- **Version**: 1.1
 - **Code Reference**: `backend/src/server/api/admin.ts` (to be created)
 - **Validation Report**: `docs/5_backend_api-contracts/contracts/admin-api-cleanup_validation.md`
 
@@ -72,10 +72,10 @@ Several cleanup scripts interact with the MusicBrainz API to:
     {
       "id": "find-fabricas-missing-jingles",
       "name": "Find Fabricas where not all Jingles are listed",
-      "description": "Identifies Fabricas where the 'Contenidos' property contains Jingle references that are not present in the APPEARS_IN relationships",
+      "description": "Identifies Fabricas where the 'contents' property has a different count of timestamps (M:SS, MM:SS, or HH:MM:SS format) than the number of APPEARS_IN relationships. Contents is optional - missing contents is not an issue. Flags mismatches as warnings requiring manual review.",
       "entityType": "fabricas",
       "category": "fabricas",
-      "automatable": true,
+      "automatable": false,
       "estimatedDuration": "5-30s",
       "usesMusicBrainz": false
     },
@@ -682,13 +682,14 @@ Cleanup API endpoints follow the same versioning strategy as the Admin API. No s
 
 ### Current Version
 
-1.0
+1.1
 
 ### Version History
 
-| Version | Date       | Changes                      |
-| ------- | ---------- | ---------------------------- |
-| 1.0     | 2025-11-29 | Initial cleanup API contract |
+| Version | Date       | Changes                                                                                                                       |
+| ------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| 1.1     | 2025-11-30 | Updated find-fabricas-missing-jingles script: changed from Jingle ID parsing to timestamp counting, marked as non-automatable |
+| 1.0     | 2025-11-29 | Initial cleanup API contract                                                                                                  |
 
 ---
 
@@ -703,6 +704,7 @@ Cleanup API endpoints follow the same versioning strategy as the Admin API. No s
 
 ## Change History
 
-| Version | Date       | Change               | Author | Rationale |
-| ------- | ---------- | -------------------- | ------ | --------- |
-| 1.0     | 2025-11-29 | Initial API contract | -      | Baseline  |
+| Version | Date       | Change                                                                                                                                                                                                                                                                                                                                        | Author | Rationale                                                                                                                                                                                   |
+| ------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.1     | 2025-11-30 | Updated find-fabricas-missing-jingles script logic: Changed from parsing Jingle IDs to counting timestamps (M:SS, MM:SS, HH:MM:SS) in contents property. Marked script as non-automatable since timestamps cannot be automatically matched to Jingles. Updated description to reflect timestamp-based validation and warning-based reporting. | -      | Bug fix: Script was incorrectly parsing Jingle IDs from contents when it should count timestamps. Contents is user-written text with messy information, not expected to contain Jingle IDs. |
+| 1.0     | 2025-11-29 | Initial API contract                                                                                                                                                                                                                                                                                                                          | -      | Baseline                                                                                                                                                                                    |

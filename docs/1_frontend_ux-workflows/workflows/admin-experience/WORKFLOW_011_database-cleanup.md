@@ -232,6 +232,37 @@ As the curator of the database, I want to access a repository of scripts that wi
 
 ---
 
+### Step 6a: Fix Fabrica Timestamp Mismatches (Optional - Fabrica-specific)
+
+**User Action**: Click "ARREGLAR" button next to a Fabrica instance report (for "Find Fabricas where not all Jingles are listed" script results)
+
+**System Response**:
+
+- Open FabricaTimestampFixModal showing detailed timestamp table
+- Display all timestamps from both `contents` property and APPEARS_IN relationships
+- Show parsed content strings and associated Jingle information
+- Allow user to create missing Jingle entities for timestamps without Jingles
+
+**UI State**:
+
+- FabricaTimestampFixModal opens (overlay on CleanupResultsModal)
+- Table displays with columns: Timestamp, Contenido, Jingle
+- Each row has "ARREGLAR" button for rows missing Jingles
+
+**Data Changes**:
+
+- User can create new Jingle entities
+- New APPEARS_IN relationships created with timestamps
+- Table updates to reflect changes
+
+**Code Reference**:
+
+- `frontend/src/components/admin/CleanupResultsModal.tsx` (ARREGLAR button)
+- `frontend/src/components/admin/FabricaTimestampFixModal.tsx` (to be created)
+- **Related Workflow**: [`WORKFLOW_011_database-cleanup_fabrica-timestamp-fix.md`](./WORKFLOW_011_database-cleanup_fabrica-timestamp-fix.md) (detailed specification)
+
+---
+
 ### Step 7: Automate Suggested Fixes (Optional)
 
 **User Action**: Click "Automate Suggested Fixes" button in results modal
