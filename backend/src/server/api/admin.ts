@@ -35,6 +35,7 @@ import {
   automateScript,
   isScriptAutomatable,
 } from '../db/cleanup';
+import { searchRecording, type MusicBrainzMatch } from '../utils/musicbrainz';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -1532,6 +1533,27 @@ router.post('/:type', asyncHandler(async (req, res) => {
   }
   
   res.status(201).json(convertNeo4jDates(result[0].n.properties));
+}));
+
+// MusicBrainz search endpoint
+router.post('/musicbrainz/search', asyncHandler(async (req, res) => {
+  const { title, artist, limit } = req.body;
+  
+  if (!title || typeof title !== 'string') {
+    throw new BadRequestError('Title is required and must be a string');
+  }
+  
+  const searchLimit = limit && typeof limit === 'number' ? Math.min(Math.max(limit, 1), 50) : 10;
+  const artistName = artist && typeof artist === 'string' ? artist : undefined;
+  
+  try {
+    const matches = await searchRecording(title, artistName, searchLimit);
+    res.json(matches);
+  } catch (error: any) {
+    // Return empty array on error (graceful degradation)
+    console.error('MusicBrainz search error:', error.message);
+    res.json([]);
+  }
 }));
 
 router.put('/:type/:id', asyncHandler(async (req, res) => {

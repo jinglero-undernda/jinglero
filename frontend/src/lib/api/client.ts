@@ -646,6 +646,57 @@ export class AdminApiClient extends PublicApiClient {
     return this.delete<void>(`/canciones/${id}`);
   }
 
+  // Search endpoints
+  async search(params: { q: string; types?: string; limit?: number; offset?: number }): Promise<{
+    jingles: any[];
+    canciones: Cancion[];
+    artistas: Artista[];
+    tematicas: any[];
+    fabricas: any[];
+    meta?: {
+      limit: number;
+      offset: number;
+      types: string[];
+      mode: string;
+    };
+  }> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('q', params.q);
+    if (params.types) queryParams.append('types', params.types);
+    if (params.limit) queryParams.append('limit', String(params.limit));
+    if (params.offset) queryParams.append('offset', String(params.offset));
+    // Search endpoint is at /api/search (not /api/public/search)
+    const response = await fetch(`${API_BASE}/search?${queryParams.toString()}`);
+    if (!response.ok) {
+      throw new Error(`Search failed: ${response.status} ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  async searchMusicBrainz(params: { title: string; artist?: string; limit?: number }): Promise<Array<{
+    musicBrainzId: string;
+    title: string;
+    artist?: string;
+    artistMusicBrainzId?: string;
+    confidence: number;
+    source: 'musicbrainz_search' | 'musicbrainz_lookup';
+    alternatives?: Array<{
+      musicBrainzId: string;
+      title: string;
+      artist?: string;
+      confidence: number;
+    }>;
+    album?: string;
+    year?: number;
+    genre?: string;
+  }>> {
+    return this.post('/musicbrainz/search', {
+      title: params.title,
+      artist: params.artist,
+      limit: params.limit || 10,
+    });
+  }
+
   async createFabrica(data: Partial<Fabrica>): Promise<Fabrica> {
     return this.post<Fabrica>('/fabricas', data);
   }

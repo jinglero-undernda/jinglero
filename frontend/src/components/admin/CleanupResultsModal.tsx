@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import FabricaTimestampFixModal from './FabricaTimestampFixModal';
+import JingleCancionMatchModal from './JingleCancionMatchModal';
 
 interface ScriptExecutionResponse {
   scriptId: string;
@@ -86,6 +87,9 @@ export default function CleanupResultsModal({
   // WORKFLOW_011: Step 1 - State for Fabrica timestamp fix modal
   const [showFabricaFixModal, setShowFabricaFixModal] = useState(false);
   const [selectedFabricaId, setSelectedFabricaId] = useState<string | null>(null);
+  // WORKFLOW_011: State for Jingle-Cancion match modal
+  const [showJingleMatchModal, setShowJingleMatchModal] = useState(false);
+  const [selectedJingleId, setSelectedJingleId] = useState<string | null>(null);
 
   if (!isOpen || !results) return null;
 
@@ -99,6 +103,12 @@ export default function CleanupResultsModal({
   const handleFixFabrica = (fabricaId: string) => {
     setSelectedFabricaId(fabricaId);
     setShowFabricaFixModal(true);
+  };
+
+  // WORKFLOW_011: Handler for Jingle "ARREGLAR" button
+  const handleFixJingle = (jingleId: string) => {
+    setSelectedJingleId(jingleId);
+    setShowJingleMatchModal(true);
   };
 
   const handleAutomate = async () => {
@@ -359,6 +369,23 @@ export default function CleanupResultsModal({
                           ARREGLAR
                         </button>
                       )}
+                      {/* WORKFLOW_011: "ARREGLAR" button for Jingle entities */}
+                      {(entity.entityType.toLowerCase() === 'jingle' || entity.entityType.toLowerCase() === 'jingles') && (
+                        <button
+                          onClick={() => handleFixJingle(entity.entityId)}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            backgroundColor: '#1976d2',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '0.875rem',
+                          }}
+                        >
+                          ARREGLAR
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div style={{ fontSize: '0.875rem', color: '#666', marginBottom: '0.5rem' }}>
@@ -464,6 +491,18 @@ export default function CleanupResultsModal({
           onClose={() => {
             setShowFabricaFixModal(false);
             setSelectedFabricaId(null);
+          }}
+        />
+      )}
+
+      {/* WORKFLOW_011: Jingle-Cancion Match Modal */}
+      {selectedJingleId && (
+        <JingleCancionMatchModal
+          jingleId={selectedJingleId}
+          isOpen={showJingleMatchModal}
+          onClose={() => {
+            setShowJingleMatchModal(false);
+            setSelectedJingleId(null);
           }}
         />
       )}

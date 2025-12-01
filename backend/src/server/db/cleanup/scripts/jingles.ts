@@ -15,6 +15,22 @@ import { parseTimestampFromText, timestampToSeconds } from '../../../utils/times
 const db = Neo4jClient.getInstance();
 
 /**
+ * Convert Neo4j Integer objects to JavaScript numbers
+ * Neo4j returns integers as objects with .low property (and sometimes .high for large integers)
+ */
+function convertNeo4jInteger(value: any): number | null {
+  if (value === null || value === undefined) {
+    return null;
+  }
+  // Check if it's a Neo4j Integer object
+  if (typeof value === 'object' && value.low !== undefined) {
+    return value.low;
+  }
+  // Already a number or can be converted
+  return Number(value);
+}
+
+/**
  * Script 3: Find Jingles with time-stamp 00:00:00
  * 
  * Identifies Jingles with zero timestamp, which likely indicates missing or invalid timestamp data.
@@ -52,9 +68,11 @@ export async function findJinglesZeroTimestamp(): Promise<ScriptExecutionResult>
   
   // Format results
   const entities: EntityIssue[] = results.map(result => {
-    const timestampStr = result.timestamp === null || result.timestamp === 0 
+    // Convert Neo4j Integer to JavaScript number
+    const timestamp = convertNeo4jInteger(result.timestamp);
+    const timestampStr = timestamp === null || timestamp === 0 
       ? '00:00:00' 
-      : formatSecondsToTimestamp(result.timestamp);
+      : formatSecondsToTimestamp(timestamp);
     
     // Check if comentario or titulo contains a parseable timestamp
     const parsedFromComment = result.jingleComment ? parseTimestampFromText(result.jingleComment) : null;

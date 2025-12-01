@@ -144,6 +144,7 @@ export interface MusicBrainzMatch {
   musicBrainzId: string;
   title: string;
   artist?: string;
+  artistMusicBrainzId?: string; // MusicBrainz ID of the artist
   confidence: number; // 0.0 to 1.0
   source: 'musicbrainz_search' | 'musicbrainz_lookup';
   alternatives?: MusicBrainzMatch[];
@@ -219,10 +220,24 @@ export async function searchRecording(
   limit: number = 10
 ): Promise<MusicBrainzMatch[]> {
   try {
-    // Build query
-    let query = `recording:${title}`;
-    if (artist) {
-      query += ` AND artist:${artist}`;
+    // Build query - quote titles and artist names to handle spaces and special characters
+    // MusicBrainz search syntax requires quotes for phrases with spaces
+    const escapeQuery = (str: string): string => {
+      // If the string contains spaces or special characters, wrap it in quotes
+      // Escape any existing quotes in the string
+      const escaped = str.replace(/"/g, '\\"');
+      // If it has spaces or special characters, quote it
+      if (str.includes(' ') || str.includes('-') || str.includes('&')) {
+        return `"${escaped}"`;
+      }
+      return escaped;
+    };
+
+    const escapedTitle = escapeQuery(title.trim());
+    let query = `recording:${escapedTitle}`;
+    if (artist && artist.trim()) {
+      const escapedArtist = escapeQuery(artist.trim());
+      query += ` AND artist:${escapedArtist}`;
     }
     
     const response = await makeRequest<MusicBrainzSearchResponse<MusicBrainzRecording>>(
@@ -237,8 +252,9 @@ export async function searchRecording(
     
     // Convert to matches with confidence scores
     const matches: MusicBrainzMatch[] = recordings.map(recording => {
-      const artistName = recording['artist-credit']?.[0]?.name || 
-                        recording['artist-credit']?.[0]?.artist?.name;
+      const artistCredit = recording['artist-credit']?.[0];
+      const artistName = artistCredit?.name || artistCredit?.artist?.name;
+      const artistId = artistCredit?.artist?.id;
       
       const confidence = calculateConfidence(
         title,
@@ -257,6 +273,7 @@ export async function searchRecording(
         musicBrainzId: recording.id,
         title: recording.title,
         artist: artistName,
+        artistMusicBrainzId: artistId,
         confidence,
         source: 'musicbrainz_search',
         album,
@@ -291,8 +308,9 @@ export async function lookupRecording(mbid: string): Promise<MusicBrainzMatch | 
       }
     );
     
-    const artistName = recording['artist-credit']?.[0]?.name || 
-                      recording['artist-credit']?.[0]?.artist?.name;
+    const artistCredit = recording['artist-credit']?.[0];
+    const artistName = artistCredit?.name || artistCredit?.artist?.name;
+    const artistId = artistCredit?.artist?.id;
     
     // Extract album and year from first release
     const firstRelease = recording.releases?.[0];
@@ -304,6 +322,7 @@ export async function lookupRecording(mbid: string): Promise<MusicBrainzMatch | 
       musicBrainzId: recording.id,
       title: recording.title,
       artist: artistName,
+      artistMusicBrainzId: artistId,
       confidence: 1.0, // Lookup by ID is always 100% confidence
       source: 'musicbrainz_lookup',
       album,

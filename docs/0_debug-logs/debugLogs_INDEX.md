@@ -75,3 +75,4 @@ In some cases, we observe regressions of bugs that were previously resolved. In 
 [ ] BUG_0013: Relationship deletion fails: Payload must include start and end ids to delete - Root cause: Frontend sends start/end as query params but API expects request body (see `BUG_0013.md`)
 [ ] BUG_0014: REPEATS relationship creation fails with "Invalid time value" error - Root cause: validateRepeatsDirection doesn't handle null createdAt values (see `BUG_0014.md`)
 [ ] BUG_0015: Fabrica cleanup script wipes contenido property and throws false negatives (see `BUG_0015.md`)
+[ ] BUG_0016: Cleanup script fails to parse Neo4j Integer types for timestamp detection - Root cause: Neo4j returns integers as Integer objects with .low property, but script expects JavaScript numbers (see `BUG_0016.md`)

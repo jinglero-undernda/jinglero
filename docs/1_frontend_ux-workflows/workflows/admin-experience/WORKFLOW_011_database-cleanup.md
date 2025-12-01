@@ -263,6 +263,45 @@ As the curator of the database, I want to access a repository of scripts that wi
 
 ---
 
+### Step 6b: Match Jingle to Cancion (Optional - Jingle-specific)
+
+**User Action**: Click "ARREGLAR" button next to a Jingle instance report (for "Find Jingles without a Cancion relationship" script results)
+
+**System Response**:
+
+- Open JingleCancionMatchModal showing comment parsing and matching interface
+- Parse Jingle comment to extract song title, artist name, and other metadata
+- Search existing Canciones in database with fuzzy matching
+- Search MusicBrainz for high-confidence matches
+- Display ranked suggestions for user confirmation
+- Allow user to select existing match, create from MusicBrainz data, or create new entities
+- Automatically create missing Artista and Cancion entities if needed
+- Create AUTOR_DE and VERSIONA relationships
+
+**UI State**:
+
+- JingleCancionMatchModal opens (overlay on CleanupResultsModal)
+- Parsed information displayed (song title, artist name with confidence indicators)
+- Database matches listed with similarity scores
+- MusicBrainz matches listed with confidence scores
+- "Select" buttons on each match, "Create New" option available
+
+**Data Changes**:
+
+- New Cancion entity created (if MusicBrainz match selected or new created)
+- New Artista entity created (if doesn't exist)
+- AUTOR_DE relationship created (Artista → Cancion)
+- VERSIONA relationship created (Jingle → Cancion)
+- Jingle redundant properties (cancionId, songTitle, artistName, genre) auto-synced
+
+**Code Reference**:
+
+- `frontend/src/components/admin/CleanupResultsModal.tsx` (ARREGLAR button)
+- `frontend/src/components/admin/JingleCancionMatchModal.tsx` (to be created)
+- **Related Workflow**: [`WORKFLOW_011_database-cleanup_jingle-cancion-match.md`](./WORKFLOW_011_database-cleanup_jingle-cancion-match.md) (detailed specification)
+
+---
+
 ### Step 7: Automate Suggested Fixes (Optional)
 
 **User Action**: Click "Automate Suggested Fixes" button in results modal
@@ -651,3 +690,4 @@ See `WORKFLOW_011_database-cleanup_validation.md` for complete validation report
 | Version | Date       | Change                | Author | Rationale |
 | ------- | ---------- | --------------------- | ------ | --------- |
 | 1.0     | 2025-11-28 | Initial documentation | -      | Baseline  |
+| 1.1     | 2025-11-30 | Added Step 6b: Jingle-Cancion matching sub-workflow | -      | Feature refinement - ARREGLAR button for Jingles without Cancion |
