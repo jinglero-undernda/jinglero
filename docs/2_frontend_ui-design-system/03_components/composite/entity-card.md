@@ -2,7 +2,7 @@
 
 ## Status
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-19
+- **Last Updated**: 2025-12-02
 - **Code Reference**: `frontend/src/components/common/EntityCard.tsx:1-591`
 
 ## Overview
@@ -11,7 +11,13 @@ EntityCard displays a compact, navigable card for any entity type. Used in lists
 
 ## Design Intent
 - **Current**: Complex component with multiple variants (heading, contents, placeholder) supporting admin and public contexts
-- **Target**: To be refined as target design is established
+- **Target**: Enhanced contents variant provides clearer information display for Jingles, Artista, and Cancion entities
+- **Last Updated**: 2025-12-02
+- **Design Intent Document**: See `entity-card-contents-variant-enhancement.md` for detailed design intent and backend/API considerations
+- **Change Summary**: 
+  - Jingles now show autoComment and all boolean props as badges in contents variant
+  - Artista shows differentiated icons based on relationship types and relationship counts
+  - Cancion shows autor information and jingle count in contents variant
 
 ## Variants
 
@@ -24,8 +30,47 @@ EntityCard displays a compact, navigable card for any entity type. Used in lists
 ### Contents Variant
 - **Usage**: Content rows in table structures, default display
 - **Props**: `variant="contents"` (default)
-- **Visual Spec**: Displays entity as a content row
+- **Visual Spec**: Displays entity as a content row with enhanced information display
 - **Code Reference**: `frontend/src/components/common/EntityCard.tsx:22-23`
+
+#### Entity-Specific Display (Contents Variant)
+
+**Jingle Entities:**
+- **Primary Text**: Title or songTitle (fallback to id)
+- **Secondary Text**: Fabrica date or "INEDITO"
+- **Badges**: 
+  - `autoComment` prop displayed as badge (if available)
+  - Boolean props displayed as badges when true:
+    - `isJinglazo` → "JINGLAZO"
+    - `isJinglazoDelDia` → "JDD"
+    - `isPrecario` → "PREC"
+    - `isLive` → "VIVO"
+    - `isRepeat` → "CLASICO"
+- **Code Reference**: `frontend/src/components/common/EntityCard.tsx:73-95`, `frontend/src/lib/utils/entityDisplay.ts:156-170`
+
+**Artista Entities:**
+- **Icon**: Context-dependent based on relationship types:
+  - 👤 (default): Has BOTH or NEITHER AUTOR_DE and JINGLERO_DE relationships
+  - 🚚: Has at least one AUTOR_DE but no JINGLERO_DE
+  - 🔧: Has at least one JINGLERO_DE but no AUTOR_DE
+- **Primary Text**: `stageName` (or `name` if stageName is empty, fallback to id)
+- **Secondary Text**: 
+  - `name` if different from `stageName`
+  - "ARG" tag if `isArg` is true
+  - "📦: #" with AUTOR_DE count (if available)
+  - "🎤: #" with JINGLERO_DE count (if available)
+- **Code Reference**: `frontend/src/lib/utils/entityDisplay.ts:68-125`, `frontend/src/lib/utils/entityDisplay.ts:178-210`
+
+**Cancion Entities:**
+- **Primary Text**: `title` (fallback to id)
+- **Secondary Text**: 
+  - Existing secondary properties (album, year)
+  - "🚚: Autor" with autor name(s) (if available)
+  - "🎤: #" with Jingle count (if available)
+- **Code Reference**: `frontend/src/lib/utils/entityDisplay.ts:143-177`
+
+**Other Entities (Fabrica, Tematica):**
+- Display remains unchanged from previous implementation
 
 ### Placeholder Variant
 - **Usage**: Empty states, loading states

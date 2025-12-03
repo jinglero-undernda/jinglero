@@ -69,25 +69,69 @@ export interface EntityCardProps {
 
 /**
  * Gets badges for entity (e.g., JINGLAZO, PRECARIO for Jingle)
+ * For contents variant, shows autoComment and all boolean props for Jingles
  */
-function getEntityBadges(entity: Entity, entityType: EntityType): React.ReactNode[] {
+function getEntityBadges(entity: Entity, entityType: EntityType, variant?: 'heading' | 'contents' | 'placeholder'): React.ReactNode[] {
   const badges: React.ReactNode[] = [];
   
   if (entityType === 'jingle') {
     const jingle = entity as Jingle;
-    if (jingle.isJinglazo) {
-      badges.push(
-        <span key="jinglazo" className="entity-badge entity-badge--jinglazo">
-          JINGLAZO
-        </span>
-      );
-    }
-    if (jingle.isPrecario) {
-      badges.push(
-        <span key="precario" className="entity-badge entity-badge--precario">
-          PRECARIO
-        </span>
-      );
+    
+    // For contents variant, show all boolean props
+    // Note: autoComment is now shown in secondary text (not as badge) for better word wrapping
+    if (variant === 'contents') {
+      // Show boolean props as badges
+      if (jingle.isJinglazo) {
+        badges.push(
+          <span key="jinglazo" className="entity-badge entity-badge--jinglazo">
+            JINGLAZO
+          </span>
+        );
+      }
+      if (jingle.isJinglazoDelDia) {
+        badges.push(
+          <span key="jdd" className="entity-badge entity-badge--jdd">
+            JDD
+          </span>
+        );
+      }
+      if (jingle.isPrecario) {
+        badges.push(
+          <span key="precario" className="entity-badge entity-badge--precario">
+            PREC
+          </span>
+        );
+      }
+      if (jingle.isLive) {
+        badges.push(
+          <span key="live" className="entity-badge entity-badge--live">
+            VIVO
+          </span>
+        );
+      }
+      if (jingle.isRepeat) {
+        badges.push(
+          <span key="repeat" className="entity-badge entity-badge--repeat">
+            CLASICO
+          </span>
+        );
+      }
+    } else {
+      // For heading variant, show only isJinglazo and isPrecario (backward compatibility)
+      if (jingle.isJinglazo) {
+        badges.push(
+          <span key="jinglazo" className="entity-badge entity-badge--jinglazo">
+            JINGLAZO
+          </span>
+        );
+      }
+      if (jingle.isPrecario) {
+        badges.push(
+          <span key="precario" className="entity-badge entity-badge--precario">
+            PRECARIO
+          </span>
+        );
+      }
     }
   }
   
@@ -155,11 +199,11 @@ function EntityCard({
     actualVariant = 'contents';
   }
 
-  const primaryText = getPrimaryText(entity, entityType, relationshipData);
-  const secondaryText = getSecondaryText(entity, entityType, relationshipData);
+  const primaryText = getPrimaryText(entity, entityType, relationshipData, actualVariant);
+  const secondaryText = getSecondaryText(entity, entityType, relationshipData, actualVariant);
   // Pass placeholder variant to getEntityIcon so it can handle Jinglero icon
-  const icon = getEntityIcon(entityType, actualVariant, relationshipLabel);
-  const defaultBadges = getEntityBadges(entity, entityType);
+  const icon = getEntityIcon(entityType, actualVariant, relationshipLabel, entity, relationshipData);
+  const defaultBadges = getEntityBadges(entity, entityType, actualVariant);
   // Don't make it a link if admin edit button is shown (we're already on the entity page)
   // For route, use 'contents' for placeholder variant since getEntityRoute doesn't accept placeholder
   const routeVariant = actualVariant === 'placeholder' ? 'contents' : actualVariant;

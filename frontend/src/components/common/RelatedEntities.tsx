@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import EntityCard, { type EntityType } from './EntityCard';
 import FilterSwitch from './FilterSwitch';
-import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
+import type { Artista, Cancion, Fabrica, Jingle, Tematica, Relationship } from '../../types';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 import { useToast } from './ToastContext';
@@ -65,7 +65,10 @@ function getRelationshipTypeForAPI(
   return mapping[currentEntityType]?.[targetEntityType] || null;
 }
 
-type RelationshipPropsMap = Record<string, Record<string, any>>;
+// Type for relationship property values (can be string, number, boolean, null, or undefined)
+type RelationshipPropertyValue = string | number | boolean | null | undefined;
+type RelationshipProperties = Record<string, RelationshipPropertyValue>;
+type RelationshipPropsMap = Record<string, RelationshipProperties>;
 type TimestampMap = Record<string, { h: number; m: number; s: number }>;
 
 function cloneRelationshipPropsMap(source: RelationshipPropsMap): RelationshipPropsMap {
@@ -177,7 +180,7 @@ export interface RelatedEntitiesProps {
    * Callback to get relationship properties that need to be saved
    * Returns a map of relationship keys to their properties
    */
-  onGetRelationshipProperties?: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
+  onGetRelationshipProperties?: () => Record<string, { relType: string; startId: string; endId: string; properties: RelationshipProperties }>;
   /**
    * Callback to check if there are unsaved changes
    */
@@ -469,7 +472,7 @@ export function relatedEntitiesReducer(
  * ```
  */
 const RelatedEntities = forwardRef<{ 
-  getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }>;
+  getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: RelationshipProperties }>;
   refresh: () => Promise<void>;
   hasUnsavedChanges: () => boolean;
   clearUnsavedChanges: (options?: { commit?: boolean }) => void;
@@ -483,9 +486,9 @@ const RelatedEntities = forwardRef<{
   isAdmin = false,
   initialRelationshipData = {},
   isEditing = false,
-  onEditToggle: _onEditToggle,
-  onGetRelationshipProperties: _onGetRelationshipProperties,
-  onCheckUnsavedChanges: _onCheckUnsavedChanges,
+  onEditToggle: _onEditToggle, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onGetRelationshipProperties: _onGetRelationshipProperties, // eslint-disable-line @typescript-eslint/no-unused-vars
+  onCheckUnsavedChanges: _onCheckUnsavedChanges, // eslint-disable-line @typescript-eslint/no-unused-vars
   onNavigateToEntity,
   onChange,
 }, ref) {
@@ -513,7 +516,7 @@ const RelatedEntities = forwardRef<{
     key: string;
     entity: RelatedEntity;
   } | null>(null);
-  const [relationshipProperties, setRelationshipProperties] = useState<Record<string, any>>({});
+  const [relationshipProperties, setRelationshipProperties] = useState<RelationshipProperties>({});
   
   // State for expanded relationship properties in admin mode (key: `${entityId}-${relationshipKey}`)
   const [expandedRelationshipProps, setExpandedRelationshipProps] = useState<Set<string>>(new Set());
@@ -578,7 +581,7 @@ const RelatedEntities = forwardRef<{
     // Set selected entity and initialize properties
     setSelectedEntityForRelationship({ key, entity: selectedEntity });
     const schema = getRelationshipPropertiesSchema(relType);
-    const initialProperties: Record<string, any> = {};
+    const initialProperties: RelationshipProperties = {};
     schema.forEach(prop => {
       if (prop.type === 'boolean') {
         initialProperties[prop.name] = false;
@@ -813,7 +816,7 @@ const RelatedEntities = forwardRef<{
 
     // Prepare properties - convert empty strings to null/undefined, convert numbers
     // Use parsed timestamp from comment if available, otherwise use relationshipProperties
-    const properties: Record<string, any> = {};
+    const properties: RelationshipProperties = {};
     Object.entries(relationshipProperties).forEach(([key, value]) => {
       // Override timestamp with parsed value if available
       if (key === 'timestamp' && parsedTimestampFromComment !== null) {
@@ -961,7 +964,10 @@ const RelatedEntities = forwardRef<{
         entityType,
         relType,
         entitiesCount: entities.length,
-        entities: entities.map(e => ({ id: e.id, name: (e as any).name || (e as any).title || e.id })),
+        entities: entities.map(e => {
+          const name = 'name' in e ? e.name : 'title' in e ? e.title : e.id;
+          return { id: e.id, name: name || e.id };
+        }),
         timestamp: new Date().toISOString(),
       });
       
@@ -978,7 +984,7 @@ const RelatedEntities = forwardRef<{
       setSelectedEntityForRelationship(null);
       setRelationshipProperties({});
     }
-  }, [selectedEntityForRelationship, entity, entityType, relationships, relationshipProperties, getRelationshipKey, getRelationshipTypeForAPI]);
+  }, [selectedEntityForRelationship, entity, entityType, relationships, relationshipProperties, getRelationshipKey, showToast, isEditing]);
 
   // Phase 6: Handle opening delete confirmation modal
   const handleDeleteRelationshipClick = useCallback((relatedEntityId: string, relatedEntityName: string, relLabel: string, relEntityType: EntityType) => {
@@ -1055,7 +1061,7 @@ const RelatedEntities = forwardRef<{
       endId,
       entityName: relatedEntityName,
     });
-  }, [entity, entityType, getRelationshipTypeForAPI]);
+  }, [entity, entityType]);
 
   // Process initial relationship data to populate loadedData and counts
   const processedInitialData = useMemo(() => {
@@ -1288,7 +1294,7 @@ const RelatedEntities = forwardRef<{
 
   // Task 5.4: Check for unsaved changes in relationships
   // Tracks: relationship property edits, pending timestamp edits, selected entities in blank rows
-  const arePropsEqual = useCallback((a: Record<string, any> | undefined, b: Record<string, any> | undefined) => {
+  const arePropsEqual = useCallback((a: RelationshipProperties | undefined, b: RelationshipProperties | undefined) => {
     const aEntries = Object.entries(a || {});
     const bEntries = Object.entries(b || {});
     
@@ -1337,7 +1343,7 @@ const RelatedEntities = forwardRef<{
 
   // Create relationship properties getter function (only returns dirty entries)
   const getRelationshipProperties = useCallback(() => {
-    const result: Record<string, { relType: string; startId: string; endId: string; properties: Record<string, any> }> = {};
+    const result: Record<string, { relType: string; startId: string; endId: string; properties: RelationshipProperties }> = {};
     
     console.log('[RelatedEntities] getRelationshipProperties called:', {
       relationshipPropsDataKeys: Object.keys(relationshipPropsData),
@@ -1994,7 +2000,7 @@ const RelatedEntities = forwardRef<{
                     ) : entities.length === 0 && shouldShowPlaceholder ? (
                       // Phase 2: Show placeholder for empty relationships in view mode
                       <EntityCard
-                        entity={{} as any}
+                        entity={{ id: '', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } as RelatedEntity}
                         entityType={rel.entityType}
                         variant="placeholder"
                         relationshipLabel={rel.label}
@@ -2042,23 +2048,116 @@ const RelatedEntities = forwardRef<{
                           // Extract relationship data from entity if it exists (e.g., fabrica for Jingle)
                           // The backend may include relationship data directly in the entity object
                           // If Jingle is nested under a Fabrica, pass the full Fabrica object (with date)
+                          // For Artista and Cancion, include relationship counts
                           const relationshipData: Record<string, unknown> | undefined = (() => {
+                            const data: Record<string, unknown> = {};
+                            
                             if (rel.entityType === 'jingle') {
-                              const jingle = relatedEntity as any;
+                              const jingle = relatedEntity as Jingle;
                               // Check if fabrica data is embedded in the entity object
-                              if (jingle.fabrica) {
-                                return { fabrica: jingle.fabrica };
+                              // Note: fabrica is not in the Jingle type, but may be added by backend
+                              if ('fabrica' in jingle && (jingle as Jingle & { fabrica?: unknown }).fabrica) {
+                                data.fabrica = (jingle as Jingle & { fabrica?: unknown }).fabrica;
                               }
                               // If the parent entity (root entity) is a Fabrica, pass the full Fabrica object
                               // This allows EntityCard to use the Fabrica's date when Jingle doesn't have fabricaDate
                               if (entityType === 'fabrica') {
-                                return { fabrica: entity };
+                                data.fabrica = entity;
                               }
                               // If Jingle has fabricaId but no fabricaDate, we can't fetch the Fabrica here
                               // (would require async operation). The backend should populate fabricaDate.
                               // For now, we rely on fabricaDate being populated in the Jingle entity.
+                            } else if (rel.entityType === 'artista') {
+                              // For Artista, include AUTOR_DE and JINGLERO_DE counts
+                              // Priority: 1) _metadata on entity object (from API), 2) state.counts (root entity)
+                              const artista = relatedEntity as Artista & { 
+                                _metadata?: { 
+                                  autorCount?: number; 
+                                  jingleroCount?: number 
+                                } 
+                              };
+                              const artistaId = artista.id;
+                              
+                              // Check if _metadata exists on the entity object (from API response)
+                              if (artista._metadata) {
+                                if (artista._metadata.autorCount !== undefined) {
+                                  data.autorCount = artista._metadata.autorCount;
+                                }
+                                if (artista._metadata.jingleroCount !== undefined) {
+                                  data.jingleroCount = artista._metadata.jingleroCount;
+                                }
+                              }
+                              
+                              // Fallback: If this is the root entity being viewed, get counts from its relationships
+                              if (entityType === 'artista' && entity.id === artistaId) {
+                                // Only use state.counts if _metadata wasn't available
+                                if (!artista._metadata || artista._metadata.autorCount === undefined) {
+                                  const cancionesKey = 'Canciones-cancion';
+                                  const cancionesCount = state.counts[cancionesKey] || 0;
+                                  if (cancionesCount > 0) {
+                                    data.autorCount = cancionesCount;
+                                  }
+                                }
+                                if (!artista._metadata || artista._metadata.jingleroCount === undefined) {
+                                  const jinglesKey = 'Jingles-jingle';
+                                  const jinglesCount = state.counts[jinglesKey] || 0;
+                                  if (jinglesCount > 0) {
+                                    data.jingleroCount = jinglesCount;
+                                  }
+                                }
+                              }
+                              // For related Artista entities without _metadata, counts won't be available
+                              // The display will gracefully handle missing counts
+                            } else if (rel.entityType === 'cancion') {
+                              // For Cancion, include autores and jingle count
+                              // Priority: 1) _metadata on entity object (from API), 2) state.loadedData/state.counts (root entity)
+                              const cancion = relatedEntity as Cancion & { 
+                                _metadata?: { 
+                                  jingleCount?: number; 
+                                  autores?: Array<Artista & { 
+                                    _metadata?: { 
+                                      autorCount?: number; 
+                                      jingleroCount?: number 
+                                    } 
+                                  }> 
+                                } 
+                              };
+                              const cancionId = cancion.id;
+                              
+                              // Check if _metadata exists on the entity object (from API response)
+                              if (cancion._metadata) {
+                                if (cancion._metadata.jingleCount !== undefined) {
+                                  data.jingleCount = cancion._metadata.jingleCount;
+                                }
+                                if (cancion._metadata.autores && Array.isArray(cancion._metadata.autores)) {
+                                  data.autores = cancion._metadata.autores;
+                                }
+                              }
+                              
+                              // Fallback: If this is the root entity being viewed, get autores from its relationships
+                              if (entityType === 'cancion' && entity.id === cancionId) {
+                                // Only use state.loadedData if _metadata wasn't available
+                                if (!cancion._metadata || !cancion._metadata.autores) {
+                                  const autorKey = 'Autor-artista';
+                                  const autores = state.loadedData[autorKey] || [];
+                                  if (autores.length > 0) {
+                                    data.autores = autores;
+                                  }
+                                }
+                                // Only use state.counts if _metadata wasn't available
+                                if (!cancion._metadata || cancion._metadata.jingleCount === undefined) {
+                                  const jinglesKey = 'Jingles-jingle';
+                                  const jinglesCount = state.counts[jinglesKey] || 0;
+                                  if (jinglesCount > 0) {
+                                    data.jingleCount = jinglesCount;
+                                  }
+                                }
+                              }
+                              // For related Cancion entities without _metadata, autores might be available from parent context
+                              // (e.g., when viewing a Jingle's Cancion, autores come from the Jingle's Autor relationship)
                             }
-                            return undefined;
+                            
+                            return Object.keys(data).length > 0 ? data : undefined;
                           })();
                           
                           // In admin mode, handle relationship properties expansion
@@ -2115,13 +2214,20 @@ const RelatedEntities = forwardRef<{
                                 (async () => {
                                   try {
                                     // First, check if properties are embedded in the entity (from initial data)
-                                    const props: Record<string, any> = {};
+                                    const props: RelationshipProperties = {};
                                     
                                     // Check if relatedEntity has relationship properties embedded
-                                    if ((relatedEntity as any).order !== undefined) props.order = (relatedEntity as any).order;
-                                    if ((relatedEntity as any).timestamp !== undefined) props.timestamp = (relatedEntity as any).timestamp;
-                                    if ((relatedEntity as any).status !== undefined) props.status = (relatedEntity as any).status;
-                                    if ((relatedEntity as any).isPrimary !== undefined) props.isPrimary = (relatedEntity as any).isPrimary;
+                                    // These are relationship properties that may be added by the backend
+                                    const entityWithProps = relatedEntity as RelatedEntity & {
+                                      order?: number;
+                                      timestamp?: number;
+                                      status?: string;
+                                      isPrimary?: boolean;
+                                    };
+                                    if (entityWithProps.order !== undefined) props.order = entityWithProps.order;
+                                    if (entityWithProps.timestamp !== undefined) props.timestamp = entityWithProps.timestamp;
+                                    if (entityWithProps.status !== undefined) props.status = entityWithProps.status;
+                                    if (entityWithProps.isPrimary !== undefined) props.isPrimary = entityWithProps.isPrimary;
                                     
                                     // If properties are not embedded, fetch from API
                                     if (Object.keys(props).length === 0) {
@@ -2138,8 +2244,14 @@ const RelatedEntities = forwardRef<{
                                         const relationships = await adminApi.getEntityRelationships(apiType, rootEntityId);
                                         
                                         // Find the specific relationship
-                                        const allRels = [...(relationships.outgoing || []), ...(relationships.incoming || [])];
-                                        const targetRel = allRels.find((r: any) => {
+                                        // API returns relationships with additional metadata (direction, source, target)
+                                        type ExtendedRelationship = Relationship & {
+                                          direction?: 'outgoing' | 'incoming';
+                                          source?: { id: string };
+                                          target?: { id: string };
+                                        };
+                                        const allRels: ExtendedRelationship[] = [...(relationships.outgoing || []), ...(relationships.incoming || [])];
+                                        const targetRel = allRels.find((r) => {
                                           if (relType === 'appears_in') {
                                             return r.type === 'APPEARS_IN' && 
                                               ((r.direction === 'outgoing' && r.target?.id === endId) ||
@@ -2233,8 +2345,11 @@ const RelatedEntities = forwardRef<{
                                   }}
                                   showDeleteButton={isAdmin && isEditing && !rel.isReadOnly}
                                   onDeleteClick={() => {
-                                    const name = (relatedEntity as any).title || (relatedEntity as any).name || (relatedEntity as any).stageName || relatedEntity.id;
-                                    handleDeleteRelationshipClick(relatedEntity.id, name, rel.label, rel.entityType);
+                                    const name = 'title' in relatedEntity ? relatedEntity.title : 
+                                                 'name' in relatedEntity ? relatedEntity.name : 
+                                                 'stageName' in relatedEntity ? relatedEntity.stageName : 
+                                                 relatedEntity.id;
+                                    handleDeleteRelationshipClick(relatedEntity.id, name || relatedEntity.id, rel.label, rel.entityType);
                                   }}
                                   onToggleExpand={async () => {
                                     console.log('onToggleExpand called for entity:', relatedEntity.id, 'entityType:', rel.entityType);
@@ -2498,7 +2613,7 @@ const RelatedEntities = forwardRef<{
                                             </div>
                                           ) : prop.type === 'boolean' ? (
                                             <FilterSwitch
-                                              checked={propsData[prop.name] || false}
+                                              checked={typeof propsData[prop.name] === 'boolean' ? (propsData[prop.name] as boolean) : false}
                                               onChange={(checked) => {
                                                 setRelationshipPropsData(prev => ({
                                                   ...prev,
@@ -2514,7 +2629,7 @@ const RelatedEntities = forwardRef<{
                                             />
                                           ) : prop.type === 'select' ? (
                                             <select
-                                              value={propsData[prop.name] || ''}
+                                              value={typeof propsData[prop.name] === 'string' ? (propsData[prop.name] as string) : ''}
                                               onChange={(e) => {
                                                 setRelationshipPropsData(prev => ({
                                                   ...prev,
@@ -2543,7 +2658,7 @@ const RelatedEntities = forwardRef<{
                                           ) : (
                                             <input
                                               type={prop.type === 'number' ? 'number' : 'text'}
-                                              value={propsData[prop.name] ?? ''}
+                                              value={typeof propsData[prop.name] === 'string' || typeof propsData[prop.name] === 'number' ? String(propsData[prop.name]) : ''}
                                               readOnly={false}
                                               onChange={(e) => {
                                                 setRelationshipPropsData(prev => ({
@@ -2570,7 +2685,7 @@ const RelatedEntities = forwardRef<{
                                           // Display mode
                                           prop.name === 'timestamp' ? (
                                             <span style={{ fontSize: '14px', color: '#fff', flex: 1 }}>
-                                              {formatTime(propsData[prop.name])}
+                                              {formatTime(typeof propsData[prop.name] === 'number' ? (propsData[prop.name] as number) : 0)}
                                             </span>
                                           ) : prop.type === 'boolean' ? (
                                             <span style={{ fontSize: '14px', color: '#fff', flex: 1 }}>
@@ -2648,23 +2763,23 @@ const RelatedEntities = forwardRef<{
                                         // This is needed to know if a Jingle is nested under a Fabrica
                                         const parentEntityType: EntityType | null = (() => {
                                           // Check if entity has Fabrica properties
-                                          if ((entity as any).date && (entity as any).youtubeUrl) {
+                                          if ('date' in entity && 'youtubeUrl' in entity) {
                                             return 'fabrica';
                                           }
                                           // Check if entity has Jingle properties
-                                          if ((entity as any).timestamp !== undefined) {
+                                          if ('timestamp' in entity && typeof (entity as Jingle).timestamp === 'number') {
                                             return 'jingle';
                                           }
                                           // Check if entity has Cancion properties
-                                          if ((entity as any).album !== undefined || (entity as any).year !== undefined) {
+                                          if ('album' in entity || 'year' in entity) {
                                             return 'cancion';
                                           }
                                           // Check if entity has Artista properties
-                                          if ((entity as any).stageName !== undefined || (entity as any).name !== undefined) {
+                                          if ('stageName' in entity || ('name' in entity && !('title' in entity))) {
                                             return 'artista';
                                           }
                                           // Check if entity has Tematica properties
-                                          if ((entity as any).category !== undefined) {
+                                          if ('category' in entity) {
                                             return 'tematica';
                                           }
                                           return null;
@@ -2710,8 +2825,10 @@ const RelatedEntities = forwardRef<{
                                         const nestedRelationshipData: Record<string, unknown> | undefined = (() => {
                                           if (row.entityType === 'jingle') {
                                             // Check if fabrica data is in the entity object
-                                            if ((row.entity as any).fabrica) {
-                                              return { fabrica: (row.entity as any).fabrica };
+                                            // Note: fabrica is not in the Jingle type, but may be added by backend
+                                            const jingleWithFabrica = row.entity as Jingle & { fabrica?: unknown };
+                                            if ('fabrica' in jingleWithFabrica && jingleWithFabrica.fabrica) {
+                                              return { fabrica: jingleWithFabrica.fabrica };
                                             }
                                             // If the parent entity (the one that was expanded) is a Fabrica, use its ID
                                             if (parentEntityType === 'fabrica') {
@@ -2890,9 +3007,15 @@ const RelatedEntities = forwardRef<{
                                                   : [];
                                                 
                                                 const deeperRelationshipData: Record<string, unknown> | undefined = 
-                                                  nestedNestedRow.entityType === 'jingle' && (nestedNestedRow.entity as any).fabrica
-                                                    ? { fabrica: (nestedNestedRow.entity as any).fabrica }
-                                                    : undefined;
+                                                  (() => {
+                                                    if (nestedNestedRow.entityType === 'jingle') {
+                                                      const jingleWithFabrica = nestedNestedRow.entity as Jingle & { fabrica?: unknown };
+                                                      if ('fabrica' in jingleWithFabrica && jingleWithFabrica.fabrica) {
+                                                        return { fabrica: jingleWithFabrica.fabrica };
+                                                      }
+                                                    }
+                                                    return undefined;
+                                                  })();
                                                 
                                                 return (
                                                   <React.Fragment key={nestedNestedRow.id}>
@@ -3053,7 +3176,7 @@ const RelatedEntities = forwardRef<{
                                               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                                                 <input
                                                   type="checkbox"
-                                                  checked={relationshipProperties[prop.name] || false}
+                                                  checked={typeof relationshipProperties[prop.name] === 'boolean' ? (relationshipProperties[prop.name] as boolean) : false}
                                                   onChange={(e) => setRelationshipProperties(prev => ({
                                                     ...prev,
                                                     [prop.name]: e.target.checked
@@ -3064,7 +3187,7 @@ const RelatedEntities = forwardRef<{
                                               </label>
                                             ) : prop.type === 'select' ? (
                                               <select
-                                                value={relationshipProperties[prop.name] || ''}
+                                                value={typeof relationshipProperties[prop.name] === 'string' ? (relationshipProperties[prop.name] as string) : ''}
                                                 onChange={(e) => setRelationshipProperties(prev => ({
                                                   ...prev,
                                                   [prop.name]: e.target.value
@@ -3086,7 +3209,7 @@ const RelatedEntities = forwardRef<{
                                             ) : (
                                               <input
                                                 type={prop.type === 'number' ? 'number' : 'text'}
-                                                value={relationshipProperties[prop.name] || ''}
+                                                value={typeof relationshipProperties[prop.name] === 'string' || typeof relationshipProperties[prop.name] === 'number' ? String(relationshipProperties[prop.name]) : ''}
                                                 onChange={(e) => setRelationshipProperties(prev => ({
                                                   ...prev,
                                                   [prop.name]: prop.type === 'number' ? (e.target.value === '' ? '' : Number(e.target.value)) : e.target.value
@@ -3183,7 +3306,7 @@ const RelatedEntities = forwardRef<{
       <DeleteRelationshipModal
         isOpen={deleteModalState.isOpen}
         entityName={deleteModalState.entityName || ''}
-        currentEntityName={(entity as any).title || (entity as any).name || entity.id}
+        currentEntityName={'title' in entity && entity.title ? entity.title : 'name' in entity && entity.name ? entity.name : entity.id}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteModalState({
           isOpen: false,

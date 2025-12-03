@@ -152,6 +152,12 @@ export default function JingleCancionMatchModal({
     performSearch(searchSongTitle.trim(), searchArtistName.trim() || undefined);
   };
 
+  const handleSwapFields = () => {
+    const temp = searchSongTitle;
+    setSearchSongTitle(searchArtistName);
+    setSearchArtistName(temp);
+  };
+
   const handleSelectMatch = (match: Match) => {
     setSelectedMatch(match);
   };
@@ -173,26 +179,160 @@ export default function JingleCancionMatchModal({
         // Create Cancion and Artista from MusicBrainz match
         const mbMatch = selectedMatch.match;
 
-        // Create Artista if artist name is provided
+        // Find or create Artista if artist name is provided
         if (mbMatch.artist) {
-          // Check if artist already exists (simplified - in production, search first)
-          // For now, create new artist
-          const artista = await adminApi.createArtista({
-            stageName: mbMatch.artist,
-            musicBrainzId: mbMatch.artistMusicBrainzId,
-          });
-          artistaId = artista.id;
+          let existingArtista: Artista | null = null;
+
+          // First, try to find by MusicBrainz ID (most reliable)
+          if (mbMatch.artistMusicBrainzId) {
+            try {
+              const searchResults = await adminApi.search({
+                q: mbMatch.artistMusicBrainzId,
+                types: 'artistas',
+                limit: 10,
+              });
+              
+              // Check if any artista has matching MusicBrainz ID
+              existingArtista = searchResults.artistas.find(
+                (a: Artista) => a.musicBrainzId === mbMatch.artistMusicBrainzId
+              ) || null;
+            } catch (err) {
+              console.warn('Error searching for artista by MusicBrainz ID:', err);
+            }
+          }
+
+          // If not found by MusicBrainz ID, search by name
+          if (!existingArtista) {
+            try {
+              const searchResults = await adminApi.search({
+                q: mbMatch.artist,
+                types: 'artistas',
+                limit: 20,
+              });
+
+              // Use fuzzy matching to find best match
+              const artistas = searchResults.artistas;
+              if (artistas.length > 0) {
+                // Calculate similarity for each artista
+                const matches = artistas.map((artista: Artista) => {
+                  const stageName = artista.stageName || '';
+                  const name = artista.name || '';
+                  const searchName = mbMatch.artist.toLowerCase().trim();
+                  
+                  // Check exact match first
+                  if (stageName.toLowerCase().trim() === searchName || 
+                      name.toLowerCase().trim() === searchName) {
+                    return { artista, similarity: 1.0 };
+                  }
+                  
+                  // Check if search name contains or is contained in artista name
+                  const stageNameLower = stageName.toLowerCase();
+                  const nameLower = name.toLowerCase();
+                  if (stageNameLower.includes(searchName) || searchName.includes(stageNameLower) ||
+                      nameLower.includes(searchName) || searchName.includes(nameLower)) {
+                    return { artista, similarity: 0.8 };
+                  }
+                  
+                  return { artista, similarity: 0.5 };
+                });
+
+                // Sort by similarity and take the best match if similarity is high enough
+                matches.sort((a, b) => b.similarity - a.similarity);
+                if (matches.length > 0 && matches[0].similarity >= 0.8) {
+                  existingArtista = matches[0].artista;
+                }
+              }
+            } catch (err) {
+              console.warn('Error searching for artista by name:', err);
+            }
+          }
+
+          // Use existing artista or create new one
+          if (existingArtista) {
+            artistaId = existingArtista.id;
+          } else {
+            const artista = await adminApi.createArtista({
+              stageName: mbMatch.artist,
+              musicBrainzId: mbMatch.artistMusicBrainzId,
+            });
+            artistaId = artista.id;
+          }
         }
 
-        // Create Cancion
-        const cancion = await adminApi.createCancion({
-          title: mbMatch.title,
-          musicBrainzId: mbMatch.musicBrainzId,
-          album: mbMatch.album,
-          year: mbMatch.year,
-          genre: mbMatch.genre,
-        });
-        cancionId = cancion.id;
+        // Find or create Cancion
+        let existingCancion: Cancion | null = null;
+
+        // Try to find by MusicBrainz ID first
+        if (mbMatch.musicBrainzId) {
+          try {
+            const searchResults = await adminApi.search({
+              q: mbMatch.musicBrainzId,
+              types: 'canciones',
+              limit: 10,
+            });
+            
+            // Check if any cancion has matching MusicBrainz ID
+            existingCancion = searchResults.canciones.find(
+              (c: Cancion) => c.musicBrainzId === mbMatch.musicBrainzId
+            ) || null;
+          } catch (err) {
+            console.warn('Error searching for cancion by MusicBrainz ID:', err);
+          }
+        }
+
+        // If not found by MusicBrainz ID, search by title and artist
+        if (!existingCancion) {
+          try {
+            const searchResults = await adminApi.search({
+              q: mbMatch.title,
+              types: 'canciones',
+              limit: 20,
+            });
+
+            // Use fuzzy matching to find best match
+            const canciones = searchResults.canciones;
+            if (canciones.length > 0) {
+              const matches = canciones.map((cancion: Cancion) => {
+                const titleLower = cancion.title.toLowerCase().trim();
+                const searchTitle = mbMatch.title.toLowerCase().trim();
+                
+                // Exact match
+                if (titleLower === searchTitle) {
+                  return { cancion, similarity: 1.0 };
+                }
+                
+                // Partial match
+                if (titleLower.includes(searchTitle) || searchTitle.includes(titleLower)) {
+                  return { cancion, similarity: 0.8 };
+                }
+                
+                return { cancion, similarity: 0.5 };
+              });
+
+              // Sort by similarity and take the best match if similarity is high enough
+              matches.sort((a, b) => b.similarity - a.similarity);
+              if (matches.length > 0 && matches[0].similarity >= 0.9) {
+                existingCancion = matches[0].cancion;
+              }
+            }
+          } catch (err) {
+            console.warn('Error searching for cancion by title:', err);
+          }
+        }
+
+        // Use existing cancion or create new one
+        if (existingCancion) {
+          cancionId = existingCancion.id;
+        } else {
+          const cancion = await adminApi.createCancion({
+            title: mbMatch.title,
+            musicBrainzId: mbMatch.musicBrainzId,
+            album: mbMatch.album,
+            year: mbMatch.year,
+            genre: mbMatch.genre,
+          });
+          cancionId = cancion.id;
+        }
 
         // Create AUTOR_DE relationship if we have an artist
         if (artistaId) {
@@ -398,25 +538,48 @@ export default function JingleCancionMatchModal({
                   </span>
                 )}
               </label>
-              <input
-                type="text"
-                value={searchSongTitle}
-                onChange={(e) => setSearchSongTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleSearch();
-                  }
-                }}
-                placeholder="Título de la canción"
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  fontSize: '0.875rem',
-                  marginBottom: '0.75rem',
-                }}
-              />
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'flex-end', marginBottom: '0.75rem' }}>
+                <input
+                  type="text"
+                  value={searchSongTitle}
+                  onChange={(e) => setSearchSongTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSearch();
+                    }
+                  }}
+                  placeholder="Título de la canción"
+                  style={{
+                    flex: 1,
+                    padding: '0.5rem',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    fontSize: '0.875rem',
+                  }}
+                />
+                <button
+                  onClick={handleSwapFields}
+                  type="button"
+                  title="Intercambiar Título y Artista"
+                  style={{
+                    padding: '0.5rem',
+                    backgroundColor: '#f5f5f5',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '1rem',
+                    color: '#666',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minWidth: '2.5rem',
+                    height: '2.5rem',
+                  }}
+                  aria-label="Intercambiar Título y Artista"
+                >
+                  ⇄
+                </button>
+              </div>
               
               <label
                 style={{

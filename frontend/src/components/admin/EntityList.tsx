@@ -310,6 +310,7 @@ export default function EntityList({ type, title }: Props) {
                 <EntityCard
                   entity={item as Artista | Cancion | Fabrica | Jingle | Tematica}
                   entityType={entityCardType}
+                  variant="contents"
                   to={`${routePrefix}/${item.id}`}
                   className="admin-entity-card"
                 />

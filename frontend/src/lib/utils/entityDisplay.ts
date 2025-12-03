@@ -63,21 +63,52 @@ export function getEntityRoute(entityType: EntityType, entityId: string, variant
 
 /**
  * Gets entity icon (emoji for MVP)
- * Context-dependent for Artista based on variant and relationship label
+ * Context-dependent for Artista based on variant, relationship label, and relationship counts
  */
 export function getEntityIcon(
   entityType: EntityType,
   variant?: 'heading' | 'contents' | 'placeholder',
-  relationshipLabel?: string
+  relationshipLabel?: string,
+  entity?: Entity,
+  relationshipData?: Record<string, unknown>
 ): string {
   // Context-dependent Artista icons
   if (entityType === 'artista') {
-    if ((variant === 'contents' || variant === 'placeholder') && relationshipLabel === 'Jinglero') {
+    // For contents variant, determine icon based on AUTOR_DE and JINGLERO_DE relationships
+    if (variant === 'contents' && entity) {
+      // Get relationship counts from relationshipData if available
+      const autorCount = (relationshipData?.autorCount as number) || 0;
+      const jingleroCount = (relationshipData?.jingleroCount as number) || 0;
+      
+      // If we have relationship counts, use them to determine icon
+      if (autorCount > 0 || jingleroCount > 0) {
+        const hasAutor = autorCount > 0;
+        const hasJinglero = jingleroCount > 0;
+        
+        if (hasAutor && !hasJinglero) {
+          return '🚚'; // Has AUTOR_DE but no JINGLERO_DE
+        }
+        if (hasJinglero && !hasAutor) {
+          return '🔧'; // Has JINGLERO_DE but no AUTOR_DE
+        }
+        // Both or neither: use default
+        return '👤';
+      }
+      
+      // Fallback to relationshipLabel-based logic for backward compatibility
+      if (relationshipLabel === 'Jinglero') {
+        return '🔧';
+      }
+      if (relationshipLabel === 'Autor') {
+        return '🚚';
+      }
+    }
+    
+    // For placeholder variant, use relationshipLabel if available
+    if (variant === 'placeholder' && relationshipLabel === 'Jinglero') {
       return '🔧';
     }
-    if (variant === 'contents' && relationshipLabel === 'Autor') {
-      return '🚚';
-    }
+    
     // Default: heading or no context
     return '👤';
   }
@@ -98,7 +129,8 @@ export function getEntityIcon(
 export function getPrimaryText(
   entity: Entity,
   entityType: EntityType,
-  relationshipData?: Record<string, unknown>
+  relationshipData?: Record<string, unknown>,
+  variant?: 'heading' | 'contents' | 'placeholder'
 ): string {
   switch (entityType) {
     case 'fabrica': {
@@ -112,7 +144,11 @@ export function getPrimaryText(
     }
     case 'cancion': {
       const cancion = entity as Cancion;
-      // Format as "Titulo (Autor1, Autor2)" when autor data available
+      // For contents variant, show just title (autores will be in secondary)
+      if (variant === 'contents') {
+        return cancion.title || cancion.id;
+      }
+      // For heading variant, format as "Titulo (Autor1, Autor2)" when autor data available
       if (relationshipData?.autores && Array.isArray(relationshipData.autores) && relationshipData.autores.length > 0) {
         const autorNames = relationshipData.autores
           .map((a: Artista) => a.stageName || a.name)
@@ -126,6 +162,11 @@ export function getPrimaryText(
     }
     case 'artista': {
       const artista = entity as Artista;
+      // For contents variant, show stageName as primary, or Name if stageName is empty
+      if (variant === 'contents') {
+        return artista.stageName || artista.name || artista.id;
+      }
+      // For heading variant, use existing logic
       return artista.stageName || artista.name || artista.id;
     }
     case 'tematica': {
@@ -143,7 +184,8 @@ export function getPrimaryText(
 export function getSecondaryText(
   entity: Entity,
   entityType: EntityType,
-  relationshipData?: Record<string, unknown>
+  relationshipData?: Record<string, unknown>,
+  variant?: 'heading' | 'contents' | 'placeholder'
 ): string | null {
   switch (entityType) {
     case 'fabrica': {
@@ -156,34 +198,112 @@ export function getSecondaryText(
     case 'jingle': {
       // Show fabricaDate (denormalized) or use parent Fabrica's date if available
       const jingle = entity as Jingle;
+      const parts: string[] = [];
+      
+      // Add Fabrica date
       if (jingle.fabricaDate) {
-        return formatDate(jingle.fabricaDate);
-      }
-      // If no fabricaDate but we have a parent Fabrica in relationshipData, use its date
-      if (relationshipData?.fabrica) {
+        parts.push(formatDate(jingle.fabricaDate));
+      } else if (relationshipData?.fabrica) {
         const fabrica = relationshipData.fabrica as Fabrica;
         if (fabrica.date) {
-          return formatDate(fabrica.date);
+          parts.push(formatDate(fabrica.date));
+        }
+      } else {
+        parts.push('INEDITO');
+      }
+      
+      // For contents variant, append autoComment (with title removed) to secondary text
+      if (variant === 'contents' && jingle.autoComment) {
+        // Remove the redundant "🎤: {title}" part from autoComment
+        // Format: "🏭: DD/MM/YYYY - HH:MM:SS:, 🎤: Title, 📦: Cancion, ..."
+        // We want to remove the "🎤: Title" part (including comma before/after if present)
+        let trimmedComment = jingle.autoComment;
+        
+        // Remove the title part: ", 🎤: {title}" or "🎤: {title}," or "🎤: {title}"
+        // Match pattern: optional comma+space before, 🎤: followed by title text (until comma or end), optional comma after
+        // Title text is anything that's not a comma or one of the emoji prefixes (📦🚚🏷️🔧)
+        const titlePattern = /(?:,\s*)?🎤:\s*[^,📦🚚🏷️🔧]+(?:\s*,)?/;
+        trimmedComment = trimmedComment.replace(titlePattern, '');
+        
+        // Clean up any double commas, leading/trailing commas/spaces
+        trimmedComment = trimmedComment
+          .replace(/,\s*,/g, ',')  // Remove double commas
+          .replace(/^,\s*/, '')     // Remove leading comma
+          .replace(/\s*,\s*$/, '')  // Remove trailing comma
+          .trim();
+        
+        if (trimmedComment) {
+          parts.push(trimmedComment);
         }
       }
-      return 'INEDITO';
+      
+      return parts.length > 0 ? parts.join(' • ') : null;
     }
     case 'cancion': {
       const cancion = entity as Cancion;
       const parts: string[] = [];
+      
+      // Existing secondary properties
       if (cancion.album) parts.push(cancion.album);
       if (cancion.year) parts.push(String(cancion.year));
+      
+      // For contents variant, add autor and jingle count
+      if (variant === 'contents') {
+        // Get autor name(s) from relationshipData
+        if (relationshipData?.autores && Array.isArray(relationshipData.autores) && relationshipData.autores.length > 0) {
+          const autorNames = relationshipData.autores
+            .map((a: Artista) => a.stageName || a.name)
+            .filter(Boolean)
+            .join(', ');
+          if (autorNames) {
+            parts.push(`🚚: ${autorNames}`);
+          }
+        }
+        
+        // Get jingle count from relationshipData
+        const jingleCount = (relationshipData?.jingleCount as number) || 0;
+        if (jingleCount > 0) {
+          parts.push(`🎤: ${jingleCount}`);
+        }
+      }
+      
       return parts.length > 0 ? parts.join(' • ') : null;
     }
     case 'artista': {
       const artista = entity as Artista;
       const parts: string[] = [];
-      if (artista.name && artista.name !== artista.stageName) {
-        parts.push(artista.name);
+      
+      // For contents variant, show Name as secondary if different from stageName
+      if (variant === 'contents') {
+        if (artista.name && artista.name !== artista.stageName) {
+          parts.push(artista.name);
+        }
+        
+        // Add ARG tag if isArg is true
+        if (artista.isArg) {
+          parts.push('ARG');
+        }
+        
+        // Add relationship counts
+        const autorCount = (relationshipData?.autorCount as number) || 0;
+        const jingleroCount = (relationshipData?.jingleroCount as number) || 0;
+        
+        if (autorCount > 0) {
+          parts.push(`📦: ${autorCount}`);
+        }
+        if (jingleroCount > 0) {
+          parts.push(`🎤: ${jingleroCount}`);
+        }
+      } else {
+        // For heading variant, use existing logic
+        if (artista.name && artista.name !== artista.stageName) {
+          parts.push(artista.name);
+        }
+        if (artista.nationality) {
+          parts.push(artista.nationality);
+        }
       }
-      if (artista.nationality) {
-        parts.push(artista.nationality);
-      }
+      
       return parts.length > 0 ? parts.join(' • ') : null;
     }
     case 'tematica': {
