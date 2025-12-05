@@ -160,7 +160,7 @@ The Search API provides global search functionality across multiple entity types
 
 - Case-insensitive contains search
 - Searches:
-  - Jingles: `title`, `songTitle`
+  - Jingles: `title`, `songTitle`, `comment`, `autoComment`
   - Canciones: `title`, and Artista names via AUTOR_DE relationships
   - Artistas: `stageName`, `name` (excludes "None" values)
   - Tematicas: `name`
@@ -172,7 +172,7 @@ The Search API provides global search functionality across multiple entity types
 - Uses Neo4j fulltext indexes
 - Returns relevance scores
 - Searches:
-  - Jingles: Fulltext index on `title`, `songTitle`, `artistName`, `comment`
+  - Jingles: Fulltext index on `title`, `songTitle`, `artistName`, `comment`, `autoComment`
   - Canciones: Fulltext index on `title`
   - Artistas: Fulltext index on `stageName`, `name`
   - Tematicas: Fulltext index on `name`, `description`

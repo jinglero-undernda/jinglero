@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
-import { adminApi } from '../../lib/api/client';
+import { useEffect, useState, useMemo } from 'react';
+import { adminApi, publicApi } from '../../lib/api/client';
 import { type Usuario, type Artista, type Cancion, type Fabrica, type Tematica, type Jingle } from '../../types';
 import EntityCard, { type EntityType as EntityCardType } from '../common/EntityCard';
 import BulkActions from './BulkActions';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
+import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 
 type Props = {
   type: string;
@@ -159,6 +161,7 @@ export default function EntityList({ type, title }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [jingleRelationshipData, setJingleRelationshipData] = useState<Record<string, Record<string, unknown>>>({});
 
   useEffect(() => {
     const fetchData = async () => {
@@ -187,7 +190,50 @@ export default function EntityList({ type, title }: Props) {
           default:
             throw new Error(`Unknown entity type: ${type}`);
         }
-        setItems(sortEntities(data || [], type));
+        const sortedData = sortEntities(data || [], type);
+        setItems(sortedData);
+        
+        // For jingles, fetch relationship data for those with blank title and songTitle
+        if (type === 'jingles') {
+          const jinglesNeedingData = sortedData.filter((item) => {
+            const jingle = item as Jingle;
+            return !jingle.title && !jingle.songTitle;
+          }) as Jingle[];
+          
+          // Fetch relationship data for jingles that need it
+          const relationshipDataPromises = jinglesNeedingData.map(async (jingle) => {
+            try {
+              // Clear cache and fetch full jingle data
+              clearJingleRelationshipsCache(jingle.id);
+              const fullJingle = await publicApi.getJingle(jingle.id) as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
+              const data: Record<string, unknown> = {};
+              if (fullJingle.cancion) data.cancion = fullJingle.cancion;
+              if (fullJingle.autores && Array.isArray(fullJingle.autores) && fullJingle.autores.length > 0) {
+                data.autores = fullJingle.autores;
+              }
+              if (fullJingle.fabrica) data.fabrica = fullJingle.fabrica;
+              if (fullJingle.jingleros && Array.isArray(fullJingle.jingleros) && fullJingle.jingleros.length > 0) {
+                data.jingleros = fullJingle.jingleros;
+              }
+              if (fullJingle.tematicas && Array.isArray(fullJingle.tematicas) && fullJingle.tematicas.length > 0) {
+                data.tematicas = fullJingle.tematicas;
+              }
+              return { jingleId: jingle.id, data: Object.keys(data).length > 0 ? data : undefined };
+            } catch (err) {
+              console.warn(`Failed to fetch relationship data for jingle ${jingle.id}:`, err);
+              return { jingleId: jingle.id, data: undefined };
+            }
+          });
+          
+          const relationshipDataResults = await Promise.all(relationshipDataPromises);
+          const relationshipDataMap: Record<string, Record<string, unknown>> = {};
+          relationshipDataResults.forEach(({ jingleId, data }) => {
+            if (data) {
+              relationshipDataMap[jingleId] = data;
+            }
+          });
+          setJingleRelationshipData(relationshipDataMap);
+        }
       } catch (e: any) {
         setError(e.message);
       } finally {
@@ -298,25 +344,57 @@ export default function EntityList({ type, title }: Props) {
       {entityCardType ? (
         // Use EntityCard for supported entity types
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
-          {items.map((item) => (
-            <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-              <input
-                type="checkbox"
-                checked={selectedIds.has(item.id)}
-                onChange={(e) => handleSelectItem(item.id, e.target.checked)}
-                style={{ marginTop: '0.5rem', cursor: 'pointer' }}
-              />
-              <div style={{ flex: 1 }}>
-                <EntityCard
-                  entity={item as Artista | Cancion | Fabrica | Jingle | Tematica}
-                  entityType={entityCardType}
-                  variant="contents"
-                  to={`${routePrefix}/${item.id}`}
-                  className="admin-entity-card"
+          {items.map((item) => {
+            // Extract relationship data - first try from _metadata
+            let relationshipData = extractRelationshipData(item, entityCardType);
+            
+            // For jingles, if _metadata is not available, check fetched relationship data or entity directly
+            if (entityCardType === 'jingle' && !relationshipData) {
+              // First check if we fetched relationship data for this jingle
+              if (jingleRelationshipData[item.id]) {
+                relationshipData = jingleRelationshipData[item.id];
+              } else {
+                // Fallback: check if relationship data is directly on entity
+                const jingle = item as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
+                const data: Record<string, unknown> = {};
+                if (jingle.cancion) data.cancion = jingle.cancion;
+                if (jingle.autores && Array.isArray(jingle.autores) && jingle.autores.length > 0) {
+                  data.autores = jingle.autores;
+                }
+                if (jingle.fabrica) data.fabrica = jingle.fabrica;
+                if (jingle.jingleros && Array.isArray(jingle.jingleros) && jingle.jingleros.length > 0) {
+                  data.jingleros = jingle.jingleros;
+                }
+                if (jingle.tematicas && Array.isArray(jingle.tematicas) && jingle.tematicas.length > 0) {
+                  data.tematicas = jingle.tematicas;
+                }
+                if (Object.keys(data).length > 0) {
+                  relationshipData = data;
+                }
+              }
+            }
+            
+            return (
+              <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(item.id)}
+                  onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                  style={{ marginTop: '0.5rem', cursor: 'pointer' }}
                 />
+                <div style={{ flex: 1 }}>
+                  <EntityCard
+                    entity={item as Artista | Cancion | Fabrica | Jingle | Tematica}
+                    entityType={entityCardType}
+                    variant="contents"
+                    to={`${routePrefix}/${item.id}`}
+                    className="admin-entity-card"
+                    relationshipData={relationshipData}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         // Fallback for unsupported types (e.g., usuarios)

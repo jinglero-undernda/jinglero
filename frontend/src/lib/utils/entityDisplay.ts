@@ -139,8 +139,37 @@ export function getPrimaryText(
     }
     case 'jingle': {
       const jingle = entity as Jingle;
-      // If title is null/undefined, fall back to songTitle, then id
-      return jingle.title || jingle.songTitle || jingle.id;
+      // Fallback chain: title -> "{cancion} ({autor})" -> comment -> id
+      if (jingle.title) {
+        return jingle.title;
+      }
+      
+      // Try to format from cancion and autor data
+      if (relationshipData?.cancion) {
+        const cancion = relationshipData.cancion as Cancion;
+        if (cancion.title) {
+          // Format autor names if available
+          if (relationshipData?.autores && Array.isArray(relationshipData.autores) && relationshipData.autores.length > 0) {
+            const autorNames = relationshipData.autores
+              .map((a: Artista) => a.stageName || a.name)
+              .filter(Boolean)
+              .join(', ');
+            if (autorNames) {
+              return `${cancion.title} (${autorNames})`;
+            }
+          }
+          // If no autores, just return cancion title
+          return cancion.title;
+        }
+      }
+      
+      // Fallback to comment if available
+      if (jingle.comment) {
+        return jingle.comment;
+      }
+      
+      // Final fallback to id
+      return jingle.id;
     }
     case 'cancion': {
       const cancion = entity as Cancion;

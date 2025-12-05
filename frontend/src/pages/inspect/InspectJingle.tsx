@@ -5,6 +5,7 @@ import EntityCard from '../../components/common/EntityCard';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { publicApi } from '../../lib/api';
+import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 
 // Extended Jingle type that includes relationship data from API
 interface JingleWithRelationships extends Jingle {
@@ -29,7 +30,15 @@ export default function InspectJingle() {
       try {
         setLoading(true);
         setError(null);
-        const fetchedJingle = await publicApi.getJingle(jingleId) as JingleWithRelationships;
+        let fetchedJingle = await publicApi.getJingle(jingleId) as JingleWithRelationships;
+        
+        // If songTitle is blank and title is also blank, trigger refresh to get updated songTitle
+        if (!fetchedJingle.title && !fetchedJingle.songTitle) {
+          // Clear cache and fetch again to get updated songTitle (backend auto-syncs it)
+          clearJingleRelationshipsCache(jingleId);
+          fetchedJingle = await publicApi.getJingle(jingleId) as JingleWithRelationships;
+        }
+        
         setJingle(fetchedJingle);
       } catch (err) {
         setError('Error loading jingle');

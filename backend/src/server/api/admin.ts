@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
 import { randomUUID, randomBytes } from 'crypto';
+import neo4j from 'neo4j-driver';
 import { Neo4jClient } from '../db';
 import { 
   getSchemaInfo, 
@@ -1427,6 +1428,131 @@ router.get('/:type', asyncHandler(async (req, res) => {
   if (!label) {
     throw new NotFoundError(`Unknown entity type: ${type}`);
   }
+
+  // Enhanced endpoints for artistas and canciones to include _metadata
+  if (type === 'artistas') {
+    // Enhanced query to include relationship counts
+    const query = `
+      MATCH (a:Artista)
+      OPTIONAL MATCH (a)-[:AUTOR_DE]->(c:Cancion)
+      OPTIONAL MATCH (a)-[:JINGLERO_DE]->(j:Jingle)
+      WITH a, count(DISTINCT c) AS autorCount, count(DISTINCT j) AS jingleroCount
+      RETURN a,
+             autorCount,
+             jingleroCount
+      ORDER BY a.createdAt DESC
+    `;
+    
+    const results = await db.executeQuery(query, {});
+    
+    const artistas = results.map((r: any) => {
+      const artista = convertNeo4jDates(r.a.properties);
+      const autorCount = typeof r.autorCount === 'object' && r.autorCount?.low !== undefined
+        ? r.autorCount.low
+        : (typeof r.autorCount === 'number' ? r.autorCount : 0);
+      const jingleroCount = typeof r.jingleroCount === 'object' && r.jingleroCount?.low !== undefined
+        ? r.jingleroCount.low
+        : (typeof r.jingleroCount === 'number' ? r.jingleroCount : 0);
+      
+      return {
+        ...artista,
+        _metadata: {
+          autorCount,
+          jingleroCount
+        }
+      };
+    });
+    
+    return res.json(artistas);
+  }
+
+  if (type === 'canciones') {
+    // Enhanced query to include jingle count and autores
+    const query = `
+      MATCH (c:Cancion)
+      OPTIONAL MATCH (c)<-[:VERSIONA]-(j:Jingle)
+      OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+      WITH c, count(DISTINCT j) AS jingleCount, collect(DISTINCT autor) AS autores
+      RETURN c,
+             jingleCount,
+             autores
+      ORDER BY c.createdAt DESC
+    `;
+    
+    const results = await db.executeQuery(query, {});
+    
+    // Process autores to get their counts
+    const allAutorIds = new Set<string>();
+    results.forEach((r: any) => {
+      if (r.autores && Array.isArray(r.autores)) {
+        r.autores.forEach((autor: any) => {
+          if (autor && autor.id) {
+            allAutorIds.add(autor.id);
+          }
+        });
+      }
+    });
+    
+    // Fetch counts for all autores in parallel
+    const autorCountsMap = new Map<string, { autorCount: number; jingleroCount: number }>();
+    if (allAutorIds.size > 0) {
+      const autorIdsArray = Array.from(allAutorIds);
+      const autorCountsQuery = `
+        UNWIND $autorIds AS autorId
+        MATCH (autor:Artista {id: autorId})
+        OPTIONAL MATCH (autor)-[:AUTOR_DE]->(autorCancion:Cancion)
+        OPTIONAL MATCH (autor)-[:JINGLERO_DE]->(autorJingle:Jingle)
+        RETURN autor.id AS autorId,
+               count(DISTINCT autorCancion) AS autorCount,
+               count(DISTINCT autorJingle) AS jingleroCount
+      `;
+      const autorCountsResult = await db.executeQuery<any>(autorCountsQuery, { autorIds: autorIdsArray });
+      autorCountsResult.forEach((row: any) => {
+        const autorCount = typeof row.autorCount === 'object' && row.autorCount?.low !== undefined
+          ? row.autorCount.low
+          : (typeof row.autorCount === 'number' ? row.autorCount : 0);
+        const jingleroCount = typeof row.jingleroCount === 'object' && row.jingleroCount?.low !== undefined
+          ? row.jingleroCount.low
+          : (typeof row.jingleroCount === 'number' ? row.jingleroCount : 0);
+        autorCountsMap.set(row.autorId, { autorCount, jingleroCount });
+      });
+    }
+    
+    const canciones = results.map((r: any) => {
+      const cancion = convertNeo4jDates(r.c.properties);
+      const jingleCount = typeof r.jingleCount === 'object' && r.jingleCount?.low !== undefined
+        ? r.jingleCount.low
+        : (typeof r.jingleCount === 'number' ? r.jingleCount : 0);
+      
+      // Process autores with counts from the map
+      const autores = (r.autores || [])
+        .filter((autor: any) => autor && autor.id)
+        .map((autor: any) => {
+          const artista = convertNeo4jDates(autor);
+          const counts = autorCountsMap.get(artista.id) || { autorCount: 0, jingleroCount: 0 };
+          
+          return {
+            ...artista,
+            _metadata: {
+              autorCount: counts.autorCount,
+              jingleroCount: counts.jingleroCount
+            }
+          };
+        });
+      
+      return {
+        ...cancion,
+        _metadata: {
+          jingleCount,
+          autores: autores.length > 0 ? autores : undefined
+        }
+      };
+    });
+    
+    return res.json(canciones);
+  }
+
+  // Default behavior for other entity types (fabricas, tematicas, jingles, usuarios)
   const query = `
     MATCH (n:${label})
     RETURN n

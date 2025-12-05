@@ -11,13 +11,15 @@ import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
-import { adminApi } from '../../lib/api/client';
+import { adminApi, publicApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
 import { normalizeEntityType, getEntityTypeFromId, getEntityTypeAbbreviation } from '../../lib/utils/entityTypeUtils';
 import EntityCard from '../../components/common/EntityCard';
 import EntityMetadataEditor from '../../components/admin/EntityMetadataEditor';
 import UnsavedChangesModal from '../../components/admin/UnsavedChangesModal';
 import type { EntityType } from '../../components/common/EntityCard';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
+import { clearJingleRelationshipsCache, fetchCancionAutores } from '../../lib/services/relationshipService';
 
 /**
  * AdminEntityAnalyze - Admin page for analyzing entities with RelatedEntities in Admin Mode
@@ -132,9 +134,63 @@ export default function AdminEntityAnalyze() {
             break;
           case 'jingles':
             fetchedEntity = await adminApi.getJingle(entityId);
+            // For jingles, check if we need to refresh or fetch full relationship data
+            const jingle = fetchedEntity as Jingle;
+            // If songTitle is blank and title is also blank, trigger refresh to get updated songTitle
+            if (!jingle.title && !jingle.songTitle) {
+              // Clear cache and fetch again to get updated songTitle (backend auto-syncs it)
+              clearJingleRelationshipsCache(entityId);
+              fetchedEntity = await publicApi.getJingle(entityId) as Jingle;
+            }
+            // If _metadata is not available or incomplete, fetch using publicApi to get full relationship data
+            const jingleWithMetadata = fetchedEntity as Jingle & { _metadata?: any; cancion?: Cancion; autores?: Artista[] };
+            if (!jingleWithMetadata._metadata || !jingleWithMetadata._metadata.cancion) {
+              try {
+                const fullJingle = await publicApi.getJingle(entityId) as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
+                // Merge the relationship data into _metadata format
+                if (fullJingle.cancion || fullJingle.autores || fullJingle.fabrica || fullJingle.jingleros || fullJingle.tematicas) {
+                  jingleWithMetadata._metadata = {
+                    ...jingleWithMetadata._metadata,
+                    cancion: fullJingle.cancion,
+                    autores: fullJingle.autores,
+                    fabrica: fullJingle.fabrica,
+                    jingleros: fullJingle.jingleros,
+                    tematicas: fullJingle.tematicas,
+                  };
+                  // Also copy relationship data directly to entity for compatibility
+                  (fetchedEntity as any).cancion = fullJingle.cancion;
+                  (fetchedEntity as any).autores = fullJingle.autores;
+                  (fetchedEntity as any).fabrica = fullJingle.fabrica;
+                  (fetchedEntity as any).jingleros = fullJingle.jingleros;
+                  (fetchedEntity as any).tematicas = fullJingle.tematicas;
+                }
+              } catch (refreshErr) {
+                console.warn('[AdminEntityAnalyze] Failed to fetch full jingle relationship data:', refreshErr);
+                // Continue with admin API data if public API fails
+              }
+            }
             break;
           case 'canciones':
             fetchedEntity = await adminApi.getCancion(entityId);
+            // For canciones, if _metadata doesn't include autores, fetch them
+            const cancion = fetchedEntity as Cancion;
+            if (!cancion._metadata || !cancion._metadata.autores) {
+              try {
+                // Fetch autores using relationshipService
+                const autores = await fetchCancionAutores(entityId);
+                if (autores && autores.length > 0) {
+                  cancion._metadata = {
+                    ...cancion._metadata,
+                    autores: autores,
+                  };
+                  // Also copy directly to entity for compatibility
+                  (fetchedEntity as any).autores = autores;
+                }
+              } catch (refreshErr) {
+                console.warn('[AdminEntityAnalyze] Failed to fetch cancion autores:', refreshErr);
+                // Continue with admin API data if fetch fails
+              }
+            }
             break;
           case 'artistas':
             fetchedEntity = await adminApi.getArtista(entityId);
@@ -276,6 +332,35 @@ export default function AdminEntityAnalyze() {
     );
   }
 
+  // Extract relationship data for EntityCard (similar to inspection pages)
+  // MUST be called before any early returns to follow Rules of Hooks
+  const relationshipData = useMemo(() => {
+    if (!entity) return undefined;
+    // First try to extract from _metadata
+    const extracted = extractRelationshipData(entity, entityType);
+    if (extracted) return extracted;
+    
+    // For jingles, also check if relationship data is directly on the entity (from publicApi)
+    if (entityType === 'jingle') {
+      const jingle = entity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
+      const data: Record<string, unknown> = {};
+      if (jingle.cancion) data.cancion = jingle.cancion;
+      if (jingle.autores && Array.isArray(jingle.autores) && jingle.autores.length > 0) {
+        data.autores = jingle.autores;
+      }
+      if (jingle.fabrica) data.fabrica = jingle.fabrica;
+      if (jingle.jingleros && Array.isArray(jingle.jingleros) && jingle.jingleros.length > 0) {
+        data.jingleros = jingle.jingleros;
+      }
+      if (jingle.tematicas && Array.isArray(jingle.tematicas) && jingle.tematicas.length > 0) {
+        data.tematicas = jingle.tematicas;
+      }
+      return Object.keys(data).length > 0 ? data : undefined;
+    }
+    
+    return undefined;
+  }, [entity, entityType]);
+
   // Debug logging for state
   console.log('AdminEntityAnalyze render - loading:', loading, 'error:', error, 'entity:', entity);
 
@@ -363,10 +448,6 @@ export default function AdminEntityAnalyze() {
       </main>
     );
   }
-
-  // Extract relationship data for EntityCard (similar to inspection pages)
-  // Note: Jingle relationships are accessed via API, not directly from entity object
-  const relationshipData = undefined;
 
   // This check is redundant but kept for safety - the earlier check should catch this
   // But we'll keep it to ensure we always render something

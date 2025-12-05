@@ -45,6 +45,8 @@ export interface Artista {
   musicBrainzId?: string;
   createdAt: string;
   updatedAt: string;
+  /** Optional metadata for enhanced display (relationship counts, etc.) */
+  _metadata?: EntityMetadata;
 }
 
 /**
@@ -69,6 +71,8 @@ export interface Cancion {
   musicBrainzId?: string;
   createdAt: string;
   updatedAt: string;
+  /** Optional metadata for enhanced display (jingle count, autores, etc.) */
+  _metadata?: EntityMetadata;
 }
 
 /**
@@ -149,6 +153,8 @@ export interface Jingle {
   order?: number | null;
   createdAt: string;
   updatedAt: string;
+  /** Optional metadata for enhanced display (fabrica, cancion, autores, jingleros, etc.) */
+  _metadata?: EntityMetadata;
 }
 
 // API Response types
@@ -185,4 +191,20 @@ export interface Relationship {
 export interface EntityRelationships {
   outgoing: Relationship[];
   incoming: Relationship[];
+}
+
+// Entity metadata for enhanced display in EntityCard
+// Used to provide relationship counts and related entity information
+export interface EntityMetadata {
+  // For Artista
+  autorCount?: number;      // Count of AUTOR_DE relationships
+  jingleroCount?: number;   // Count of JINGLERO_DE relationships
+  // For Cancion
+  jingleCount?: number;     // Count of VERSIONA relationships
+  autores?: Artista[];      // Array of autores (with their own _metadata)
+  // For Jingle
+  fabrica?: Fabrica;        // Fabrica object
+  cancion?: Cancion;        // Cancion object
+  autores?: Artista[];      // Autores array
+  jingleros?: Artista[];    // Jingleros array
 }

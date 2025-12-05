@@ -41,6 +41,7 @@ import {
   type EntityType,
   type Entity
 } from '../../lib/utils/entityDisplay';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 
 export interface EntitySearchAutocompleteProps {
   /** Entity types to search (e.g., ['jingle', 'cancion', 'artista']) */
@@ -412,8 +413,9 @@ export default function EntitySearchAutocomplete({
                   {typeResults.map((result) => {
                     const globalIndex = results.indexOf(result);
                     const icon = getEntityIcon(result.entityType);
-                    const primaryText = getPrimaryText(result.entity, result.entityType);
-                    const secondaryText = getSecondaryText(result.entity, result.entityType);
+                    const relationshipData = extractRelationshipData(result.entity, result.entityType);
+                    const primaryText = getPrimaryText(result.entity, result.entityType, relationshipData);
+                    const secondaryText = getSecondaryText(result.entity, result.entityType, relationshipData);
                     const isSelected = selectedIndex === globalIndex;
                     
                     return (

@@ -176,7 +176,9 @@ router.get('/', asyncHandler(async (req, res) => {
   if (active.includes('jingles')) {
     // Phase 4: Build WHERE clause with optional relationship filtering
     let whereClause = `(j.title IS NOT NULL AND j.title <> '' AND toLower(j.title) CONTAINS $text)
-         OR (j.songTitle IS NOT NULL AND j.songTitle <> '' AND toLower(j.songTitle) CONTAINS $text)`;
+         OR (j.songTitle IS NOT NULL AND j.songTitle <> '' AND toLower(j.songTitle) CONTAINS $text)
+         OR (j.comment IS NOT NULL AND j.comment <> '' AND toLower(j.comment) CONTAINS $text)
+         OR (j.autoComment IS NOT NULL AND j.autoComment <> '' AND toLower(j.autoComment) CONTAINS $text)`;
     
     // Add filtering for cardinality constraints
     if (excludeWithRelationship === 'appears_in') {

@@ -21,9 +21,11 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
   return routeMap[entityType];
 }
 import { sortEntities } from '../../lib/utils/entitySorters';
-import { adminApi } from '../../lib/api/client';
+import { adminApi, publicApi } from '../../lib/api/client';
 import { parseTimestampFromText } from '../../lib/utils/timestampParser';
 import { parseTimestampToSeconds } from '../../lib/utils/timestamp';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
+import type { Jingle } from '../../types';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
@@ -1186,11 +1188,34 @@ const RelatedEntities = forwardRef<{
         await new Promise(resolve => setTimeout(resolve, 100));
         
         // Fetch fresh data
-        const entities = await rel.fetchFn(entity.id, entityType);
+        let entities = await rel.fetchFn(entity.id, entityType);
         
         // Check if request was aborted
         if (abortController.signal.aborted) {
           continue; // Skip this relationship but continue with others
+        }
+        
+        // Refresh jingles with blank songTitle
+        if (rel.entityType === 'jingle') {
+          const refreshedEntities = await Promise.all(
+            entities.map(async (e) => {
+              const jingle = e as Jingle;
+              // If songTitle is blank and title is also blank, trigger refresh
+              if (!jingle.title && !jingle.songTitle) {
+                try {
+                  // Clear cache and fetch again to get updated songTitle (backend auto-syncs it)
+                  clearJingleRelationshipsCache(jingle.id);
+                  const refreshed = await publicApi.getJingle(jingle.id) as Jingle;
+                  return refreshed;
+                } catch (refreshErr) {
+                  console.warn(`Failed to refresh jingle ${jingle.id}:`, refreshErr);
+                  return jingle; // Return original if refresh fails
+                }
+              }
+              return jingle;
+            })
+          );
+          entities = refreshedEntities;
         }
         
         // Sort entities
@@ -2045,116 +2070,91 @@ const RelatedEntities = forwardRef<{
                             : [];
                           const hasNested = !isAdmin && hasNestedRelationships && canExpand;
                           
-                          // Extract relationship data from entity if it exists (e.g., fabrica for Jingle)
+                          // Extract relationship data from entity using centralized utility
                           // The backend may include relationship data directly in the entity object
-                          // If Jingle is nested under a Fabrica, pass the full Fabrica object (with date)
-                          // For Artista and Cancion, include relationship counts
+                          // Special cases: root entity fallbacks, Jingle fabrica handling
                           const relationshipData: Record<string, unknown> | undefined = (() => {
-                            const data: Record<string, unknown> = {};
+                            // First, try using the centralized utility
+                            let data = extractRelationshipData(relatedEntity, rel.entityType) || {};
                             
+                            // Special case handling for Jingle: fabrica, cancion, autores from entity object or parent
                             if (rel.entityType === 'jingle') {
-                              const jingle = relatedEntity as Jingle;
-                              // Check if fabrica data is embedded in the entity object
-                              // Note: fabrica is not in the Jingle type, but may be added by backend
-                              if ('fabrica' in jingle && (jingle as Jingle & { fabrica?: unknown }).fabrica) {
-                                data.fabrica = (jingle as Jingle & { fabrica?: unknown }).fabrica;
+                              const jingle = relatedEntity as Jingle & { fabrica?: Fabrica; cancion?: Cancion; autores?: Artista[]; jingleros?: Artista[]; tematicas?: Tematica[] };
+                              // Check if relationship data is embedded in the entity object
+                              // Note: these are not in the Jingle type, but may be added by backend
+                              if ('fabrica' in jingle && jingle.fabrica) {
+                                data = { ...data, fabrica: jingle.fabrica };
+                              }
+                              if ('cancion' in jingle && jingle.cancion) {
+                                data = { ...data, cancion: jingle.cancion };
+                              }
+                              if ('autores' in jingle && jingle.autores && Array.isArray(jingle.autores) && jingle.autores.length > 0) {
+                                data = { ...data, autores: jingle.autores };
+                              }
+                              if ('jingleros' in jingle && jingle.jingleros && Array.isArray(jingle.jingleros) && jingle.jingleros.length > 0) {
+                                data = { ...data, jingleros: jingle.jingleros };
+                              }
+                              if ('tematicas' in jingle && jingle.tematicas && Array.isArray(jingle.tematicas) && jingle.tematicas.length > 0) {
+                                data = { ...data, tematicas: jingle.tematicas };
                               }
                               // If the parent entity (root entity) is a Fabrica, pass the full Fabrica object
                               // This allows EntityCard to use the Fabrica's date when Jingle doesn't have fabricaDate
                               if (entityType === 'fabrica') {
-                                data.fabrica = entity;
+                                data = { ...data, fabrica: entity };
                               }
-                              // If Jingle has fabricaId but no fabricaDate, we can't fetch the Fabrica here
-                              // (would require async operation). The backend should populate fabricaDate.
-                              // For now, we rely on fabricaDate being populated in the Jingle entity.
-                            } else if (rel.entityType === 'artista') {
-                              // For Artista, include AUTOR_DE and JINGLERO_DE counts
-                              // Priority: 1) _metadata on entity object (from API), 2) state.counts (root entity)
-                              const artista = relatedEntity as Artista & { 
-                                _metadata?: { 
-                                  autorCount?: number; 
-                                  jingleroCount?: number 
-                                } 
-                              };
-                              const artistaId = artista.id;
-                              
-                              // Check if _metadata exists on the entity object (from API response)
-                              if (artista._metadata) {
-                                if (artista._metadata.autorCount !== undefined) {
-                                  data.autorCount = artista._metadata.autorCount;
-                                }
-                                if (artista._metadata.jingleroCount !== undefined) {
-                                  data.jingleroCount = artista._metadata.jingleroCount;
+                              // If the parent entity (root entity) is a Cancion, pass the Cancion and its autores
+                              // This allows EntityCard to format jingle title as "{cancion} ({autor})" when title/songTitle are blank
+                              if (entityType === 'cancion') {
+                                const cancion = entity as Cancion;
+                                data = { ...data, cancion: cancion };
+                                // Extract autores from cancion's _metadata or check if they're directly on the entity
+                                if (cancion._metadata?.autores && Array.isArray(cancion._metadata.autores) && cancion._metadata.autores.length > 0) {
+                                  data = { ...data, autores: cancion._metadata.autores };
+                                } else if ('autores' in cancion && Array.isArray((cancion as any).autores) && (cancion as any).autores.length > 0) {
+                                  data = { ...data, autores: (cancion as any).autores };
                                 }
                               }
-                              
-                              // Fallback: If this is the root entity being viewed, get counts from its relationships
-                              if (entityType === 'artista' && entity.id === artistaId) {
-                                // Only use state.counts if _metadata wasn't available
-                                if (!artista._metadata || artista._metadata.autorCount === undefined) {
-                                  const cancionesKey = 'Canciones-cancion';
-                                  const cancionesCount = state.counts[cancionesKey] || 0;
-                                  if (cancionesCount > 0) {
-                                    data.autorCount = cancionesCount;
-                                  }
-                                }
-                                if (!artista._metadata || artista._metadata.jingleroCount === undefined) {
-                                  const jinglesKey = 'Jingles-jingle';
-                                  const jinglesCount = state.counts[jinglesKey] || 0;
-                                  if (jinglesCount > 0) {
-                                    data.jingleroCount = jinglesCount;
-                                  }
+                            }
+                            
+                            // Special case: Root entity fallbacks for Artista
+                            if (rel.entityType === 'artista' && entityType === 'artista' && entity.id === relatedEntity.id) {
+                              const artista = relatedEntity as Artista;
+                              // Fallback to state.counts if _metadata wasn't available
+                              if (!artista._metadata || artista._metadata.autorCount === undefined) {
+                                const cancionesKey = 'Canciones-cancion';
+                                const cancionesCount = state.counts[cancionesKey] || 0;
+                                if (cancionesCount > 0) {
+                                  data = { ...data, autorCount: cancionesCount };
                                 }
                               }
-                              // For related Artista entities without _metadata, counts won't be available
-                              // The display will gracefully handle missing counts
-                            } else if (rel.entityType === 'cancion') {
-                              // For Cancion, include autores and jingle count
-                              // Priority: 1) _metadata on entity object (from API), 2) state.loadedData/state.counts (root entity)
-                              const cancion = relatedEntity as Cancion & { 
-                                _metadata?: { 
-                                  jingleCount?: number; 
-                                  autores?: Array<Artista & { 
-                                    _metadata?: { 
-                                      autorCount?: number; 
-                                      jingleroCount?: number 
-                                    } 
-                                  }> 
-                                } 
-                              };
-                              const cancionId = cancion.id;
-                              
-                              // Check if _metadata exists on the entity object (from API response)
-                              if (cancion._metadata) {
-                                if (cancion._metadata.jingleCount !== undefined) {
-                                  data.jingleCount = cancion._metadata.jingleCount;
-                                }
-                                if (cancion._metadata.autores && Array.isArray(cancion._metadata.autores)) {
-                                  data.autores = cancion._metadata.autores;
+                              if (!artista._metadata || artista._metadata.jingleroCount === undefined) {
+                                const jinglesKey = 'Jingles-jingle';
+                                const jinglesCount = state.counts[jinglesKey] || 0;
+                                if (jinglesCount > 0) {
+                                  data = { ...data, jingleroCount: jinglesCount };
                                 }
                               }
-                              
-                              // Fallback: If this is the root entity being viewed, get autores from its relationships
-                              if (entityType === 'cancion' && entity.id === cancionId) {
-                                // Only use state.loadedData if _metadata wasn't available
-                                if (!cancion._metadata || !cancion._metadata.autores) {
-                                  const autorKey = 'Autor-artista';
-                                  const autores = state.loadedData[autorKey] || [];
-                                  if (autores.length > 0) {
-                                    data.autores = autores;
-                                  }
-                                }
-                                // Only use state.counts if _metadata wasn't available
-                                if (!cancion._metadata || cancion._metadata.jingleCount === undefined) {
-                                  const jinglesKey = 'Jingles-jingle';
-                                  const jinglesCount = state.counts[jinglesKey] || 0;
-                                  if (jinglesCount > 0) {
-                                    data.jingleCount = jinglesCount;
-                                  }
+                            }
+                            
+                            // Special case: Root entity fallbacks for Cancion
+                            if (rel.entityType === 'cancion' && entityType === 'cancion' && entity.id === relatedEntity.id) {
+                              const cancion = relatedEntity as Cancion;
+                              // Fallback to state.loadedData if _metadata wasn't available
+                              if (!cancion._metadata || !cancion._metadata.autores) {
+                                const autorKey = 'Autor-artista';
+                                const autores = state.loadedData[autorKey] || [];
+                                if (autores.length > 0) {
+                                  data = { ...data, autores };
                                 }
                               }
-                              // For related Cancion entities without _metadata, autores might be available from parent context
-                              // (e.g., when viewing a Jingle's Cancion, autores come from the Jingle's Autor relationship)
+                              // Fallback to state.counts if _metadata wasn't available
+                              if (!cancion._metadata || cancion._metadata.jingleCount === undefined) {
+                                const jinglesKey = 'Jingles-jingle';
+                                const jinglesCount = state.counts[jinglesKey] || 0;
+                                if (jinglesCount > 0) {
+                                  data = { ...data, jingleCount: jinglesCount };
+                                }
+                              }
                             }
                             
                             return Object.keys(data).length > 0 ? data : undefined;

@@ -4,6 +4,7 @@ import { api } from '../lib/api/client';
 import EntityCard from '../components/common/EntityCard';
 import { SearchBar } from '../components/search/SearchBar';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../types';
+import { extractRelationshipData } from '../lib/utils/relationshipDataExtractor';
 import '../styles/pages/search-results.css';
 
 interface SearchResults {
@@ -115,14 +116,18 @@ export default function SearchResultsPage() {
                     Jingles ({results.jingles.length})
                   </h2>
                   <div className="search-results-page__results-grid">
-                    {results.jingles.map((jingle) => (
-                      <EntityCard
-                        key={jingle.id}
-                        entity={jingle}
-                        entityType="jingle"
-                        variant="contents"
-                      />
-                    ))}
+                    {results.jingles.map((jingle) => {
+                      const relationshipData = extractRelationshipData(jingle, 'jingle');
+                      return (
+                        <EntityCard
+                          key={jingle.id}
+                          entity={jingle}
+                          entityType="jingle"
+                          variant="contents"
+                          relationshipData={relationshipData}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               )}
@@ -134,14 +139,18 @@ export default function SearchResultsPage() {
                     Canciones ({results.canciones.length})
                   </h2>
                   <div className="search-results-page__results-grid">
-                    {results.canciones.map((cancion) => (
-                      <EntityCard
-                        key={cancion.id}
-                        entity={cancion}
-                        entityType="cancion"
-                        variant="contents"
-                      />
-                    ))}
+                    {results.canciones.map((cancion) => {
+                      const relationshipData = extractRelationshipData(cancion, 'cancion');
+                      return (
+                        <EntityCard
+                          key={cancion.id}
+                          entity={cancion}
+                          entityType="cancion"
+                          variant="contents"
+                          relationshipData={relationshipData}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               )}
@@ -153,14 +162,18 @@ export default function SearchResultsPage() {
                     Artistas ({results.artistas.length})
                   </h2>
                   <div className="search-results-page__results-grid">
-                    {results.artistas.map((artista) => (
-                      <EntityCard
-                        key={artista.id}
-                        entity={artista}
-                        entityType="artista"
-                        variant="contents"
-                      />
-                    ))}
+                    {results.artistas.map((artista) => {
+                      const relationshipData = extractRelationshipData(artista, 'artista');
+                      return (
+                        <EntityCard
+                          key={artista.id}
+                          entity={artista}
+                          entityType="artista"
+                          variant="contents"
+                          relationshipData={relationshipData}
+                        />
+                      );
+                    })}
                   </div>
                 </section>
               )}

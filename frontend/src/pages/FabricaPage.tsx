@@ -9,6 +9,8 @@ import { useYouTubePlayer } from '../lib/hooks/useYouTubePlayer';
 import { useJingleSync } from '../lib/hooks/useJingleSync';
 import { normalizeTimestampToSeconds } from '../lib/utils/timestamp';
 import { extractVideoId } from '../lib/utils/youtube';
+import { clearJingleRelationshipsCache } from '../lib/services/relationshipService';
+import type { Jingle } from '../types';
 import "../styles/pages/fabrica.css";
 import "../styles/components/metadata.css";
 import "../styles/components/timeline.css";
@@ -39,7 +41,15 @@ export default function FabricaPage() {
     if (jingle) {
       // Fetch full jingle data with relationships for metadata display
       try {
-        const fullJingle = await publicApi.getJingle(jingle.id);
+        let fullJingle = await publicApi.getJingle(jingle.id) as Jingle & { jingleros?: any; autores?: any; tematicas?: any };
+        
+        // If songTitle is blank and title is also blank, trigger refresh to get updated songTitle
+        if (!fullJingle.title && !fullJingle.songTitle) {
+          // Clear cache and fetch again to get updated songTitle (backend auto-syncs it)
+          clearJingleRelationshipsCache(jingle.id);
+          fullJingle = await publicApi.getJingle(jingle.id) as Jingle & { jingleros?: any; autores?: any; tematicas?: any };
+        }
+        
         // Transform the API response to JingleMetadataData format
         const metadata: JingleMetadataData = {
           id: fullJingle.id,
@@ -315,7 +325,14 @@ export default function FabricaPage() {
         (async () => {
           try {
             console.log(`Fetching full jingle data for: ${jingleId}`);
-            const fullJingle = await publicApi.getJingle(jingleId);
+            let fullJingle = await publicApi.getJingle(jingleId) as Jingle & { jingleros?: any; autores?: any; tematicas?: any };
+            
+            // If songTitle is blank and title is also blank, trigger refresh to get updated songTitle
+            if (!fullJingle.title && !fullJingle.songTitle) {
+              // Clear cache and fetch again to get updated songTitle (backend auto-syncs it)
+              clearJingleRelationshipsCache(jingleId);
+              fullJingle = await publicApi.getJingle(jingleId) as Jingle & { jingleros?: any; autores?: any; tematicas?: any };
+            }
             
             // Update the jingles array with the full data
             setJingles((prevJingles) => 
