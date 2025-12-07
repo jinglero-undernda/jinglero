@@ -29,6 +29,7 @@ import {
   checkConcurrentInboundOutbound
 } from '../db/validation/repeats-validation';
 import { updateJingleAutoComment } from '../utils/jingleAutoComment';
+import { updateDisplayProperties } from '../utils/displayProperties';
 import {
   getAllScripts,
   getScriptMetadata,
@@ -973,6 +974,42 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
     }
   }
   
+  // Update display properties for affected entities
+  try {
+    if (neo4jRelType === 'APPEARS_IN') {
+      // Jingle (start) and Fabrica (end) are affected
+      await updateDisplayProperties(db, 'jingles', finalStartId);
+      await updateDisplayProperties(db, 'fabricas', finalEndId);
+    } else if (neo4jRelType === 'VERSIONA') {
+      // Jingle (start) and Cancion (end) are affected
+      await updateDisplayProperties(db, 'jingles', finalStartId);
+      await updateDisplayProperties(db, 'canciones', finalEndId);
+    } else if (neo4jRelType === 'JINGLERO_DE') {
+      // Artista (start) and Jingle (end) are affected
+      await updateDisplayProperties(db, 'artistas', finalStartId);
+      await updateDisplayProperties(db, 'jingles', finalEndId);
+    } else if (neo4jRelType === 'TAGGED_WITH') {
+      // Jingle (start) and Tematica (end) are affected
+      await updateDisplayProperties(db, 'jingles', finalStartId);
+      await updateDisplayProperties(db, 'tematicas', finalEndId);
+    } else if (neo4jRelType === 'AUTOR_DE') {
+      // Artista (start) and Cancion (end) are affected, plus all Jingles that VERSIONA the Cancion
+      await updateDisplayProperties(db, 'artistas', finalStartId);
+      await updateDisplayProperties(db, 'canciones', finalEndId);
+      const jinglesQuery = `
+        MATCH (j:Jingle)-[:VERSIONA]->(c:Cancion {id: $cancionId})
+        RETURN j.id AS jingleId
+      `;
+      const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: finalEndId });
+      for (const jingle of jingles) {
+        await updateDisplayProperties(db, 'jingles', jingle.jingleId);
+      }
+    }
+  } catch (error: any) {
+    console.error(`Error updating display properties after relationship creation:`, error.message || error);
+    // Don't fail the request if display properties update fails
+  }
+  
   // Automatically update order for APPEARS_IN relationships
   if (neo4jRelType === 'APPEARS_IN') {
     try {
@@ -1174,6 +1211,42 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     }
   }
   
+  // Update display properties for affected entities
+  try {
+    if (neo4jRelType === 'APPEARS_IN') {
+      // Jingle (start) and Fabrica (end) are affected
+      await updateDisplayProperties(db, 'jingles', finalStartId);
+      await updateDisplayProperties(db, 'fabricas', finalEndId);
+    } else if (neo4jRelType === 'VERSIONA') {
+      // Jingle (start) and Cancion (end) are affected
+      await updateDisplayProperties(db, 'jingles', finalStartId);
+      await updateDisplayProperties(db, 'canciones', finalEndId);
+    } else if (neo4jRelType === 'JINGLERO_DE') {
+      // Artista (start) and Jingle (end) are affected
+      await updateDisplayProperties(db, 'artistas', finalStartId);
+      await updateDisplayProperties(db, 'jingles', finalEndId);
+    } else if (neo4jRelType === 'TAGGED_WITH') {
+      // Jingle (start) and Tematica (end) are affected
+      await updateDisplayProperties(db, 'jingles', finalStartId);
+      await updateDisplayProperties(db, 'tematicas', finalEndId);
+    } else if (neo4jRelType === 'AUTOR_DE') {
+      // Artista (start) and Cancion (end) are affected, plus all Jingles that VERSIONA the Cancion
+      await updateDisplayProperties(db, 'artistas', finalStartId);
+      await updateDisplayProperties(db, 'canciones', finalEndId);
+      const jinglesQuery = `
+        MATCH (j:Jingle)-[:VERSIONA]->(c:Cancion {id: $cancionId})
+        RETURN j.id AS jingleId
+      `;
+      const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: finalEndId });
+      for (const jingle of jingles) {
+        await updateDisplayProperties(db, 'jingles', jingle.jingleId);
+      }
+    }
+  } catch (error: any) {
+    console.error(`Error updating display properties after relationship update:`, error.message || error);
+    // Don't fail the request if display properties update fails
+  }
+  
   res.json(result[0].r);
 }));
 
@@ -1233,6 +1306,42 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
     for (const jingle of jingles) {
       await updateJingleAutoComment(db, jingle.jingleId);
     }
+  }
+  
+  // Update display properties for affected entities
+  try {
+    if (neo4jRelType === 'APPEARS_IN') {
+      // Jingle (start) and Fabrica (end) are affected
+      await updateDisplayProperties(db, 'jingles', payload.start);
+      await updateDisplayProperties(db, 'fabricas', payload.end);
+    } else if (neo4jRelType === 'VERSIONA') {
+      // Jingle (start) and Cancion (end) are affected
+      await updateDisplayProperties(db, 'jingles', payload.start);
+      await updateDisplayProperties(db, 'canciones', payload.end);
+    } else if (neo4jRelType === 'JINGLERO_DE') {
+      // Artista (start) and Jingle (end) are affected
+      await updateDisplayProperties(db, 'artistas', payload.start);
+      await updateDisplayProperties(db, 'jingles', payload.end);
+    } else if (neo4jRelType === 'TAGGED_WITH') {
+      // Jingle (start) and Tematica (end) are affected
+      await updateDisplayProperties(db, 'jingles', payload.start);
+      await updateDisplayProperties(db, 'tematicas', payload.end);
+    } else if (neo4jRelType === 'AUTOR_DE') {
+      // Artista (start) and Cancion (end) are affected, plus all Jingles that VERSIONA the Cancion
+      await updateDisplayProperties(db, 'artistas', payload.start);
+      await updateDisplayProperties(db, 'canciones', payload.end);
+      const jinglesQuery = `
+        MATCH (j:Jingle)-[:VERSIONA]->(c:Cancion {id: $cancionId})
+        RETURN j.id AS jingleId
+      `;
+      const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: payload.end });
+      for (const jingle of jingles) {
+        await updateDisplayProperties(db, 'jingles', jingle.jingleId);
+      }
+    }
+  } catch (error: any) {
+    console.error(`Error updating display properties after relationship deletion:`, error.message || error);
+    // Don't fail the request if display properties update fails
   }
   
   res.json({ message: 'Relationship deleted successfully' });
@@ -1646,16 +1755,25 @@ router.post('/:type', asyncHandler(async (req, res) => {
   // Update auto-comment for Jingles
   if (label === 'Jingle') {
     await updateJingleAutoComment(db, id);
-    // Re-fetch to get updated autoComment
-    const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
-      `MATCH (n:${label} { id: $id }) RETURN n`,
-      { id },
-      undefined,
-      true
-    );
-    if (updatedResult.length > 0) {
-      return res.status(201).json(convertNeo4jDates(updatedResult[0].n.properties));
-    }
+  }
+  
+  // Update display properties for all entity types
+  try {
+    await updateDisplayProperties(db, type, id);
+  } catch (error: any) {
+    console.error(`Error updating display properties for ${type}/${id}:`, error.message || error);
+    // Don't fail the request if display properties update fails
+  }
+  
+  // Re-fetch to get updated properties
+  const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
+    `MATCH (n:${label} { id: $id }) RETURN n`,
+    { id },
+    undefined,
+    true
+  );
+  if (updatedResult.length > 0) {
+    return res.status(201).json(convertNeo4jDates(updatedResult[0].n.properties));
   }
   
   res.status(201).json(convertNeo4jDates(result[0].n.properties));
@@ -1735,16 +1853,25 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   // Update auto-comment for Jingles
   if (label === 'Jingle') {
     await updateJingleAutoComment(db, id);
-    // Re-fetch to get updated autoComment
-    const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
-      `MATCH (n:${label} { id: $id }) RETURN n`,
-      { id },
-      undefined,
-      true
-    );
-    if (updatedResult.length > 0) {
-      return res.json(convertNeo4jDates(updatedResult[0].n.properties));
-    }
+  }
+  
+  // Update display properties for all entity types
+  try {
+    await updateDisplayProperties(db, type, id);
+  } catch (error: any) {
+    console.error(`Error updating display properties for ${type}/${id}:`, error.message || error);
+    // Don't fail the request if display properties update fails
+  }
+  
+  // Re-fetch to get updated properties
+  const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
+    `MATCH (n:${label} { id: $id }) RETURN n`,
+    { id },
+    undefined,
+    true
+  );
+  if (updatedResult.length > 0) {
+    return res.json(convertNeo4jDates(updatedResult[0].n.properties));
   }
   
   res.json(convertNeo4jDates(result[0].n.properties));
@@ -1797,16 +1924,25 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
   // Update auto-comment for Jingles
   if (label === 'Jingle') {
     await updateJingleAutoComment(db, id);
-    // Re-fetch to get updated autoComment
-    const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
-      `MATCH (n:${label} { id: $id }) RETURN n`,
-      { id },
-      undefined,
-      true
-    );
-    if (updatedResult.length > 0) {
-      return res.json(convertNeo4jDates(updatedResult[0].n.properties));
-    }
+  }
+  
+  // Update display properties for all entity types
+  try {
+    await updateDisplayProperties(db, type, id);
+  } catch (error: any) {
+    console.error(`Error updating display properties for ${type}/${id}:`, error.message || error);
+    // Don't fail the request if display properties update fails
+  }
+  
+  // Re-fetch to get updated properties
+  const updatedResult = await db.executeQuery<{ n: { properties: any } }>(
+    `MATCH (n:${label} { id: $id }) RETURN n`,
+    { id },
+    undefined,
+    true
+  );
+  if (updatedResult.length > 0) {
+    return res.json(convertNeo4jDates(updatedResult[0].n.properties));
   }
   
   res.json(convertNeo4jDates(result[0].n.properties));

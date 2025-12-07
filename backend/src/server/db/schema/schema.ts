@@ -119,6 +119,9 @@ Nodes:
   - isLive: boolean (optional, indicates if Jingle was performed live)
   - isRepeat: boolean (optional, indicates if this song was performed on the show before)
   - autoComment: string (optional, system-generated summary comment, read-only, auto-updated)
+  - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
+  - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
+  - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
    - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
    - createdAt: datetime
    - updatedAt: datetime
@@ -140,6 +143,9 @@ Nodes:
   - website: string (optional)
   - bio: string (optional)
   - musicBrainzId: string (optional)
+  - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
+  - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
+  - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime
@@ -157,6 +163,9 @@ Nodes:
   - lyrics: string (optional, URL to retrieve lyrics)
   - autorIds: string[] (optional, redundant with AUTOR_DE relationships - for performance)
   - musicBrainzId: string (optional)
+  - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
+  - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
+  - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime
@@ -172,10 +181,13 @@ Nodes:
    - visualizations: number
    - likes: number
    - description: string
-   - contents: string (based on a comment in the YouTube video)
-   - status: string (enum: DRAFT, PROCESSING, COMPLETED)
-   - createdAt: datetime
-   - updatedAt: datetime
+  - contents: string (based on a comment in the YouTube video)
+  - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
+  - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
+  - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
+  - status: string (enum: DRAFT, PROCESSING, COMPLETED)
+  - createdAt: datetime
+  - updatedAt: datetime
 
 6. Tematica
    Labels: Tematica
@@ -185,6 +197,9 @@ Nodes:
    - name: string (unique)
   - category: string (optional enum: ACTUALIDAD, POLITICA, CULTURA, GENTE, GELATINA)
   - description: string
+  - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
+  - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
+  - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime

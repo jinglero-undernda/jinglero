@@ -77,6 +77,12 @@ export interface Jingle {
   isRepeat?: boolean;
   /** System-generated summary comment (read-only, auto-updated) */
   autoComment?: string;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
   status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED';
   createdAt: Date;
   updatedAt: Date;
@@ -102,6 +108,12 @@ export interface Artista {
   website?: string;
   bio?: string;
   musicBrainzId?: string;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
   status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED';
   createdAt: Date;
   updatedAt: Date;
@@ -129,6 +141,12 @@ export interface Cancion {
   /** Redundant property: Array of Artista IDs (auto-synced with AUTOR_DE relationships) */
   autorIds?: string[];
   musicBrainzId?: string;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
   status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED';
   createdAt: Date;
   updatedAt: Date;
@@ -151,6 +169,12 @@ export interface Fabrica {
   likes?: number;
   description?: string;
   contents?: string;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
   status: ProcessStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -167,6 +191,12 @@ export interface Tematica {
    name: string;
    category: CategoriaTematica;
    description?: string;
+   /** System-generated primary display text with icon (read-only, auto-updated) */
+   displayPrimary?: string;
+   /** System-generated secondary display text (read-only, auto-updated) */
+   displaySecondary?: string;
+   /** System-generated badges array (read-only, auto-updated) */
+   displayBadges?: string[];
    status?: 'DRAFT' | 'REVIEW' | 'PUBLISHED' | 'ARCHIVED' | 'DELETED';
    createdAt: Date;
    updatedAt: Date

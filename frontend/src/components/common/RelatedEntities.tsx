@@ -25,7 +25,6 @@ import { adminApi, publicApi } from '../../lib/api/client';
 import { parseTimestampFromText } from '../../lib/utils/timestampParser';
 import { parseTimestampToSeconds } from '../../lib/utils/timestamp';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
-import type { Jingle } from '../../types';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
@@ -2110,8 +2109,8 @@ const RelatedEntities = forwardRef<{
                                 // Extract autores from cancion's _metadata or check if they're directly on the entity
                                 if (cancion._metadata?.autores && Array.isArray(cancion._metadata.autores) && cancion._metadata.autores.length > 0) {
                                   data = { ...data, autores: cancion._metadata.autores };
-                                } else if ('autores' in cancion && Array.isArray((cancion as any).autores) && (cancion as any).autores.length > 0) {
-                                  data = { ...data, autores: (cancion as any).autores };
+                                } else if ('autores' in cancion && Array.isArray((cancion as Cancion & { autores?: Artista[] }).autores) && (cancion as Cancion & { autores?: Artista[] }).autores && (cancion as Cancion & { autores?: Artista[] }).autores!.length > 0) {
+                                  data = { ...data, autores: (cancion as Cancion & { autores?: Artista[] }).autores! };
                                 }
                               }
                             }

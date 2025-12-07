@@ -47,6 +47,12 @@ export interface Artista {
   updatedAt: string;
   /** Optional metadata for enhanced display (relationship counts, etc.) */
   _metadata?: EntityMetadata;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
 }
 
 /**
@@ -73,6 +79,12 @@ export interface Cancion {
   updatedAt: string;
   /** Optional metadata for enhanced display (jingle count, autores, etc.) */
   _metadata?: EntityMetadata;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
 }
 
 /**
@@ -93,6 +105,12 @@ export interface Fabrica {
   description?: string;
   contents?: string;
   status: 'DRAFT' | 'PROCESSING' | 'COMPLETED' | 'TBC'; // TBC is legacy status value
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -108,6 +126,12 @@ export interface Tematica {
   name: string;
   category: 'ACTUALIDAD' | 'CULTURA' | 'GELATINA' | 'GENTE' | 'POLITICA';
   description?: string;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -155,6 +179,12 @@ export interface Jingle {
   updatedAt: string;
   /** Optional metadata for enhanced display (fabrica, cancion, autores, jingleros, etc.) */
   _metadata?: EntityMetadata;
+  /** System-generated primary display text with icon (read-only, auto-updated) */
+  displayPrimary?: string;
+  /** System-generated secondary display text (read-only, auto-updated) */
+  displaySecondary?: string;
+  /** System-generated badges array (read-only, auto-updated) */
+  displayBadges?: string[];
 }
 
 // API Response types

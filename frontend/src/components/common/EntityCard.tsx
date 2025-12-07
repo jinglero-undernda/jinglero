@@ -199,11 +199,41 @@ function EntityCard({
     actualVariant = 'contents';
   }
 
-  const primaryText = getPrimaryText(entity, entityType, relationshipData, actualVariant);
-  const secondaryText = getSecondaryText(entity, entityType, relationshipData, actualVariant);
-  // Pass placeholder variant to getEntityIcon so it can handle Jinglero icon
-  const icon = getEntityIcon(entityType, actualVariant, relationshipLabel, entity, relationshipData);
-  const defaultBadges = getEntityBadges(entity, entityType, actualVariant);
+  // Use pre-computed display properties if available, otherwise fall back to runtime computation
+  const primaryText = entity.displayPrimary 
+    ? entity.displayPrimary.slice(1) // Remove icon (first character)
+    : getPrimaryText(entity, entityType, relationshipData, actualVariant);
+  
+  const secondaryText = entity.displaySecondary !== undefined
+    ? entity.displaySecondary
+    : getSecondaryText(entity, entityType, relationshipData, actualVariant);
+  
+  // Extract icon from displayPrimary if available, otherwise compute
+  const icon = entity.displayPrimary 
+    ? entity.displayPrimary[0] // First character is the icon
+    : getEntityIcon(entityType, actualVariant, relationshipLabel, entity, relationshipData);
+  
+  // Use pre-computed badges if available, otherwise compute
+  const defaultBadges = entity.displayBadges && entity.displayBadges.length > 0
+    ? entity.displayBadges.map((badge, index) => {
+        // Map badge strings to React elements with appropriate classes
+        const badgeClassMap: Record<string, string> = {
+          'JINGLAZO': 'entity-badge--jinglazo',
+          'PRECARIO': 'entity-badge--precario',
+          'JDD': 'entity-badge--jdd',
+          'VIVO': 'entity-badge--live',
+          'CLASICO': 'entity-badge--repeat',
+          'ARG': 'entity-badge--arg',
+          'PRIMARY': 'entity-badge--primary',
+        };
+        const className = badgeClassMap[badge] || 'entity-badge';
+        return (
+          <span key={index} className={`entity-badge ${className}`}>
+            {badge}
+          </span>
+        );
+      })
+    : getEntityBadges(entity, entityType, actualVariant);
   // Don't make it a link if admin edit button is shown (we're already on the entity page)
   // For route, use 'contents' for placeholder variant since getEntityRoute doesn't accept placeholder
   const routeVariant = actualVariant === 'placeholder' ? 'contents' : actualVariant;

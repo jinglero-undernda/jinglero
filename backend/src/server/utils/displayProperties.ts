@@ -1,0 +1,693 @@
+/**
+ * Display Properties Generation
+ * 
+ * Generates pre-computed display properties (displayPrimary, displaySecondary, displayBadges)
+ * for all entity types. These properties are read-only and automatically updated when
+ * any relevant property or relationship changes.
+ */
+
+import { Neo4jClient } from '../db/index';
+
+/**
+ * Format date as DD/MM/YYYY
+ * Handles Neo4j DateTime objects, Date objects, ISO strings, DD/MM/YYYY strings, and null/undefined
+ */
+function formatDate(date: Date | string | null | undefined | any): string | null {
+  if (!date) return null;
+  
+  let d: Date | null = null;
+  
+  // Handle Neo4j DateTime objects
+  if (typeof date === 'object' && date.year !== undefined && date.month !== undefined && date.day !== undefined) {
+    const year = typeof date.year === 'object' ? date.year.low : date.year;
+    const month = typeof date.month === 'object' ? date.month.low : date.month;
+    const day = typeof date.day === 'object' ? date.day.low : date.day;
+    const hour = typeof date.hour === 'object' ? (date.hour?.low || 0) : (date.hour || 0);
+    const minute = typeof date.minute === 'object' ? (date.minute?.low || 0) : (date.minute || 0);
+    const second = typeof date.second === 'object' ? (date.second?.low || 0) : (date.second || 0);
+    
+    try {
+      d = new Date(year, month - 1, day, hour, minute, second);
+    } catch {
+      return null;
+    }
+  } else if (date instanceof Date) {
+    d = date;
+  } else if (typeof date === 'string') {
+    // Try to parse DD/MM/YYYY format first (common in some systems)
+    const ddMMyyyyPattern = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/;
+    const match = date.match(ddMMyyyyPattern);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10);
+      const year = parseInt(match[3], 10);
+      try {
+        d = new Date(year, month - 1, day);
+      } catch {
+        // Fall through to standard Date parsing
+      }
+    }
+    
+    // If DD/MM/YYYY parsing didn't work, try standard Date parsing
+    if (!d || isNaN(d.getTime())) {
+      d = new Date(date);
+    }
+  }
+  
+  if (!d || isNaN(d.getTime())) return null;
+  
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  
+  return `${day}/${month}/${year}`;
+}
+
+/**
+ * Generate displayPrimary for Fabrica
+ * Format: '🏭 {title}'
+ */
+async function generateFabricaDisplayPrimary(
+  db: Neo4jClient,
+  fabricaId: string
+): Promise<string> {
+  const query = `
+    MATCH (f:Fabrica {id: $id})
+    RETURN f.title AS title
+  `;
+  
+  const result = await db.executeQuery<{ title: string | null }>(query, { id: fabricaId });
+  
+  if (result.length === 0) {
+    return `🏭 ${fabricaId}`;
+  }
+  
+  const title = result[0].title || fabricaId;
+  return `🏭 ${title}`;
+}
+
+/**
+ * Generate displayPrimary for Jingle
+ * Format: '🎤 {title}' or fallback to '🎤 {cancion.title} ({autor1, autor2})'
+ */
+async function generateJingleDisplayPrimary(
+  db: Neo4jClient,
+  jingleId: string
+): Promise<string> {
+  const query = `
+    MATCH (j:Jingle {id: $id})
+    OPTIONAL MATCH (j)-[:VERSIONA]->(c:Cancion)
+    OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+    RETURN j.title AS title,
+           c.title AS cancionTitle,
+           collect(DISTINCT COALESCE(autor.stageName, autor.name)) AS autorNames
+  `;
+  
+  const result = await db.executeQuery(query, { id: jingleId });
+  
+  if (result.length === 0) {
+    return `🎤 ${jingleId}`;
+  }
+  
+  const record: any = result[0];
+  
+  // If jingle has a title, use it
+  if (record.title) {
+    return `🎤 ${record.title}`;
+  }
+  
+  // Fallback to cancion title with autores
+  if (record.cancionTitle) {
+    const autorNames = (record.autorNames || []).filter((name: any) => name != null);
+    if (autorNames.length > 0) {
+      return `🎤 ${record.cancionTitle} (${autorNames.join(', ')})`;
+    }
+    return `🎤 ${record.cancionTitle}`;
+  }
+  
+  // Final fallback
+  return `🎤 ${jingleId}`;
+}
+
+/**
+ * Generate displayPrimary for Cancion
+ * Format: '📦 {title}'
+ */
+async function generateCancionDisplayPrimary(
+  db: Neo4jClient,
+  cancionId: string
+): Promise<string> {
+  const query = `
+    MATCH (c:Cancion {id: $id})
+    RETURN c.title AS title
+  `;
+  
+  const result = await db.executeQuery<{ title: string | null }>(query, { id: cancionId });
+  
+  if (result.length === 0) {
+    return `📦 ${cancionId}`;
+  }
+  
+  const title = result[0].title || cancionId;
+  return `📦 ${title}`;
+}
+
+/**
+ * Generate displayPrimary for Artista
+ * Format: Icon + {stageName} (icon determined by relationship counts)
+ * - '🚚 {stageName}' if autorCount > 0 and jingleroCount == 0
+ * - '🔧 {stageName}' if autorCount == 0 and jingleroCount > 0
+ * - '👤 {stageName}' otherwise
+ * Falls back to name if stageName is empty
+ */
+async function generateArtistaDisplayPrimary(
+  db: Neo4jClient,
+  artistaId: string
+): Promise<string> {
+  const query = `
+    MATCH (a:Artista {id: $id})
+    OPTIONAL MATCH (a)-[:AUTOR_DE]->(c:Cancion)
+    OPTIONAL MATCH (a)-[:JINGLERO_DE]->(j:Jingle)
+    WITH a, count(DISTINCT c) AS autorCount, count(DISTINCT j) AS jingleroCount
+    RETURN a.stageName AS stageName,
+           a.name AS name,
+           autorCount,
+           jingleroCount
+  `;
+  
+  const result = await db.executeQuery(query, { id: artistaId });
+  
+  if (result.length === 0) {
+    return `👤 ${artistaId}`;
+  }
+  
+  const record: any = result[0];
+  const autorCount = typeof record.autorCount === 'object' && record.autorCount?.low !== undefined
+    ? record.autorCount.low
+    : (typeof record.autorCount === 'number' ? record.autorCount : 0);
+  const jingleroCount = typeof record.jingleroCount === 'object' && record.jingleroCount?.low !== undefined
+    ? record.jingleroCount.low
+    : (typeof record.jingleroCount === 'number' ? record.jingleroCount : 0);
+  
+  const displayName = record.stageName || record.name || artistaId;
+  
+  // Determine icon based on relationship counts
+  if (autorCount > 0 && jingleroCount === 0) {
+    return `🚚 ${displayName}`;
+  }
+  if (autorCount === 0 && jingleroCount > 0) {
+    return `🔧 ${displayName}`;
+  }
+  return `👤 ${displayName}`;
+}
+
+/**
+ * Generate displayPrimary for Tematica
+ * Format: '🏷️ {name}'
+ */
+async function generateTematicaDisplayPrimary(
+  db: Neo4jClient,
+  tematicaId: string
+): Promise<string> {
+  const query = `
+    MATCH (t:Tematica {id: $id})
+    RETURN t.name AS name
+  `;
+  
+  const result = await db.executeQuery<{ name: string | null }>(query, { id: tematicaId });
+  
+  if (result.length === 0) {
+    return `🏷️ ${tematicaId}`;
+  }
+  
+  const name = result[0].name || tematicaId;
+  return `🏷️ ${name}`;
+}
+
+/**
+ * Generate displayPrimary for an entity
+ */
+export async function generateDisplayPrimary(
+  db: Neo4jClient,
+  entityType: string,
+  entityId: string
+): Promise<string> {
+  switch (entityType.toLowerCase()) {
+    case 'fabricas':
+    case 'fabrica':
+      return generateFabricaDisplayPrimary(db, entityId);
+    case 'jingles':
+    case 'jingle':
+      return generateJingleDisplayPrimary(db, entityId);
+    case 'canciones':
+    case 'cancion':
+      return generateCancionDisplayPrimary(db, entityId);
+    case 'artistas':
+    case 'artista':
+      return generateArtistaDisplayPrimary(db, entityId);
+    case 'tematicas':
+    case 'tematica':
+      return generateTematicaDisplayPrimary(db, entityId);
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+}
+
+/**
+ * Generate displaySecondary for Fabrica
+ * Format: '{formattedDate} • 🎤: {jingleCount}'
+ */
+async function generateFabricaDisplaySecondary(
+  db: Neo4jClient,
+  fabricaId: string
+): Promise<string> {
+  const query = `
+    MATCH (f:Fabrica {id: $id})
+    OPTIONAL MATCH (j:Jingle)-[:APPEARS_IN]->(f)
+    WITH f, count(DISTINCT j) AS jingleCount
+    RETURN f.date AS date, jingleCount
+  `;
+  
+  const result = await db.executeQuery(query, { id: fabricaId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const jingleCount = typeof record.jingleCount === 'object' && record.jingleCount?.low !== undefined
+    ? record.jingleCount.low
+    : (typeof record.jingleCount === 'number' ? record.jingleCount : 0);
+  
+  const parts: string[] = [];
+  
+  if (record.date) {
+    const dateStr = formatDate(record.date);
+    if (dateStr) {
+      parts.push(dateStr);
+    }
+  }
+  
+  if (jingleCount > 0) {
+    parts.push(`🎤: ${jingleCount}`);
+  }
+  
+  return parts.join(' • ');
+}
+
+/**
+ * Generate displaySecondary for Jingle
+ * Format: Derived from autoComment (repurposed)
+ * The autoComment already contains the formatted secondary information
+ */
+async function generateJingleDisplaySecondary(
+  db: Neo4jClient,
+  jingleId: string
+): Promise<string> {
+  // For Jingle, displaySecondary is the same as autoComment
+  // We'll reuse the existing autoComment generation logic
+  const query = `
+    MATCH (j:Jingle {id: $id})
+    RETURN j.autoComment AS autoComment
+  `;
+  
+  const result = await db.executeQuery<{ autoComment: string | null }>(query, { id: jingleId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  return result[0].autoComment || '';
+}
+
+/**
+ * Generate displaySecondary for Cancion
+ * Format: '🚚: {autor1, autor2, ...} • {album} • {year} • 🎤: {jingleCount}'
+ */
+async function generateCancionDisplaySecondary(
+  db: Neo4jClient,
+  cancionId: string
+): Promise<string> {
+  const query = `
+    MATCH (c:Cancion {id: $id})
+    OPTIONAL MATCH (c)<-[:VERSIONA]-(j:Jingle)
+    OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+    WITH c, count(DISTINCT j) AS jingleCount, collect(DISTINCT COALESCE(autor.stageName, autor.name)) AS autorNames
+    RETURN c.album AS album,
+           c.year AS year,
+           jingleCount,
+           autorNames
+  `;
+  
+  const result = await db.executeQuery(query, { id: cancionId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const jingleCount = typeof record.jingleCount === 'object' && record.jingleCount?.low !== undefined
+    ? record.jingleCount.low
+    : (typeof record.jingleCount === 'number' ? record.jingleCount : 0);
+  
+  const parts: string[] = [];
+  
+  // Add autores
+  const autorNames = (record.autorNames || []).filter((name: any) => name != null);
+  if (autorNames.length > 0) {
+    parts.push(`🚚: ${autorNames.join(', ')}`);
+  }
+  
+  // Add album
+  if (record.album) {
+    parts.push(record.album);
+  }
+  
+  // Add year
+  if (record.year) {
+    parts.push(String(record.year));
+  }
+  
+  // Add jingle count
+  if (jingleCount > 0) {
+    parts.push(`🎤: ${jingleCount}`);
+  }
+  
+  return parts.join(' • ');
+}
+
+/**
+ * Generate displaySecondary for Artista
+ * Format: '{name}' (if different from primary), '📦: {autorCount} • 🎤: {jingleroCount}'
+ */
+async function generateArtistaDisplaySecondary(
+  db: Neo4jClient,
+  artistaId: string
+): Promise<string> {
+  const query = `
+    MATCH (a:Artista {id: $id})
+    OPTIONAL MATCH (a)-[:AUTOR_DE]->(c:Cancion)
+    OPTIONAL MATCH (a)-[:JINGLERO_DE]->(j:Jingle)
+    WITH a, count(DISTINCT c) AS autorCount, count(DISTINCT j) AS jingleroCount
+    RETURN a.name AS name,
+           a.stageName AS stageName,
+           autorCount,
+           jingleroCount
+  `;
+  
+  const result = await db.executeQuery(query, { id: artistaId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const autorCount = typeof record.autorCount === 'object' && record.autorCount?.low !== undefined
+    ? record.autorCount.low
+    : (typeof record.autorCount === 'number' ? record.autorCount : 0);
+  const jingleroCount = typeof record.jingleroCount === 'object' && record.jingleroCount?.low !== undefined
+    ? record.jingleroCount.low
+    : (typeof record.jingleroCount === 'number' ? record.jingleroCount : 0);
+  
+  const parts: string[] = [];
+  
+  // Add name if different from stageName (primary)
+  if (record.name && record.name !== record.stageName) {
+    parts.push(record.name);
+  }
+  
+  // Add counts
+  if (autorCount > 0) {
+    parts.push(`📦: ${autorCount}`);
+  }
+  if (jingleroCount > 0) {
+    parts.push(`🎤: ${jingleroCount}`);
+  }
+  
+  return parts.join(' • ');
+}
+
+/**
+ * Generate displaySecondary for Tematica
+ * Format: '{category} • 🎤: {jingleCount}'
+ */
+async function generateTematicaDisplaySecondary(
+  db: Neo4jClient,
+  tematicaId: string
+): Promise<string> {
+  const query = `
+    MATCH (t:Tematica {id: $id})
+    OPTIONAL MATCH (j:Jingle)-[:TAGGED_WITH]->(t)
+    WITH t, count(DISTINCT j) AS jingleCount
+    RETURN t.category AS category, jingleCount
+  `;
+  
+  const result = await db.executeQuery(query, { id: tematicaId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const jingleCount = typeof record.jingleCount === 'object' && record.jingleCount?.low !== undefined
+    ? record.jingleCount.low
+    : (typeof record.jingleCount === 'number' ? record.jingleCount : 0);
+  
+  const parts: string[] = [];
+  
+  // Add category
+  if (record.category) {
+    parts.push(record.category);
+  }
+  
+  // Add jingle count
+  if (jingleCount > 0) {
+    parts.push(`🎤: ${jingleCount}`);
+  }
+  
+  return parts.join(' • ');
+}
+
+/**
+ * Generate displaySecondary for an entity
+ */
+export async function generateDisplaySecondary(
+  db: Neo4jClient,
+  entityType: string,
+  entityId: string
+): Promise<string> {
+  switch (entityType.toLowerCase()) {
+    case 'fabricas':
+    case 'fabrica':
+      return generateFabricaDisplaySecondary(db, entityId);
+    case 'jingles':
+    case 'jingle':
+      return generateJingleDisplaySecondary(db, entityId);
+    case 'canciones':
+    case 'cancion':
+      return generateCancionDisplaySecondary(db, entityId);
+    case 'artistas':
+    case 'artista':
+      return generateArtistaDisplaySecondary(db, entityId);
+    case 'tematicas':
+    case 'tematica':
+      return generateTematicaDisplaySecondary(db, entityId);
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+}
+
+/**
+ * Generate displayBadges for Fabrica
+ * Format: [] (empty array, no badges)
+ */
+async function generateFabricaDisplayBadges(
+  db: Neo4jClient,
+  fabricaId: string
+): Promise<string[]> {
+  return [];
+}
+
+/**
+ * Generate displayBadges for Jingle
+ * Format: ['JINGLAZO', 'PRECARIO', 'JDD', 'VIVO', 'CLASICO'] based on boolean props
+ */
+async function generateJingleDisplayBadges(
+  db: Neo4jClient,
+  jingleId: string
+): Promise<string[]> {
+  const query = `
+    MATCH (j:Jingle {id: $id})
+    RETURN j.isJinglazo AS isJinglazo,
+           j.isPrecario AS isPrecario,
+           j.isJinglazoDelDia AS isJinglazoDelDia,
+           j.isLive AS isLive,
+           j.isRepeat AS isRepeat
+  `;
+  
+  const result = await db.executeQuery(query, { id: jingleId });
+  
+  if (result.length === 0) {
+    return [];
+  }
+  
+  const record: any = result[0];
+  const badges: string[] = [];
+  
+  if (record.isJinglazo === true) {
+    badges.push('JINGLAZO');
+  }
+  if (record.isPrecario === true) {
+    badges.push('PRECARIO');
+  }
+  if (record.isJinglazoDelDia === true) {
+    badges.push('JDD');
+  }
+  if (record.isLive === true) {
+    badges.push('VIVO');
+  }
+  if (record.isRepeat === true) {
+    badges.push('CLASICO');
+  }
+  
+  return badges;
+}
+
+/**
+ * Generate displayBadges for Cancion
+ * Format: [] (empty array, no badges)
+ */
+async function generateCancionDisplayBadges(
+  db: Neo4jClient,
+  cancionId: string
+): Promise<string[]> {
+  return [];
+}
+
+/**
+ * Generate displayBadges for Artista
+ * Format: ['ARG'] if isArg === true, otherwise []
+ */
+async function generateArtistaDisplayBadges(
+  db: Neo4jClient,
+  artistaId: string
+): Promise<string[]> {
+  const query = `
+    MATCH (a:Artista {id: $id})
+    RETURN a.isArg AS isArg
+  `;
+  
+  const result = await db.executeQuery(query, { id: artistaId });
+  
+  if (result.length === 0) {
+    return [];
+  }
+  
+  const record: any = result[0];
+  
+  if (record.isArg === true) {
+    return ['ARG'];
+  }
+  
+  return [];
+}
+
+/**
+ * Generate displayBadges for Tematica
+ * Format: [] (contextual badges are handled at display time, not stored)
+ */
+async function generateTematicaDisplayBadges(
+  db: Neo4jClient,
+  tematicaId: string
+): Promise<string[]> {
+  // Note: Contextual PRIMARY badge is handled at display time based on relationship context
+  return [];
+}
+
+/**
+ * Generate displayBadges for an entity
+ */
+export async function generateDisplayBadges(
+  db: Neo4jClient,
+  entityType: string,
+  entityId: string
+): Promise<string[]> {
+  switch (entityType.toLowerCase()) {
+    case 'fabricas':
+    case 'fabrica':
+      return generateFabricaDisplayBadges(db, entityId);
+    case 'jingles':
+    case 'jingle':
+      return generateJingleDisplayBadges(db, entityId);
+    case 'canciones':
+    case 'cancion':
+      return generateCancionDisplayBadges(db, entityId);
+    case 'artistas':
+    case 'artista':
+      return generateArtistaDisplayBadges(db, entityId);
+    case 'tematicas':
+    case 'tematica':
+      return generateTematicaDisplayBadges(db, entityId);
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+}
+
+/**
+ * Update all display properties for an entity
+ * Computes displayPrimary, displaySecondary, and displayBadges, then saves to database
+ */
+export async function updateDisplayProperties(
+  db: Neo4jClient,
+  entityType: string,
+  entityId: string
+): Promise<void> {
+  // Map entity type to Neo4j label
+  const labelMap: Record<string, string> = {
+    fabricas: 'Fabrica',
+    fabrica: 'Fabrica',
+    jingles: 'Jingle',
+    jingle: 'Jingle',
+    canciones: 'Cancion',
+    cancion: 'Cancion',
+    artistas: 'Artista',
+    artista: 'Artista',
+    tematicas: 'Tematica',
+    tematica: 'Tematica',
+  };
+  
+  const label = labelMap[entityType.toLowerCase()];
+  if (!label) {
+    throw new Error(`Unknown entity type: ${entityType}`);
+  }
+  
+  // Generate all display properties
+  const [displayPrimary, displaySecondary, displayBadges] = await Promise.all([
+    generateDisplayPrimary(db, entityType, entityId),
+    generateDisplaySecondary(db, entityType, entityId),
+    generateDisplayBadges(db, entityType, entityId),
+  ]);
+  
+  // Update entity in database
+  const updateQuery = `
+    MATCH (n:${label} {id: $id})
+    SET n.displayPrimary = $displayPrimary,
+        n.displaySecondary = $displaySecondary,
+        n.displayBadges = $displayBadges,
+        n.updatedAt = datetime()
+    RETURN n.id AS id
+  `;
+  
+  await db.executeQuery(
+    updateQuery,
+    {
+      id: entityId,
+      displayPrimary,
+      displaySecondary,
+      displayBadges,
+    },
+    undefined,
+    true
+  );
+}
+

@@ -21,6 +21,10 @@ import type { EntityType } from '../../components/common/EntityCard';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import { clearJingleRelationshipsCache, fetchCancionAutores } from '../../lib/services/relationshipService';
 
+// Import RelationshipProperties type from RelatedEntities
+type RelationshipPropertyValue = string | number | boolean | null | undefined;
+type RelationshipProperties = Record<string, RelationshipPropertyValue>;
+
 /**
  * AdminEntityAnalyze - Admin page for analyzing entities with RelatedEntities in Admin Mode
  * 
@@ -58,7 +62,7 @@ export default function AdminEntityAnalyze() {
   }, [isEditing, entityType, entityId]);
   
   const relatedEntitiesRef = useRef<{ 
-    getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: Record<string, unknown> }>;
+    getRelationshipProperties: () => Record<string, { relType: string; startId: string; endId: string; properties: RelationshipProperties }>;
     refresh: () => Promise<void>;
     hasUnsavedChanges: () => boolean;
     clearUnsavedChanges: (options?: { commit?: boolean }) => void;
@@ -132,7 +136,7 @@ export default function AdminEntityAnalyze() {
           case 'fabricas':
             fetchedEntity = await adminApi.getFabrica(entityId);
             break;
-          case 'jingles':
+          case 'jingles': {
             fetchedEntity = await adminApi.getJingle(entityId);
             // For jingles, check if we need to refresh or fetch full relationship data
             const jingle = fetchedEntity as Jingle;
@@ -143,7 +147,7 @@ export default function AdminEntityAnalyze() {
               fetchedEntity = await publicApi.getJingle(entityId) as Jingle;
             }
             // If _metadata is not available or incomplete, fetch using publicApi to get full relationship data
-            const jingleWithMetadata = fetchedEntity as Jingle & { _metadata?: any; cancion?: Cancion; autores?: Artista[] };
+            const jingleWithMetadata = fetchedEntity as Jingle & { _metadata?: { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] }; cancion?: Cancion; autores?: Artista[] };
             if (!jingleWithMetadata._metadata || !jingleWithMetadata._metadata.cancion) {
               try {
                 const fullJingle = await publicApi.getJingle(entityId) as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
@@ -158,11 +162,11 @@ export default function AdminEntityAnalyze() {
                     tematicas: fullJingle.tematicas,
                   };
                   // Also copy relationship data directly to entity for compatibility
-                  (fetchedEntity as any).cancion = fullJingle.cancion;
-                  (fetchedEntity as any).autores = fullJingle.autores;
-                  (fetchedEntity as any).fabrica = fullJingle.fabrica;
-                  (fetchedEntity as any).jingleros = fullJingle.jingleros;
-                  (fetchedEntity as any).tematicas = fullJingle.tematicas;
+                  (fetchedEntity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] }).cancion = fullJingle.cancion;
+                  (fetchedEntity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] }).autores = fullJingle.autores;
+                  (fetchedEntity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] }).fabrica = fullJingle.fabrica;
+                  (fetchedEntity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] }).jingleros = fullJingle.jingleros;
+                  (fetchedEntity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] }).tematicas = fullJingle.tematicas;
                 }
               } catch (refreshErr) {
                 console.warn('[AdminEntityAnalyze] Failed to fetch full jingle relationship data:', refreshErr);
@@ -170,7 +174,8 @@ export default function AdminEntityAnalyze() {
               }
             }
             break;
-          case 'canciones':
+          }
+          case 'canciones': {
             fetchedEntity = await adminApi.getCancion(entityId);
             // For canciones, if _metadata doesn't include autores, fetch them
             const cancion = fetchedEntity as Cancion;
@@ -184,7 +189,7 @@ export default function AdminEntityAnalyze() {
                     autores: autores,
                   };
                   // Also copy directly to entity for compatibility
-                  (fetchedEntity as any).autores = autores;
+                  (fetchedEntity as Cancion & { autores?: Artista[] }).autores = autores;
                 }
               } catch (refreshErr) {
                 console.warn('[AdminEntityAnalyze] Failed to fetch cancion autores:', refreshErr);
@@ -192,6 +197,7 @@ export default function AdminEntityAnalyze() {
               }
             }
             break;
+          }
           case 'artistas':
             fetchedEntity = await adminApi.getArtista(entityId);
             break;
@@ -222,7 +228,7 @@ export default function AdminEntityAnalyze() {
     };
 
     fetchEntity();
-  }, [entityType, entityId]);
+  }, [entityType, entityId, navigate, rawEntityType]);
 
   // Task 5.5: Helper function to check for unsaved changes from both metadata and relationships
   const checkUnsavedChanges = useCallback(() => {
@@ -296,46 +302,10 @@ export default function AdminEntityAnalyze() {
   // in RelatedEntities to run repeatedly, creating an infinite loop
   const relationships = useMemo(() => entityType ? getRelationshipsForEntityType(entityType) : [], [entityType]);
 
-  if (!entityType) {
-    return (
-      <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ marginBottom: '2rem' }}>
-          <Link 
-            to="/admin" 
-            style={{ 
-              color: '#1976d2', 
-              textDecoration: 'none',
-              fontSize: '0.875rem',
-              display: 'inline-block',
-              marginBottom: '1rem'
-            }}
-          >
-            ← Volver al Dashboard
-          </Link>
-        </div>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h1 style={{ margin: 0, marginBottom: '0.5rem' }}>Admin - Analizar Entidad</h1>
-          <p style={{ color: '#666', margin: 0, fontSize: '0.875rem' }}>
-            Modo Administración
-          </p>
-        </div>
-        <div style={{ 
-          padding: '1rem', 
-          backgroundColor: '#fee', 
-          borderRadius: '8px', 
-          color: '#c00',
-          border: '1px solid #fcc'
-        }}>
-          <strong>Error:</strong> Tipo de entidad no válido: {rawEntityType || '(undefined)'}
-        </div>
-      </main>
-    );
-  }
-
   // Extract relationship data for EntityCard (similar to inspection pages)
   // MUST be called before any early returns to follow Rules of Hooks
   const relationshipData = useMemo(() => {
-    if (!entity) return undefined;
+    if (!entity || !entityType) return undefined;
     // First try to extract from _metadata
     const extracted = extractRelationshipData(entity, entityType);
     if (extracted) return extracted;
@@ -529,7 +499,7 @@ export default function AdminEntityAnalyze() {
       <div style={{ marginBottom: '2rem' }}>
         <EntityCard
           entity={entity}
-          entityType={entityType}
+          entityType={entityType!}
           variant="heading"
           indentationLevel={0}
           relationshipData={relationshipData}
@@ -582,7 +552,6 @@ export default function AdminEntityAnalyze() {
               console.log('[AdminEntityAnalyze] Saving relationship property changes');
               const relationshipProps = relatedEntitiesRef.current.getRelationshipProperties();
               console.log('[AdminEntityAnalyze] Relationship properties to save:', relationshipProps);
-              console.log('[AdminEntityAnalyze] RelationshipPropsData keys:', Object.keys(relatedEntitiesRef.current ? (relatedEntitiesRef.current as any).relationshipPropsData || {} : {}));
               
               if (Object.keys(relationshipProps).length > 0) {
                 try {
@@ -663,7 +632,7 @@ export default function AdminEntityAnalyze() {
         <EntityMetadataEditor
           ref={metadataEditorRef}
           entity={entity}
-          entityType={entityType}
+          entityType={entityType!}
           isEditing={isEditing}
           onEditToggle={setIsEditing}
           onChange={(hasChanges) => {
@@ -715,7 +684,7 @@ export default function AdminEntityAnalyze() {
       <div>
         <RelatedEntities
           entity={entity}
-          entityType={entityType}
+          entityType={entityType!}
           relationships={relationships}
           entityPath={[entity.id]}
           isAdmin={true}
