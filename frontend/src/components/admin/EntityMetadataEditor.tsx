@@ -5,7 +5,7 @@
  * Displays entity properties as editable fields (excluding auto-managed and redundant fields).
  */
 
-import { useState, useEffect, forwardRef, useImperativeHandle, useRef } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle, useRef, useCallback } from 'react';
 import Select from 'react-select';
 import { adminApi } from '../../lib/api/client';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica } from '../../types';
@@ -34,14 +34,14 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   const [internalIsEditing, setInternalIsEditing] = useState(false);
   const isEditing = externalIsEditing !== undefined ? externalIsEditing : internalIsEditing;
   
-  const setIsEditing = (editing: boolean) => {
+  const setIsEditing = useCallback((editing: boolean) => {
     if (onEditToggle) {
       onEditToggle(editing);
     } else {
       setInternalIsEditing(editing);
     }
-  };
-  const [formData, setFormData] = useState<Record<string, any>>({});
+  }, [onEditToggle]);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   // Phase 1: loading state removed - save button now in EntityCard heading
   const [hasChanges, setHasChanges] = useState(false);
   // Validation state
@@ -49,12 +49,12 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   const [formWarnings, setFormWarnings] = useState<Record<string, string>>({});
   const [, setTouchedFields] = useState<Set<string>>(new Set()); // Keep for compatibility but mark as unused
   // Ref to track latest formData for validation
-  const formDataRef = useRef<Record<string, any>>({});
+  const formDataRef = useRef<Record<string, unknown>>({});
 
   // Initialize form data from entity
   useEffect(() => {
     if (entity) {
-      const data: Record<string, any> = {};
+      const data: Record<string, unknown> = {};
       const excluded = [
         ...(EXCLUDED_FIELDS._all || []),
         ...(EXCLUDED_FIELDS[entityType] || []),
@@ -66,13 +66,23 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         FIELD_ORDER.jingle.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else if (entityType === 'fabrica' && FIELD_ORDER.fabrica) {
         FIELD_ORDER.fabrica.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
         // Auto-generate youtubeUrl from id if it doesn't exist or id changed
         if (data.id && !data.youtubeUrl) {
@@ -82,25 +92,40 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         FIELD_ORDER.cancion.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else if (entityType === 'artista' && FIELD_ORDER.artista) {
         FIELD_ORDER.artista.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else {
         // For other entity types, use the original logic but include 'id'
         Object.keys(entity).forEach((key) => {
           if (!excluded.includes(key)) {
-            data[key] = (entity as any)[key];
+            data[key] = (entity as unknown as Record<string, unknown>)[key];
           }
         });
       }
@@ -116,7 +141,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
   // Reset form when editing is turned off externally (e.g., from header cancel button)
   useEffect(() => {
     if (externalIsEditing === false && entity) {
-      const data: Record<string, any> = {};
+      const data: Record<string, unknown> = {};
       const excluded = [
         ...(EXCLUDED_FIELDS._all || []),
         ...(EXCLUDED_FIELDS[entityType] || []),
@@ -128,13 +153,23 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         FIELD_ORDER.jingle.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else if (entityType === 'fabrica' && FIELD_ORDER.fabrica) {
         FIELD_ORDER.fabrica.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
         // Auto-generate youtubeUrl from id if it doesn't exist
         if (data.id && !data.youtubeUrl) {
@@ -144,25 +179,40 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         FIELD_ORDER.cancion.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else if (entityType === 'artista' && FIELD_ORDER.artista) {
         FIELD_ORDER.artista.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else if (entityType === 'tematica' && FIELD_ORDER.tematica) {
         FIELD_ORDER.tematica.forEach((key) => {
           // Include all fields from FIELD_ORDER, even if they don't exist in entity
           const isBooleanField = key.startsWith('is') || key.startsWith('has');
-          data[key] = (entity as any)[key] ?? (isBooleanField ? false : undefined);
+          // Always show displayBadges as empty array if missing
+          if (key === 'displayBadges') {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? [];
+          } else {
+            data[key] = (entity as unknown as Record<string, unknown>)[key] ?? (isBooleanField ? false : undefined);
+          }
         });
       } else {
         // For other entity types, use the original logic but include 'id'
         Object.keys(entity).forEach((key) => {
           if (!excluded.includes(key)) {
-            data[key] = (entity as any)[key];
+            data[key] = (entity as unknown as Record<string, unknown>)[key];
           }
         });
       }
@@ -175,7 +225,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     }
   }, [externalIsEditing, entity, entityType]);
 
-  const handleFieldChange = (fieldName: string, value: any) => {
+  const handleFieldChange = (fieldName: string, value: unknown) => {
     setFormData((prev) => {
       const updated = { ...prev, [fieldName]: value };
       
@@ -232,7 +282,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = useCallback(async () => {
     // Mark all fields as touched for validation
     const allFields = new Set(Object.keys(formData));
     setTouchedFields(allFields);
@@ -266,7 +316,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         sanitizedData.likes = sanitizeNumericField(formData.likes, null);
         
         // Validate date
-        if (formData.date && !isValidISODate(formData.date)) {
+        if (formData.date && !isValidISODate(formData.date as string)) {
           setFieldErrors({ ...fieldErrors, date: 'Fecha inválida' });
           showToast('La fecha no es válida', 'error');
           return;
@@ -344,19 +394,19 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
         // Try to parse error response for field-specific errors
         try {
           // Check if error has a response with data
-          const errorAny = err as any;
+          const errorAny = err as unknown as { response?: { data?: unknown } };
           if (errorAny.response?.data) {
-            const errorData = errorAny.response.data;
+            const errorData = errorAny.response.data as Record<string, unknown>;
             // Handle different error response formats
             if (errorData.errors && typeof errorData.errors === 'object') {
-              serverErrors = errorData.errors;
+              serverErrors = errorData.errors as Record<string, string>;
             } else if (errorData.field && errorData.message) {
-              serverErrors[errorData.field] = errorData.message;
+              serverErrors[errorData.field as string] = errorData.message as string;
             } else if (typeof errorData === 'object') {
               // Try to extract field errors from object
               Object.keys(errorData).forEach((key) => {
                 if (typeof errorData[key] === 'string') {
-                  serverErrors[key] = errorData[key];
+                  serverErrors[key] = errorData[key] as string;
                 }
               });
             }
@@ -383,7 +433,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       
       console.error('Error saving entity:', err);
     }
-  };
+  }, [entity, entityType, formData, fieldErrors, onSave, showToast, setIsEditing]);
 
   // Notify parent when hasChanges changes, but only if we're actually in editing mode
   // This prevents false positives when entering edit mode
@@ -426,8 +476,10 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     editableFields = FIELD_ORDER.jingle.filter((key) => {
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
+      // Always show displayBadges for jingle (even if empty array)
+      if (key === 'displayBadges') return true;
       // Use formData value if available, otherwise entity value, otherwise undefined
-      const value = formData[key] ?? (entity as any)[key] ?? undefined;
+      const value = formData[key] ?? (entity as unknown as Record<string, unknown>)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -443,7 +495,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
       // Use formData value if available, otherwise entity value, otherwise undefined
-      const value = formData[key] ?? (entity as any)[key] ?? undefined;
+      const value = formData[key] ?? (entity as unknown as Record<string, unknown>)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -459,7 +511,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
       // Use formData value if available, otherwise entity value, otherwise undefined
-      const value = formData[key] ?? (entity as any)[key] ?? undefined;
+      const value = formData[key] ?? (entity as unknown as Record<string, unknown>)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -474,8 +526,10 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     editableFields = FIELD_ORDER.artista.filter((key) => {
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
+      // Always show displayBadges for artista (even if empty array)
+      if (key === 'displayBadges') return true;
       // Use formData value if available, otherwise entity value, otherwise undefined
-      const value = formData[key] ?? (entity as any)[key] ?? undefined;
+      const value = formData[key] ?? (entity as unknown as Record<string, unknown>)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -491,7 +545,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
       // Don't include excluded fields
       if (excluded.includes(key)) return false;
       // Use formData value if available, otherwise entity value, otherwise undefined
-      const value = formData[key] ?? (entity as any)[key] ?? undefined;
+      const value = formData[key] ?? (entity as unknown as Record<string, unknown>)[key] ?? undefined;
       // Only show primitive types and simple objects
       return (
         value === null ||
@@ -507,7 +561,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
     editableFields = Object.keys(entity)
       .filter((key) => {
         if (excluded.includes(key)) return false;
-        const value = (entity as any)[key];
+        const value = (entity as unknown as Record<string, unknown>)[key];
         // Only show primitive types and simple objects
         return (
           value === null ||
@@ -610,8 +664,8 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                         {String(value || '')}
                       </span>
                     </>
-                  ) : fieldName === 'autoComment' && entityType === 'jingle' ? (
-                    // autoComment is read-only for Jingles (system-generated)
+                  ) : (fieldName === 'displayPrimary' || fieldName === 'displaySecondary' || fieldName === 'displayBadges') ? (
+                    // Display properties are read-only (system-generated)
                     <>
                       <span
                         style={{
@@ -633,7 +687,9 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                           overflowWrap: 'break-word',
                         }}
                       >
-                        {String(value || '')}
+                        {fieldName === 'displayBadges' && Array.isArray(value)
+                          ? value.join(', ')
+                          : String(value || '')}
                       </span>
                     </>
                   ) : fieldName === 'id' && (entityType === 'jingle' || entityType === 'cancion' || entityType === 'artista' || entityType === 'tematica') ? (
@@ -676,7 +732,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <DatePickerField
-                          value={formData.date || null}
+                          value={formData.date as string || null}
                           onChange={(isoDate) => handleFieldChange('date', isoDate)}
                           onBlur={() => handleFieldBlur('date')}
                           hasError={!!fieldErrors.date}
@@ -700,7 +756,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <select
-                          value={value || ''}
+                          value={(value as string) || ''}
                           onChange={(e) => handleFieldChange(fieldName, e.target.value)}
                           onBlur={() => handleFieldBlur(fieldName)}
                           style={{
@@ -740,7 +796,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <select
-                          value={value || ''}
+                          value={(value as string) || ''}
                           onChange={(e) => handleFieldChange(fieldName, e.target.value || null)}
                           onBlur={() => handleFieldBlur(fieldName)}
                           style={{
@@ -781,7 +837,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       </label>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         <Select
-                          value={value ? { value, label: value } : null}
+                          value={value ? { value: value as string, label: value as string } : null}
                           onChange={(selected) => handleFieldChange(fieldName, selected?.value || '')}
                           onBlur={() => handleFieldBlur(fieldName)}
                           options={FIELD_OPTIONS.artista.nationality.map((country) => ({
@@ -880,7 +936,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: 0 }}>
                         {(TEXTAREA_FIELDS[entityType] || []).includes(fieldName) ? (
                           <textarea
-                            value={value ?? ''}
+                            value={(value as string) ?? ''}
                             onChange={(e) => handleFieldChange(fieldName, e.target.value)}
                             onBlur={() => handleFieldBlur(fieldName)}
                             style={{
@@ -902,12 +958,12 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                               boxSizing: 'border-box',
                               verticalAlign: 'top',
                             }}
-                            rows={Math.max(2, Math.ceil((value?.length || 0) / 50))}
+                            rows={Math.max(2, Math.ceil(((value as string)?.length || 0) / 50))}
                           />
                         ) : (
                           <input
                             type={fieldType === 'number' ? 'number' : 'text'}
-                            value={value ?? ''}
+                            value={(value as string | number) ?? ''}
                             onChange={(e) =>
                               handleFieldChange(
                                 fieldName,
@@ -975,7 +1031,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                           flex: 1,
                         }}
                       >
-                        {value === null || value === undefined ? '(vacío)' : formatDateDisplay(value)}
+                        {value === null || value === undefined ? '(vacío)' : formatDateDisplay(value as string | Date)}
                       </span>
                     </>
                   ) : (
@@ -998,7 +1054,11 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                           flex: 1,
                         }}
                       >
-                        {value === null || value === undefined ? '(vacío)' : String(value)}
+                        {value === null || value === undefined
+                          ? '(vacío)'
+                          : fieldName === 'displayBadges' && Array.isArray(value)
+                          ? value.length > 0 ? value.join(', ') : '(vacío)'
+                          : String(value)}
                       </span>
                     </>
                   )}

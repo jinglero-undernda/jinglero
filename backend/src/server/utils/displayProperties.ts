@@ -297,27 +297,86 @@ async function generateFabricaDisplaySecondary(
 
 /**
  * Generate displaySecondary for Jingle
- * Format: Derived from autoComment (repurposed)
- * The autoComment already contains the formatted secondary information
+ * Format: '🏭 {fabricaDate} • 📦 {cancionTitle} • 🚚 {autores} • 🔧 {jinglero} • 🏷️ {tematica}'
+ * Excludes Jingle Title (which is in displayPrimary)
  */
 async function generateJingleDisplaySecondary(
   db: Neo4jClient,
   jingleId: string
 ): Promise<string> {
-  // For Jingle, displaySecondary is the same as autoComment
-  // We'll reuse the existing autoComment generation logic
   const query = `
     MATCH (j:Jingle {id: $id})
-    RETURN j.autoComment AS autoComment
+    
+    // Get primary Fabrica (first one ordered by timestamp/order)
+    OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+    WITH j, f, appearsIn
+    ORDER BY appearsIn.timestamp ASC, appearsIn.order ASC
+    WITH j, collect({date: f.date})[0] AS fabricaRel
+    
+    // Get Cancion
+    OPTIONAL MATCH (j)-[:VERSIONA]->(c:Cancion)
+    
+    // Get Jinglero (Artista who performed the jingle)
+    OPTIONAL MATCH (jinglero:Artista)-[:JINGLERO_DE]->(j)
+    
+    // Get Autor (Artista who wrote the Cancion)
+    OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+    
+    // Get primary Tematica (where isPrimary = true)
+    OPTIONAL MATCH (j)-[tagRel:TAGGED_WITH]->(t:Tematica)
+    WHERE tagRel.isPrimary = true
+    
+    RETURN fabricaRel.date AS fabricaDate,
+           c.title AS cancionTitle,
+           collect(DISTINCT COALESCE(jinglero.stageName, jinglero.name)) AS jingleroNames,
+           collect(DISTINCT COALESCE(autor.stageName, autor.name)) AS autorNames,
+           t.name AS tematicaName
   `;
   
-  const result = await db.executeQuery<{ autoComment: string | null }>(query, { id: jingleId });
+  const result = await db.executeQuery(query, { id: jingleId });
   
   if (result.length === 0) {
     return '';
   }
   
-  return result[0].autoComment || '';
+  const record: any = result[0];
+  const parts: string[] = [];
+  
+  // Add Fabrica date
+  if (record.fabricaDate) {
+    const dateStr = formatDate(record.fabricaDate);
+    if (dateStr) {
+      parts.push(`🏭 ${dateStr}`);
+    }
+  }
+  
+  // Add Cancion title
+  if (record.cancionTitle) {
+    parts.push(`📦 ${record.cancionTitle}`);
+  }
+  
+  // Add Autores
+  if (record.autorNames && record.autorNames.length > 0) {
+    const autorNames = record.autorNames.filter((name: any) => name != null);
+    if (autorNames.length > 0) {
+      parts.push(`🚚 ${autorNames.join(', ')}`);
+    }
+  }
+  
+  // Add Jingleros
+  if (record.jingleroNames && record.jingleroNames.length > 0) {
+    const jingleroNames = record.jingleroNames.filter((name: any) => name != null);
+    if (jingleroNames.length > 0) {
+      parts.push(`🔧 ${jingleroNames.join(', ')}`);
+    }
+  }
+  
+  // Add primary Tematica
+  if (record.tematicaName) {
+    parts.push(`🏷️ ${record.tematicaName}`);
+  }
+  
+  return parts.join(' • ');
 }
 
 /**

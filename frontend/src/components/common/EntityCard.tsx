@@ -200,18 +200,24 @@ function EntityCard({
   }
 
   // Use pre-computed display properties if available, otherwise fall back to runtime computation
-  const primaryText = entity.displayPrimary 
-    ? entity.displayPrimary.slice(1) // Remove icon (first character)
-    : getPrimaryText(entity, entityType, relationshipData, actualVariant);
+  // Properly handle emoji characters (which can be multi-byte) when extracting icon and text
+  let primaryText: string;
+  let icon: string;
+  
+  if (entity.displayPrimary) {
+    // Use Array.from() to properly handle emoji characters (multi-byte Unicode)
+    const displayPrimaryChars = Array.from(entity.displayPrimary);
+    icon = displayPrimaryChars[0] || getEntityIcon(entityType, actualVariant, relationshipLabel, entity, relationshipData);
+    // Remove the first character (icon) from the text
+    primaryText = displayPrimaryChars.slice(1).join('') || getPrimaryText(entity, entityType, relationshipData, actualVariant);
+  } else {
+    primaryText = getPrimaryText(entity, entityType, relationshipData, actualVariant);
+    icon = getEntityIcon(entityType, actualVariant, relationshipLabel, entity, relationshipData);
+  }
   
   const secondaryText = entity.displaySecondary !== undefined
     ? entity.displaySecondary
     : getSecondaryText(entity, entityType, relationshipData, actualVariant);
-  
-  // Extract icon from displayPrimary if available, otherwise compute
-  const icon = entity.displayPrimary 
-    ? entity.displayPrimary[0] // First character is the icon
-    : getEntityIcon(entityType, actualVariant, relationshipLabel, entity, relationshipData);
   
   // Use pre-computed badges if available, otherwise compute
   const defaultBadges = entity.displayBadges && entity.displayBadges.length > 0

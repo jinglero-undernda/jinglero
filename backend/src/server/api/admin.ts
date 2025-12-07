@@ -28,7 +28,6 @@ import {
   normalizeTransitiveChains,
   checkConcurrentInboundOutbound
 } from '../db/validation/repeats-validation';
-import { updateJingleAutoComment } from '../utils/jingleAutoComment';
 import { updateDisplayProperties } from '../utils/displayProperties';
 import {
   getAllScripts,
@@ -415,7 +414,7 @@ async function updateRedundantPropertiesOnRelationshipChange(
         if (result.length > 0) {
           console.log(`Updated Jingle ${startId}: set fabricaId=${endId}`);
           // Update auto-comment after Fabrica relationship change
-          await updateJingleAutoComment(db, startId);
+          await updateDisplayProperties(db, 'jingle', startId);
         }
       } else if (operation === 'delete') {
         // Check if there are other APPEARS_IN relationships
@@ -445,7 +444,7 @@ async function updateRedundantPropertiesOnRelationshipChange(
             `Updated Jingle ${startId}: fabricaId=${newFabricaId || 'null'} after deleting APPEARS_IN relationship`
           );
           // Update auto-comment after Fabrica relationship change
-          await updateJingleAutoComment(db, startId);
+          await updateDisplayProperties(db, 'jingle', startId);
         }
       }
     }
@@ -466,7 +465,7 @@ async function updateRedundantPropertiesOnRelationshipChange(
         if (result.length > 0) {
           console.log(`Updated Jingle ${startId}: set cancionId=${endId}`);
           // Update auto-comment after Cancion relationship change
-          await updateJingleAutoComment(db, startId);
+          await updateDisplayProperties(db, 'jingle', startId);
         }
       } else if (operation === 'delete') {
         // Check if there are other VERSIONA relationships
@@ -493,7 +492,7 @@ async function updateRedundantPropertiesOnRelationshipChange(
             `Updated Jingle ${startId}: cancionId=${newCancionId || 'null'} after deleting VERSIONA relationship`
           );
           // Update auto-comment after Cancion relationship change
-          await updateJingleAutoComment(db, startId);
+          await updateDisplayProperties(db, 'jingle', startId);
         }
       }
     }
@@ -961,7 +960,7 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
   // Update auto-comment for affected Jingles
   if (neo4jRelType === 'JINGLERO_DE' || neo4jRelType === 'TAGGED_WITH') {
     // For JINGLERO_DE and TAGGED_WITH, the Jingle is the end node
-    await updateJingleAutoComment(db, finalEndId);
+    await updateDisplayProperties(db, 'jingle', finalEndId);
   } else if (neo4jRelType === 'AUTOR_DE') {
     // For AUTOR_DE, update all Jingles that VERSIONA the Cancion (end node)
     const jinglesQuery = `
@@ -970,7 +969,7 @@ router.post('/relationships/:relType', asyncHandler(async (req, res) => {
     `;
     const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: finalEndId });
     for (const jingle of jingles) {
-      await updateJingleAutoComment(db, jingle.jingleId);
+      await updateDisplayProperties(db, 'jingle', jingle.jingleId);
     }
   }
   
@@ -1195,10 +1194,10 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
   // Update auto-comment for affected Jingles
   if (neo4jRelType === 'APPEARS_IN' || neo4jRelType === 'VERSIONA') {
     // For APPEARS_IN and VERSIONA, the Jingle is the start node
-    await updateJingleAutoComment(db, payload.start);
+    await updateDisplayProperties(db, 'jingle', payload.start);
   } else if (neo4jRelType === 'JINGLERO_DE' || neo4jRelType === 'TAGGED_WITH') {
     // For JINGLERO_DE and TAGGED_WITH, the Jingle is the end node
-    await updateJingleAutoComment(db, payload.end);
+    await updateDisplayProperties(db, 'jingle', payload.end);
   } else if (neo4jRelType === 'AUTOR_DE') {
     // For AUTOR_DE, update all Jingles that VERSIONA the Cancion (end node)
     const jinglesQuery = `
@@ -1207,7 +1206,7 @@ router.put('/relationships/:relType', asyncHandler(async (req, res) => {
     `;
     const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: payload.end });
     for (const jingle of jingles) {
-      await updateJingleAutoComment(db, jingle.jingleId);
+      await updateDisplayProperties(db, 'jingle', jingle.jingleId);
     }
   }
   
@@ -1295,7 +1294,7 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
   // Update auto-comment for affected Jingles
   if (neo4jRelType === 'JINGLERO_DE' || neo4jRelType === 'TAGGED_WITH') {
     // For JINGLERO_DE and TAGGED_WITH, the Jingle is the end node
-    await updateJingleAutoComment(db, payload.end);
+    await updateDisplayProperties(db, 'jingle', payload.end);
   } else if (neo4jRelType === 'AUTOR_DE') {
     // For AUTOR_DE, update all Jingles that VERSIONA the Cancion (end node)
     const jinglesQuery = `
@@ -1304,7 +1303,7 @@ router.delete('/relationships/:relType', asyncHandler(async (req, res) => {
     `;
     const jingles = await db.executeQuery<{ jingleId: string }>(jinglesQuery, { cancionId: payload.end });
     for (const jingle of jingles) {
-      await updateJingleAutoComment(db, jingle.jingleId);
+      await updateDisplayProperties(db, 'jingle', jingle.jingleId);
     }
   }
   
@@ -1752,11 +1751,6 @@ router.post('/:type', asyncHandler(async (req, res) => {
   // Validate and auto-fix any redundant property discrepancies
   await validateAndFixRedundantProperties(type, id);
   
-  // Update auto-comment for Jingles
-  if (label === 'Jingle') {
-    await updateJingleAutoComment(db, id);
-  }
-  
   // Update display properties for all entity types
   try {
     await updateDisplayProperties(db, type, id);
@@ -1850,11 +1844,6 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   // Validate and auto-fix any redundant property discrepancies
   await validateAndFixRedundantProperties(type, id);
   
-  // Update auto-comment for Jingles
-  if (label === 'Jingle') {
-    await updateJingleAutoComment(db, id);
-  }
-  
   // Update display properties for all entity types
   try {
     await updateDisplayProperties(db, type, id);
@@ -1920,11 +1909,6 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
   
   // Validate and auto-fix any redundant property discrepancies
   await validateAndFixRedundantProperties(type, id);
-  
-  // Update auto-comment for Jingles
-  if (label === 'Jingle') {
-    await updateJingleAutoComment(db, id);
-  }
   
   // Update display properties for all entity types
   try {

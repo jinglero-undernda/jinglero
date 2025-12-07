@@ -54,11 +54,11 @@ export const EXCLUDED_FIELDS: Record<string, string[]> = {
  * Custom field ordering for specific entity types
  */
 export const FIELD_ORDER: Record<string, string[]> = {
-  jingle: ['id', 'autoComment', 'title', 'isJinglazo', 'isJinglazoDelDia', 'isPrecario', 'isLive', 'isRepeat', 'comment', 'youtubeClipUrl', 'lyrics'],
-  fabrica: ['id', 'title', 'date', 'status', 'youtubeUrl', 'contents'],
-  cancion: ['id', 'title', 'album', 'year', 'genre', 'youtubeMusic', 'lyrics', 'musicBrainzId'],
-  artista: ['id', 'name', 'stageName', 'nationality', 'isArg', 'youtubeHandle', 'instagramHandle', 'twitterHandle', 'facebookProfile', 'website', 'bio', 'musicBrainzId'],
-  tematica: ['id', 'name', 'description', 'category'],
+  jingle: ['id', 'displayPrimary', 'displaySecondary', 'displayBadges', 'title', 'isJinglazo', 'isJinglazoDelDia', 'isPrecario', 'isLive', 'isRepeat', 'comment', 'youtubeClipUrl', 'lyrics'],
+  fabrica: ['id', 'displayPrimary', 'displaySecondary', 'displayBadges', 'title', 'date', 'status', 'youtubeUrl', 'contents'],
+  cancion: ['id', 'displayPrimary', 'displaySecondary', 'displayBadges', 'title', 'album', 'year', 'genre', 'youtubeMusic', 'lyrics', 'musicBrainzId'],
+  artista: ['id', 'displayPrimary', 'displaySecondary', 'displayBadges', 'name', 'stageName', 'nationality', 'isArg', 'youtubeHandle', 'instagramHandle', 'twitterHandle', 'facebookProfile', 'website', 'bio', 'musicBrainzId'],
+  tematica: ['id', 'displayPrimary', 'displaySecondary', 'displayBadges', 'name', 'description', 'category'],
 };
 
 /**
