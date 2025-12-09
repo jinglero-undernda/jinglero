@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { publicApi } from '../../lib/api/client';
 import EntityCard from '../common/EntityCard';
 import { sortEntities } from '../../lib/utils/entitySorters';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import type { Fabrica, Jingle, Cancion, Artista, Tematica } from '../../types';
 import '../../styles/sections/featured-entities-section.css';
 
@@ -122,14 +123,18 @@ export default function FeaturedEntitiesSection() {
           </h2>
           {section.entities.length > 0 ? (
             <div className="featured-entities-section__grid">
-              {section.entities.map((entity) => (
-                <EntityCard
-                  key={entity.id}
-                  entity={entity}
-                  entityType={section.type}
-                  variant="contents"
-                />
-              ))}
+              {section.entities.map((entity) => {
+                const relationshipData = extractRelationshipData(entity, section.type);
+                return (
+                  <EntityCard
+                    key={entity.id}
+                    entity={entity}
+                    entityType={section.type}
+                    variant="contents"
+                    relationshipData={relationshipData}
+                  />
+                );
+              })}
             </div>
           ) : (
             <p className="featured-entities-section__empty">No hay {section.label.toLowerCase()} disponibles.</p>

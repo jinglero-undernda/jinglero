@@ -2069,81 +2069,66 @@ const RelatedEntities = forwardRef<{
                             : [];
                           const hasNested = !isAdmin && hasNestedRelationships && canExpand;
                           
-                          // Extract relationship data from entity using centralized utility
-                          // The backend may include relationship data directly in the entity object
-                          // Special cases: root entity fallbacks, Jingle fabrica handling
-                          const relationshipData: Record<string, unknown> | undefined = (() => {
-                            // First, try using the centralized utility
-                            let data = extractRelationshipData(relatedEntity, rel.entityType) || {};
-                            
-                            // Special case handling for Jingle: fabrica, cancion, autores from entity object or parent
-                            if (rel.entityType === 'jingle') {
-                              const jingle = relatedEntity as Jingle & { fabrica?: Fabrica; cancion?: Cancion; autores?: Artista[]; jingleros?: Artista[]; tematicas?: Tematica[] };
-                              // Check if relationship data is embedded in the entity object
-                              // Note: these are not in the Jingle type, but may be added by backend
-                              if ('fabrica' in jingle && jingle.fabrica) {
-                                data = { ...data, fabrica: jingle.fabrica };
-                              }
-                              if ('cancion' in jingle && jingle.cancion) {
-                                data = { ...data, cancion: jingle.cancion };
-                              }
-                              if ('autores' in jingle && jingle.autores && Array.isArray(jingle.autores) && jingle.autores.length > 0) {
-                                data = { ...data, autores: jingle.autores };
-                              }
-                              if ('jingleros' in jingle && jingle.jingleros && Array.isArray(jingle.jingleros) && jingle.jingleros.length > 0) {
-                                data = { ...data, jingleros: jingle.jingleros };
-                              }
-                              if ('tematicas' in jingle && jingle.tematicas && Array.isArray(jingle.tematicas) && jingle.tematicas.length > 0) {
-                                data = { ...data, tematicas: jingle.tematicas };
-                              }
-                              // If the parent entity (root entity) is a Fabrica, pass the full Fabrica object
-                              // This allows EntityCard to use the Fabrica's date when Jingle doesn't have fabricaDate
-                              if (entityType === 'fabrica') {
-                                data = { ...data, fabrica: entity };
-                              }
-                              // If the parent entity (root entity) is a Cancion, pass the Cancion and its autores
-                              // This allows EntityCard to format jingle title as "{cancion} ({autor})" when title/songTitle are blank
-                              if (entityType === 'cancion') {
-                                const cancion = entity as Cancion;
-                                data = { ...data, cancion: cancion };
-                                // Extract autores from cancion's _metadata or check if they're directly on the entity
-                                if (cancion._metadata?.autores && Array.isArray(cancion._metadata.autores) && cancion._metadata.autores.length > 0) {
-                                  data = { ...data, autores: cancion._metadata.autores };
-                                } else if ('autores' in cancion && Array.isArray((cancion as Cancion & { autores?: Artista[] }).autores) && (cancion as Cancion & { autores?: Artista[] }).autores && (cancion as Cancion & { autores?: Artista[] }).autores!.length > 0) {
-                                  data = { ...data, autores: (cancion as Cancion & { autores?: Artista[] }).autores! };
-                                }
-                              }
-                            }
-                            
-                            // Special case: Root entity fallbacks for Artista
+                          // In admin mode, handle relationship properties expansion
+                          const relationshipPropsKey = `${relatedEntity.id}-${key}`;
+                          
+                          // Extract relationship properties from entity or state (for show button navigation)
+                          // Check if relationship properties are embedded in the entity object
+                          const entityProps = relatedEntity && typeof relatedEntity === 'object' ? {
+                            timestamp: 'timestamp' in relatedEntity ? (relatedEntity as { timestamp?: number }).timestamp : undefined,
+                            order: 'order' in relatedEntity ? (relatedEntity as { order?: number }).order : undefined,
+                            status: 'status' in relatedEntity ? (relatedEntity as { status?: string }).status : undefined,
+                            isPrimary: 'isPrimary' in relatedEntity ? (relatedEntity as { isPrimary?: boolean }).isPrimary : undefined,
+                          } : {};
+                          // Also check relationshipPropsData if available (from admin mode expansion)
+                          const stateProps = relationshipPropsData[relationshipPropsKey];
+                          const props = stateProps || entityProps;
+                          
+                          // Build relationshipProperties for extractRelationshipData (e.g., jingleTimestamp for Fabrica show button)
+                          const relationshipProperties = props.timestamp !== undefined 
+                            ? { jingleTimestamp: props.timestamp }
+                            : undefined;
+                          
+                          // Determine parent context (only for related entities, not root entity)
+                          // Per Field Override Rules: only apply for Jingle when parent is Fabrica or Cancion
+                          const shouldUseParentContext = entityType !== rel.entityType && 
+                            rel.entityType === 'jingle' && 
+                            (entityType === 'fabrica' || entityType === 'cancion');
+                          
+                          // Handle root entity fallback cases (use preFetchedData option)
+                          const rootEntityPreFetchedData: Record<string, unknown> | undefined = (() => {
+                            // Root entity fallbacks for Artista
                             if (rel.entityType === 'artista' && entityType === 'artista' && entity.id === relatedEntity.id) {
                               const artista = relatedEntity as Artista;
+                              const fallback: Record<string, unknown> = {};
                               // Fallback to state.counts if _metadata wasn't available
                               if (!artista._metadata || artista._metadata.autorCount === undefined) {
                                 const cancionesKey = 'Canciones-cancion';
                                 const cancionesCount = state.counts[cancionesKey] || 0;
                                 if (cancionesCount > 0) {
-                                  data = { ...data, autorCount: cancionesCount };
+                                  fallback.autorCount = cancionesCount;
                                 }
                               }
                               if (!artista._metadata || artista._metadata.jingleroCount === undefined) {
                                 const jinglesKey = 'Jingles-jingle';
                                 const jinglesCount = state.counts[jinglesKey] || 0;
                                 if (jinglesCount > 0) {
-                                  data = { ...data, jingleroCount: jinglesCount };
+                                  fallback.jingleroCount = jinglesCount;
                                 }
                               }
+                              return Object.keys(fallback).length > 0 ? fallback : undefined;
                             }
                             
-                            // Special case: Root entity fallbacks for Cancion
+                            // Root entity fallbacks for Cancion
                             if (rel.entityType === 'cancion' && entityType === 'cancion' && entity.id === relatedEntity.id) {
                               const cancion = relatedEntity as Cancion;
+                              const fallback: Record<string, unknown> = {};
                               // Fallback to state.loadedData if _metadata wasn't available
                               if (!cancion._metadata || !cancion._metadata.autores) {
                                 const autorKey = 'Autor-artista';
                                 const autores = state.loadedData[autorKey] || [];
                                 if (autores.length > 0) {
-                                  data = { ...data, autores };
+                                  fallback.autores = autores;
                                 }
                               }
                               // Fallback to state.counts if _metadata wasn't available
@@ -2151,16 +2136,22 @@ const RelatedEntities = forwardRef<{
                                 const jinglesKey = 'Jingles-jingle';
                                 const jinglesCount = state.counts[jinglesKey] || 0;
                                 if (jinglesCount > 0) {
-                                  data = { ...data, jingleCount: jinglesCount };
+                                  fallback.jingleCount = jinglesCount;
                                 }
                               }
+                              return Object.keys(fallback).length > 0 ? fallback : undefined;
                             }
                             
-                            return Object.keys(data).length > 0 ? data : undefined;
+                            return undefined;
                           })();
                           
-                          // In admin mode, handle relationship properties expansion
-                          const relationshipPropsKey = `${relatedEntity.id}-${key}`;
+                          // Extract relationship data using centralized utility with advanced options
+                          const relationshipData = extractRelationshipData(relatedEntity, rel.entityType, {
+                            parentEntity: shouldUseParentContext ? entity : undefined,
+                            parentEntityType: shouldUseParentContext ? entityType : undefined,
+                            relationshipProperties,
+                            preFetchedData: rootEntityPreFetchedData,
+                          });
                           const isRelationshipPropsExpanded = expandedRelationshipProps.has(relationshipPropsKey);
                           const relType = getRelationshipTypeForAPI(entityType, rel.label, rel.entityType);
                           
@@ -2819,29 +2810,18 @@ const RelatedEntities = forwardRef<{
                                             })()
                                           : [];
                                         
-                                        // Extract relationship data for nested entity
-                                        // If Jingle is nested under a Fabrica, use the parent entity's ID
-                                        const nestedRelationshipData: Record<string, unknown> | undefined = (() => {
-                                          if (row.entityType === 'jingle') {
-                                            // Check if fabrica data is in the entity object
-                                            // Note: fabrica is not in the Jingle type, but may be added by backend
-                                            const jingleWithFabrica = row.entity as Jingle & { fabrica?: unknown };
-                                            if ('fabrica' in jingleWithFabrica && jingleWithFabrica.fabrica) {
-                                              return { fabrica: jingleWithFabrica.fabrica };
-                                            }
-                                            // If the parent entity (the one that was expanded) is a Fabrica, use its ID
-                                            if (parentEntityType === 'fabrica') {
-                                              return { fabrica: { id: entity.id } };
-                                            }
-                                            // Check if the Jingle has a Fabrica relationship that's been loaded
-                                            // Look for "Fabrica-fabrica-{jingleId}" in loadedData
-                                            const fabricaKey = `Fabrica-fabrica-${row.entity.id}`;
-                                            const fabricaData = state.loadedData[fabricaKey];
-                                            if (Array.isArray(fabricaData) && fabricaData.length > 0 && fabricaData[0]) {
-                                              return { fabrica: fabricaData[0] };
-                                            }
-                                          }
-                                          return undefined;
+                                        // Extract relationship data for nested entity using centralized utility
+                                        // For nested entities, check if there's a parent context (e.g., Jingle nested under Fabrica)
+                                        const nestedRelationshipData = (() => {
+                                          // Determine if we should use parent context for nested Jingle
+                                          // If the root entity is a Fabrica and this nested entity is a Jingle, use it as parent
+                                          const shouldUseParentForNested = parentEntityType === 'fabrica' && row.entityType === 'jingle';
+                                          
+                                          // Use extractRelationshipData with parent context if applicable
+                                          return extractRelationshipData(row.entity, row.entityType, {
+                                            parentEntity: shouldUseParentForNested ? entity : undefined,
+                                            parentEntityType: shouldUseParentForNested ? parentEntityType : undefined,
+                                          });
                                         })();
                                         
                                         return (
@@ -3005,16 +2985,11 @@ const RelatedEntities = forwardRef<{
                                                     })()
                                                   : [];
                                                 
-                                                const deeperRelationshipData: Record<string, unknown> | undefined = 
-                                                  (() => {
-                                                    if (nestedNestedRow.entityType === 'jingle') {
-                                                      const jingleWithFabrica = nestedNestedRow.entity as Jingle & { fabrica?: unknown };
-                                                      if ('fabrica' in jingleWithFabrica && jingleWithFabrica.fabrica) {
-                                                        return { fabrica: jingleWithFabrica.fabrica };
-                                                      }
-                                                    }
-                                                    return undefined;
-                                                  })();
+                                                // Extract relationship data for deeper nested entity using centralized utility
+                                                const deeperRelationshipData = extractRelationshipData(
+                                                  nestedNestedRow.entity,
+                                                  nestedNestedRow.entityType
+                                                );
                                                 
                                                 return (
                                                   <React.Fragment key={nestedNestedRow.id}>

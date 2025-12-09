@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../lib/api/client';
+import EntityCard from '../common/EntityCard';
+import type { EntityType } from '../common/EntityCard';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import '../../styles/components/search-bar.css';
 
 interface SearchBarProps {
@@ -77,6 +80,15 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...', initialValue = 
     }
   }, [showSuggestions]);
 
+  // Map plural API response keys to singular EntityType
+  const typeMap: Record<string, EntityType> = {
+    jingles: 'jingle',
+    canciones: 'cancion',
+    artistas: 'artista',
+    tematicas: 'tematica',
+    fabricas: 'fabrica',
+  };
+
   const handleSuggestionClick = (type: string, item: any) => {
     // Navigate directly to the entity detail page
     setShowSuggestions(false);
@@ -95,7 +107,7 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...', initialValue = 
       navigate(route);
     } else {
       // Fallback: if navigation fails, do a search instead
-      const text = item.title || item.stageName || item.name || item.songTitle;
+      const text = item.displayPrimary || item.id;
       setQuery(String(text || ''));
       onSearch(String(text || ''));
     }
@@ -140,13 +152,13 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...', initialValue = 
                     {suggestions[type].slice(0,5)
                       .filter((it: any) => {
                         // Filter out items with no display text
-                        // For fabricas, use title; for others use their respective fields
-                        const text = it.title || it.stageName || it.name || it.songTitle;
+                        // Use displayPrimary (which includes icon + text) or fallback to id
+                        const text = it.displayPrimary || it.id;
                         return text && text.trim() !== '' && text !== 'None';
                       })
                       .map((it: any) => {
-                        // For fabricas, use title; for others use their respective fields
-                        const displayText = it.title || it.stageName || it.name || it.songTitle || 'Sin nombre';
+                        const entityType = typeMap[type];
+                        const relationshipData = extractRelationshipData(it, entityType);
                         return (
                           <li 
                             key={it.id} 
@@ -161,7 +173,14 @@ export function SearchBar({ onSearch, placeholder = 'Buscar...', initialValue = 
                               }
                             }}
                           >
-                            {displayText}
+                            <EntityCard
+                              entity={it}
+                              entityType={entityType}
+                              variant="contents"
+                              relationshipData={relationshipData}
+                              onClick={() => handleSuggestionClick(type, it)}
+                              className=""
+                            />
                           </li>
                         );
                       })}

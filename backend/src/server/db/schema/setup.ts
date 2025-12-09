@@ -29,14 +29,15 @@ const constraints = [
 
 const indexes = [
   // Original full-text search indexes
-  'CREATE FULLTEXT INDEX jingle_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.artistName, j.comment, j.autoComment]',
-  'CREATE FULLTEXT INDEX tematica_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description]',
-  'CREATE FULLTEXT INDEX artista_search IF NOT EXISTS FOR (a:Artista) ON EACH [a.stageName, a.name]',
-  'CREATE FULLTEXT INDEX cancion_search IF NOT EXISTS FOR (c:Cancion) ON EACH [c.title]',
+  'CREATE FULLTEXT INDEX jingle_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.comment, j.displayPrimary, j.displaySecondary, j.displayBadges]',
+  'CREATE FULLTEXT INDEX tematica_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description, t.displayPrimary, t.displaySecondary, t.displayBadges]',
+  'CREATE FULLTEXT INDEX artista_search IF NOT EXISTS FOR (a:Artista) ON EACH [a.stageName, a.name, a.displayPrimary, a.displaySecondary, a.displayBadges]',
+  'CREATE FULLTEXT INDEX cancion_search IF NOT EXISTS FOR (c:Cancion) ON EACH [c.title, c.displayPrimary, c.displaySecondary, c.displayBadges]',
+  'CREATE FULLTEXT INDEX fabrica_search IF NOT EXISTS FOR (f:Fabrica) ON EACH [f.title, f.displayPrimary, f.displaySecondary, f.displayBadges]',
 
   // Index names expected by tests (aliases for clip/term terminology)
-  'CREATE FULLTEXT INDEX clip_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.artistName, j.comment, j.autoComment]',
-  'CREATE FULLTEXT INDEX term_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description]',
+  'CREATE FULLTEXT INDEX clip_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.comment, j.displayPrimary, j.displaySecondary, j.displayBadges]',
+  'CREATE FULLTEXT INDEX term_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description, t.displayPrimary, t.displaySecondary, t.displayBadges]',
 
   // Regular indexes for frequent lookups
   'CREATE INDEX jingle_timestamp IF NOT EXISTS FOR (j:Jingle) ON j.timestamp',
@@ -52,40 +53,62 @@ export async function setupSchema() {
   const client = Neo4jClient.getInstance();
 
   try {
-    console.log('Dropping existing constraints and indexes...');
-    // Get existing constraints
-    const existingConstraints = await client.executeQuery<{ name: string }>(
-      'SHOW CONSTRAINTS',
+    console.log('Dropping existing fulltext indexes that need updating...');
+    // Get existing indexes
+    const existingIndexes = await client.executeQuery<{ name: string; type: string }>(
+      'SHOW INDEXES',
       {},
       undefined,
       true
     );
     
-    // Drop existing constraints
-    for (const constraint of existingConstraints) {
-      await client.executeWrite(`DROP CONSTRAINT ${constraint.name}`);
-      console.log('Dropped constraint:', constraint.name);
+    // Only drop fulltext indexes that need to be recreated (those with display properties)
+    const fulltextIndexesToDrop = [
+      'jingle_search',
+      'clip_search',
+      'cancion_search',
+      'artista_search',
+      'tematica_search',
+      'term_search',
+      'fabrica_search'
+    ];
+    
+    for (const index of existingIndexes) {
+      if (index.type === 'FULLTEXT' && fulltextIndexesToDrop.includes(index.name)) {
+        try {
+          await client.executeWrite(`DROP INDEX ${index.name} IF EXISTS`);
+          console.log('Dropped fulltext index:', index.name);
+        } catch (err: any) {
+          console.warn(`Warning dropping index ${index.name}:`, err.message);
+        }
+      }
     }
     
-    console.log('Creating new constraints...');
-    // Create constraints
+    console.log('\nCreating constraints...');
+    // Create constraints (only if they don't exist)
     for (const constraint of constraints) {
       try {
         await client.executeWrite(constraint);
         console.log('Created constraint:', constraint.split('CREATE CONSTRAINT')[1].split('FOR')[0].trim());
       } catch (err: any) {
-        console.warn('Warning creating constraint:', err.message);
+        // Ignore errors if constraint already exists
+        if (!err.message?.includes('already exists') && !err.message?.includes('Equivalent constraint')) {
+          console.warn('Warning creating constraint:', err.message);
+        }
       }
     }
 
     console.log('\nCreating indexes...');
-    // Create indexes
+    // Create indexes (only if they don't exist)
     for (const index of indexes) {
       try {
         await client.executeWrite(index);
         console.log('Created index:', index.split('CREATE')[1].split('IF')[0].trim());
       } catch (err: any) {
-        console.warn('Warning creating index:', err.message);
+        // Ignore errors if index already exists
+        if (!err.message?.includes('already exists') && !err.message?.includes('Equivalent index')) {
+          console.warn('Warning creating index:', err.message);
+        }
       }
     }
 

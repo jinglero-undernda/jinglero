@@ -302,33 +302,11 @@ export default function AdminEntityAnalyze() {
   // in RelatedEntities to run repeatedly, creating an infinite loop
   const relationships = useMemo(() => entityType ? getRelationshipsForEntityType(entityType) : [], [entityType]);
 
-  // Extract relationship data for EntityCard (similar to inspection pages)
+  // Extract relationship data for EntityCard using centralized utility
   // MUST be called before any early returns to follow Rules of Hooks
   const relationshipData = useMemo(() => {
     if (!entity || !entityType) return undefined;
-    // First try to extract from _metadata
-    const extracted = extractRelationshipData(entity, entityType);
-    if (extracted) return extracted;
-    
-    // For jingles, also check if relationship data is directly on the entity (from publicApi)
-    if (entityType === 'jingle') {
-      const jingle = entity as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
-      const data: Record<string, unknown> = {};
-      if (jingle.cancion) data.cancion = jingle.cancion;
-      if (jingle.autores && Array.isArray(jingle.autores) && jingle.autores.length > 0) {
-        data.autores = jingle.autores;
-      }
-      if (jingle.fabrica) data.fabrica = jingle.fabrica;
-      if (jingle.jingleros && Array.isArray(jingle.jingleros) && jingle.jingleros.length > 0) {
-        data.jingleros = jingle.jingleros;
-      }
-      if (jingle.tematicas && Array.isArray(jingle.tematicas) && jingle.tematicas.length > 0) {
-        data.tematicas = jingle.tematicas;
-      }
-      return Object.keys(data).length > 0 ? data : undefined;
-    }
-    
-    return undefined;
+    return extractRelationshipData(entity, entityType);
   }, [entity, entityType]);
 
   // Debug logging for state

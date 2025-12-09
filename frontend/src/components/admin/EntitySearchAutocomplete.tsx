@@ -34,14 +34,12 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  getEntityIcon, 
-  getPrimaryText, 
-  getSecondaryText,
   getEntityTypePlural,
   type EntityType,
   type Entity
 } from '../../lib/utils/entityDisplay';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
+import EntityCard from '../common/EntityCard';
 
 export interface EntitySearchAutocompleteProps {
   /** Entity types to search (e.g., ['jingle', 'cancion', 'artista']) */
@@ -412,10 +410,7 @@ export default function EntitySearchAutocomplete({
                   </div>
                   {typeResults.map((result) => {
                     const globalIndex = results.indexOf(result);
-                    const icon = getEntityIcon(result.entityType);
                     const relationshipData = extractRelationshipData(result.entity, result.entityType);
-                    const primaryText = getPrimaryText(result.entity, result.entityType, relationshipData);
-                    const secondaryText = getSecondaryText(result.entity, result.entityType, relationshipData);
                     const isSelected = selectedIndex === globalIndex;
                     
                     return (
@@ -427,38 +422,20 @@ export default function EntitySearchAutocomplete({
                         onClick={() => handleResultClick(result)}
                         onMouseEnter={() => setSelectedIndex(globalIndex)}
                         style={{
-                          padding: '8px 12px',
+                          padding: '4px 8px',
                           cursor: 'pointer',
                           backgroundColor: isSelected ? '#333' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '14px',
-                          color: '#fff',
                           transition: 'background-color 0.15s',
                         }}
                       >
-                        <span style={{ fontSize: '16px', flexShrink: 0 }}>{icon}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ 
-                            whiteSpace: 'nowrap', 
-                            overflow: 'hidden', 
-                            textOverflow: 'ellipsis' 
-                          }}>
-                            {primaryText}
-                          </div>
-                          {secondaryText && (
-                            <div style={{ 
-                              fontSize: '12px', 
-                              color: '#999',
-                              whiteSpace: 'nowrap', 
-                              overflow: 'hidden', 
-                              textOverflow: 'ellipsis' 
-                            }}>
-                              {secondaryText}
-                            </div>
-                          )}
-                        </div>
+                        <EntityCard
+                          entity={result.entity}
+                          entityType={result.entityType}
+                          variant="contents"
+                          relationshipData={relationshipData}
+                          onClick={() => handleResultClick(result)}
+                          className=""
+                        />
                       </div>
                     );
                   })}

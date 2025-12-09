@@ -6,6 +6,25 @@ import { asyncHandler, BadRequestError } from './core';
 const router = Router();
 const db = Neo4jClient.getInstance();
 
+// Normalize query for fulltext search: remove accents and add prefix wildcard for partial matching
+function normalizeQuery(q: string): string {
+  // Remove accents (é -> e, á -> a, etc.) using Unicode normalization
+  const normalized = q.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  
+  // Add prefix wildcard for partial matching (unless query already has operators)
+  // Neo4j fulltext uses Lucene syntax - prefix wildcards (beat*) are faster and more reliable than both-side (*beat*)
+  if (!normalized.includes('*') && !normalized.includes('?') && !normalized.includes('"')) {
+    // Trim whitespace and add prefix wildcard
+    const trimmed = normalized.trim();
+    if (trimmed.length > 0) {
+      // Use prefix wildcard: "beat" becomes "beat*" (matches "beatles", "beat", "beating", etc.)
+      // This is more efficient than "*beat*" and works better with tokenization
+      return `${trimmed}*`;
+    }
+  }
+  return normalized.trim();
+}
+
 // Helper function to convert Neo4j dates to ISO strings
 function convertNeo4jDates(obj: any): any {
   if (obj === null || obj === undefined) return obj;
@@ -78,14 +97,12 @@ router.get('/', asyncHandler(async (req, res) => {
   const limitParam = req.query.limit as string;
   const offsetParam = req.query.offset as string;
   const typesParam = (req.query.types as string) || '';
-  const mode = ((req.query.mode as string) || 'basic').toLowerCase(); // 'basic' | 'fulltext'
-  const excludeWithRelationship = (req.query.excludeWithRelationship as string) || '';
 
   if (!q.trim()) {
     return res.json({ jingles: [], canciones: [], artistas: [], tematicas: [], fabricas: [] });
   }
 
-  const limitInt = Math.floor(Math.min(Math.max(parseInt(limitParam || '10', 10), 1), 100));
+  const limitInt = Math.floor(Math.min(Math.max(parseInt(limitParam || '100', 10), 1), 100));
   const offsetInt = Math.floor(Math.max(parseInt(offsetParam || '0', 10), 0));
   const limit = neo4j.int(limitInt);
   const offset = neo4j.int(offsetInt);
@@ -102,166 +119,75 @@ router.get('/', asyncHandler(async (req, res) => {
   }
   const active = (selected.length > 0 ? selected : allowed) as unknown as string[];
 
-  const useFullText = mode === 'fulltext';
+  // Normalize query for fulltext search (remove accents, add wildcards for partial matching)
+  const normalizedQuery = normalizeQuery(q);
 
-  if (useFullText) {
-    try {
-      const queriesFT: Array<Promise<any[]>> = [];
-      if (active.includes('jingles')) {
-        const qJ = `
-          CALL db.index.fulltext.queryNodes('jingle_search', $q) YIELD node, score
-          RETURN node { .id, .title, .timestamp, .songTitle, score: score } AS j
-          ORDER BY j.score DESC
-          SKIP $offset
-          LIMIT $limit
-        `;
-        queriesFT.push(db.executeQuery<any>(qJ, { q, limit, offset }));
-      } else { queriesFT.push(Promise.resolve([])); }
-
-      if (active.includes('canciones')) {
-        const qC = `
-          CALL db.index.fulltext.queryNodes('cancion_search', $q) YIELD node, score
-          RETURN node { .id, .title, score: score } AS c
-          ORDER BY c.score DESC
-          SKIP $offset
-          LIMIT $limit
-        `;
-        queriesFT.push(db.executeQuery<any>(qC, { q, limit, offset }));
-      } else { queriesFT.push(Promise.resolve([])); }
-
-      if (active.includes('artistas')) {
-        const qA = `
-          CALL db.index.fulltext.queryNodes('artista_search', $q) YIELD node, score
-          RETURN node { .id, .stageName, .name, score: score } AS a
-          ORDER BY a.score DESC
-          SKIP $offset
-          LIMIT $limit
-        `;
-        queriesFT.push(db.executeQuery<any>(qA, { q, limit, offset }));
-      } else { queriesFT.push(Promise.resolve([])); }
-
-      if (active.includes('tematicas')) {
-        const qT = `
-          CALL db.index.fulltext.queryNodes('tematica_search', $q) YIELD node, score
-          RETURN node { .id, .name, score: score } AS t
-          ORDER BY t.score DESC
-          SKIP $offset
-          LIMIT $limit
-        `;
-        queriesFT.push(db.executeQuery<any>(qT, { q, limit, offset }));
-      } else { queriesFT.push(Promise.resolve([])); }
-
-      // Fabricas don't have a fulltext index, so use basic mode (will be handled below)
-      if (active.includes('fabricas')) {
-        queriesFT.push(Promise.resolve([]));
-      }
-
-      const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queriesFT);
-      // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
-      // and convert Neo4j dates to ISO strings, and add type field for easier handling in frontend
-      const jingles = jinglesRaw.map((r: any) => ({ ...convertNeo4jDates(r.j || r), type: 'jingle' }));
-      const canciones = cancionesRaw.map((r: any) => ({ ...convertNeo4jDates(r.c || r), type: 'cancion' }));
-      const artistas = artistasRaw.map((r: any) => ({ ...convertNeo4jDates(r.a || r), type: 'artista' }));
-      const tematicas = tematicasRaw.map((r: any) => ({ ...convertNeo4jDates(r.t || r), type: 'tematica' }));
-      const fabricas = fabricasRaw.map((r: any) => ({ ...convertNeo4jDates(r.f || r), type: 'fabrica' }));
-      return res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'fulltext' } });
-    } catch (_err) {
-      // Fall back to basic mode below
-    }
-  }
-
-  // Fallback/basic mode: case-insensitive contains
-  const text = q.toLowerCase();
-  const queries: Array<Promise<any[]>> = [];
+  // Fulltext search only
+  const queriesFT: Array<Promise<any[]>> = [];
   if (active.includes('jingles')) {
-    // Phase 4: Build WHERE clause with optional relationship filtering
-    let whereClause = `(j.title IS NOT NULL AND j.title <> '' AND toLower(j.title) CONTAINS $text)
-         OR (j.songTitle IS NOT NULL AND j.songTitle <> '' AND toLower(j.songTitle) CONTAINS $text)
-         OR (j.comment IS NOT NULL AND j.comment <> '' AND toLower(j.comment) CONTAINS $text)
-         OR (j.autoComment IS NOT NULL AND j.autoComment <> '' AND toLower(j.autoComment) CONTAINS $text)`;
-    
-    // Add filtering for cardinality constraints
-    if (excludeWithRelationship === 'appears_in') {
-      whereClause = `(${whereClause}) AND j.fabricaId IS NULL`;
-    } else if (excludeWithRelationship === 'versiona') {
-      whereClause = `(${whereClause}) AND j.cancionId IS NULL`;
-    }
-    
-    const jinglesQuery = `
-      MATCH (j:Jingle)
-      WHERE ${whereClause}
-      RETURN j { .id, .title, .timestamp, .songTitle } AS j
-      ORDER BY j.title
+    const qJ = `
+      CALL db.index.fulltext.queryNodes('jingle_search', $q) YIELD node, score
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS j
+      ORDER BY j.score DESC
       SKIP $offset
       LIMIT $limit
     `;
-    queries.push(db.executeQuery<any>(jinglesQuery, { text, limit, offset }));
-  } else { queries.push(Promise.resolve([])); }
+    queriesFT.push(db.executeQuery<any>(qJ, { q: normalizedQuery, limit, offset }));
+  } else { queriesFT.push(Promise.resolve([])); }
 
   if (active.includes('canciones')) {
-    const cancionesQuery = `
-      MATCH (c:Cancion)
-      OPTIONAL MATCH (a:Artista)-[:AUTOR_DE]->(c)
-      WITH c, collect(DISTINCT a) AS artistas
-      WHERE (c.title IS NOT NULL AND c.title <> '' AND toLower(c.title) CONTAINS $text)
-         OR ANY(artista IN artistas WHERE 
-                artista IS NOT NULL AND 
-                ((artista.stageName IS NOT NULL AND artista.stageName <> '' AND artista.stageName <> 'None' AND toLower(artista.stageName) CONTAINS $text)
-                 OR (artista.name IS NOT NULL AND artista.name <> '' AND artista.name <> 'None' AND toLower(artista.name) CONTAINS $text)))
-      RETURN DISTINCT c { .id, .title } AS c
-      ORDER BY c.title
+    const qC = `
+      CALL db.index.fulltext.queryNodes('cancion_search', $q) YIELD node, score
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS c
+      ORDER BY c.score DESC
       SKIP $offset
       LIMIT $limit
     `;
-    queries.push(db.executeQuery<any>(cancionesQuery, { text, limit, offset }));
-  } else { queries.push(Promise.resolve([])); }
+    queriesFT.push(db.executeQuery<any>(qC, { q: normalizedQuery, limit, offset }));
+  } else { queriesFT.push(Promise.resolve([])); }
 
   if (active.includes('artistas')) {
-    const artistasQuery = `
-      MATCH (a:Artista)
-      WHERE (a.stageName IS NOT NULL AND a.stageName <> '' AND a.stageName <> 'None' AND toLower(a.stageName) CONTAINS $text)
-         OR (a.name IS NOT NULL AND a.name <> '' AND a.name <> 'None' AND toLower(a.name) CONTAINS $text)
-      RETURN a { .id, .stageName, .name } AS a
-      ORDER BY a.stageName
+    const qA = `
+      CALL db.index.fulltext.queryNodes('artista_search', $q) YIELD node, score
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS a
+      ORDER BY a.score DESC
       SKIP $offset
       LIMIT $limit
     `;
-    queries.push(db.executeQuery<any>(artistasQuery, { text, limit, offset }));
-  } else { queries.push(Promise.resolve([])); }
+    queriesFT.push(db.executeQuery<any>(qA, { q: normalizedQuery, limit, offset }));
+  } else { queriesFT.push(Promise.resolve([])); }
 
   if (active.includes('tematicas')) {
-    const tematicasQuery = `
-      MATCH (t:Tematica)
-      WHERE t.name IS NOT NULL AND t.name <> '' AND toLower(t.name) CONTAINS $text
-      RETURN t { .id, .name } AS t
-      ORDER BY t.name
+    const qT = `
+      CALL db.index.fulltext.queryNodes('tematica_search', $q) YIELD node, score
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS t
+      ORDER BY t.score DESC
       SKIP $offset
       LIMIT $limit
     `;
-    queries.push(db.executeQuery<any>(tematicasQuery, { text, limit, offset }));
-  } else { queries.push(Promise.resolve([])); }
+    queriesFT.push(db.executeQuery<any>(qT, { q: normalizedQuery, limit, offset }));
+  } else { queriesFT.push(Promise.resolve([])); }
 
   if (active.includes('fabricas')) {
-    const fabricasQuery = `
-      MATCH (f:Fabrica)
-      WHERE f.title IS NOT NULL AND f.title <> '' AND toLower(f.title) CONTAINS $text
-      RETURN f { .id, .title, .date } AS f
-      ORDER BY f.date DESC
+    const qF = `
+      CALL db.index.fulltext.queryNodes('fabrica_search', $q) YIELD node, score
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS f
+      ORDER BY f.score DESC
       SKIP $offset
       LIMIT $limit
     `;
-    queries.push(db.executeQuery<any>(fabricasQuery, { text, limit, offset }));
-  } else { queries.push(Promise.resolve([])); }
+    queriesFT.push(db.executeQuery<any>(qF, { q: normalizedQuery, limit, offset }));
+  } else { queriesFT.push(Promise.resolve([])); }
 
-  const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queries);
-  // Extract entity data from nested structure (e.g., { j: { id, title } } -> { id, title })
-  // and convert Neo4j dates to ISO strings, and add type field for easier handling in frontend
+  const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queriesFT);
+  // Extract entity data from nested structure and convert Neo4j dates to ISO strings
+  // All entities return only display properties: id, displayPrimary, displaySecondary, displayBadges
   const jingles = jinglesRaw.map((r: any) => ({ ...convertNeo4jDates(r.j || r), type: 'jingle' }));
   const canciones = cancionesRaw.map((r: any) => ({ ...convertNeo4jDates(r.c || r), type: 'cancion' }));
   const artistas = artistasRaw.map((r: any) => ({ ...convertNeo4jDates(r.a || r), type: 'artista' }));
   const tematicas = tematicasRaw.map((r: any) => ({ ...convertNeo4jDates(r.t || r), type: 'tematica' }));
   const fabricas = fabricasRaw.map((r: any) => ({ ...convertNeo4jDates(r.f || r), type: 'fabrica' }));
-  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'basic' } });
+  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'fulltext' } });
 }));
 
 export default router;

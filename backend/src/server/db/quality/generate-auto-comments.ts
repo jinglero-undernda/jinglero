@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * Generate auto-comments for all existing Jingle entities
+ * Generate displaySecondary for all existing Jingle entities
  * 
- * This script backfills the autoComment property for all Jingles in the database.
- * The autoComment is a system-generated summary that includes Fabrica date/timestamp,
+ * This script backfills the displaySecondary property for all Jingles in the database.
+ * The displaySecondary is a system-generated summary that includes Fabrica date/timestamp,
  * Title, Cancion, Autores, Primary Tematica, and Jingleros.
+ * 
+ * Note: displaySecondary replaces the deprecated autoComment property.
  * 
  * Usage:
  *   npx ts-node backend/src/server/db/quality/generate-auto-comments.ts [options]
@@ -17,7 +19,7 @@
  */
 
 import { Neo4jClient } from '../index';
-import { generateJingleAutoComment, updateJingleAutoComment } from '../../utils/jingleAutoComment';
+import { generateDisplaySecondary, updateDisplayProperties } from '../../utils/displayProperties';
 import * as readline from 'readline';
 
 interface CliOptions {
@@ -59,7 +61,7 @@ function parseArgs(): CliOptions {
 
 function printHelp(): void {
   console.log(`
-Generate Auto-Comments for Jingles
+Generate displaySecondary for Jingles
 
 Usage:
   npx ts-node backend/src/server/db/quality/generate-auto-comments.ts [options]
@@ -87,7 +89,7 @@ async function main(): Promise<void> {
   const db = Neo4jClient.getInstance();
   
   console.log('='.repeat(60));
-  console.log('Generate Auto-Comments for Jingles');
+  console.log('Generate displaySecondary for Jingles');
   console.log('='.repeat(60));
   console.log(`Mode: ${options.dryRun ? 'DRY-RUN (no changes will be made)' : 'EXECUTE (updating database)'}`);
   if (options.limit) {
@@ -100,12 +102,12 @@ async function main(): Promise<void> {
     const limitClause = options.limit ? `LIMIT ${options.limit}` : '';
     const query = `
       MATCH (j:Jingle)
-      RETURN j.id AS id, j.autoComment AS currentAutoComment
+      RETURN j.id AS id, j.displaySecondary AS currentDisplaySecondary
       ORDER BY j.createdAt ASC
       ${limitClause}
     `;
     
-    const jingles = await db.executeQuery<{ id: string; currentAutoComment: string | null }>(query);
+    const jingles = await db.executeQuery<{ id: string; currentDisplaySecondary: string | null }>(query);
     
     if (jingles.length === 0) {
       console.log('No Jingles found in database.');
@@ -124,24 +126,24 @@ async function main(): Promise<void> {
       const progress = `[${i + 1}/${jingles.length}]`;
       
       try {
-        const newAutoComment = await generateJingleAutoComment(db, jingle.id);
-        const currentAutoComment = jingle.currentAutoComment || '';
+        const newDisplaySecondary = await generateDisplaySecondary(db, 'jingle', jingle.id);
+        const currentDisplaySecondary = jingle.currentDisplaySecondary || '';
         
-        if (newAutoComment === currentAutoComment) {
+        if (newDisplaySecondary === currentDisplaySecondary) {
           unchanged++;
           console.log(`${progress} ${jingle.id}: No change needed`);
         } else {
           updated++;
           console.log(`${progress} ${jingle.id}:`);
-          if (currentAutoComment) {
-            console.log(`  Current: ${currentAutoComment.substring(0, 80)}${currentAutoComment.length > 80 ? '...' : ''}`);
+          if (currentDisplaySecondary) {
+            console.log(`  Current: ${currentDisplaySecondary.substring(0, 80)}${currentDisplaySecondary.length > 80 ? '...' : ''}`);
           } else {
             console.log(`  Current: (empty)`);
           }
-          console.log(`  New:     ${newAutoComment.substring(0, 80)}${newAutoComment.length > 80 ? '...' : ''}`);
+          console.log(`  New:     ${newDisplaySecondary.substring(0, 80)}${newDisplaySecondary.length > 80 ? '...' : ''}`);
           
           if (!options.dryRun) {
-            await updateJingleAutoComment(db, jingle.id);
+            await updateDisplayProperties(db, 'jingle', jingle.id);
             console.log(`  ✓ Updated`);
           } else {
             console.log(`  (would update)`);

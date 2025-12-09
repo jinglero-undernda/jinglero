@@ -345,34 +345,10 @@ export default function EntityList({ type, title }: Props) {
         // Use EntityCard for supported entity types
         <div style={{ display: 'grid', gap: '0.75rem', marginTop: '1rem' }}>
           {items.map((item) => {
-            // Extract relationship data - first try from _metadata
-            let relationshipData = extractRelationshipData(item, entityCardType);
-            
-            // For jingles, if _metadata is not available, check fetched relationship data or entity directly
-            if (entityCardType === 'jingle' && !relationshipData) {
-              // First check if we fetched relationship data for this jingle
-              if (jingleRelationshipData[item.id]) {
-                relationshipData = jingleRelationshipData[item.id];
-              } else {
-                // Fallback: check if relationship data is directly on entity
-                const jingle = item as Jingle & { cancion?: Cancion; autores?: Artista[]; fabrica?: Fabrica; jingleros?: Artista[]; tematicas?: Tematica[] };
-                const data: Record<string, unknown> = {};
-                if (jingle.cancion) data.cancion = jingle.cancion;
-                if (jingle.autores && Array.isArray(jingle.autores) && jingle.autores.length > 0) {
-                  data.autores = jingle.autores;
-                }
-                if (jingle.fabrica) data.fabrica = jingle.fabrica;
-                if (jingle.jingleros && Array.isArray(jingle.jingleros) && jingle.jingleros.length > 0) {
-                  data.jingleros = jingle.jingleros;
-                }
-                if (jingle.tematicas && Array.isArray(jingle.tematicas) && jingle.tematicas.length > 0) {
-                  data.tematicas = jingle.tematicas;
-                }
-                if (Object.keys(data).length > 0) {
-                  relationshipData = data;
-                }
-              }
-            }
+            // Extract relationship data using centralized utility with pre-fetched data option
+            const relationshipData = extractRelationshipData(item, entityCardType, {
+              preFetchedData: entityCardType === 'jingle' ? jingleRelationshipData[item.id] : undefined,
+            });
             
             return (
               <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>

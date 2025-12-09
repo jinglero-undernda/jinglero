@@ -6,6 +6,7 @@ import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { publicApi } from '../../lib/api';
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
+import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 
 // Extended Jingle type that includes relationship data from API
 interface JingleWithRelationships extends Jingle {
@@ -53,14 +54,10 @@ export default function InspectJingle() {
 
   const relationships = getRelationshipsForEntityType('jingle');
 
-  // Extract relationship data for EntityCard
-  const relationshipData = jingle ? {
-    fabrica: jingle.fabrica,
-    cancion: jingle.cancion,
-    jingleros: jingle.jingleros,
-    autores: jingle.autores,
-    tematicas: jingle.tematicas,
-  } : undefined;
+  // Extract relationship data for EntityCard using centralized utility
+  const relationshipData = jingle 
+    ? extractRelationshipData(jingle, 'jingle')
+    : undefined;
 
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
