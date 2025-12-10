@@ -4,9 +4,11 @@
 
 - **Status**: draft (design intent documented)
 - **Last Updated**: 2025-12-09
+- **Last Validated**: 2025-12-09
 - **Code Reference**: N/A (to be implemented)
 - **Related Implementation**: `frontend/src/pages/FabricaPage.tsx` (current `/show` route prototype)
 - **Placeholder Location**: `frontend/src/components/composite/FeaturedFabricaPlaceholder.tsx` (landing page)
+- **Validation Report**: `PRODUCTION_BELT_COMPONENT_DESIGN_2025-12-09_VALIDATION.md`
 
 ## Overview
 
@@ -29,6 +31,25 @@ The Production Belt component allows users to:
 3. **Spatial Navigation**: Users can slide horizontally to explore past and future Jingles
 4. **Information on Demand**: Detailed Jingle information is available but doesn't obstruct the main view
 5. **Metaphorical Consistency**: The "production belt" and "oven" metaphor guides the visual design
+
+### Important Distinction: Active vs Selected Jingle
+
+**Active Jingle**:
+
+- The Jingle currently being played (determined by video playback timestamp)
+- **NOT displayed as a box** - exists only in the central processor area
+- Video playback shows this Jingle's segment
+- Automatically updates as playback progresses
+
+**Selected Jingle**:
+
+- A Past or Future Jingle box that the user has clicked to view details
+- **IS displayed as a highlighted box** in either the Past or Future container
+- Information panel shows this Jingle's properties
+- Can be different from the active Jingle (user can view past/future Jingle details while video plays)
+- Visual highlight (border, glow, or color change) distinguishes it from other boxes
+
+**Key Point**: Only Past and Future Jingle boxes can be selected/highlighted. The active Jingle has no box representation - it only exists in the central processor.
 
 ## Conceptual Design
 
@@ -200,16 +221,16 @@ interface ProductionBeltProps {
   - Title or song title
   - Artist name (if available)
   - Thumbnail or icon
-- Visual indicator for active state (highlighted border, glow effect)
-- Visual indicator for selected state (different styling)
+- Visual indicator for selected state (highlighted border, glow effect)
 
 **States**:
 
 - **Default**: Normal box appearance
-- **Active**: Currently playing (highlighted, may show "processing" animation)
-- **Selected**: User has selected this Jingle for detailed view (different highlight)
+- **Selected**: User has selected this Jingle for detailed view (highlighted border, glow effect, or distinct color)
 - **Past**: Already processed (may be dimmed or styled differently)
 - **Future**: Not yet processed (normal appearance)
+
+**Important Note**: The active Jingle (currently playing) is NOT displayed as a box. It exists only in the central processor area where the video is playing. Only Past and Future Jingles are displayed as boxes, and only these boxes can be selected/highlighted when the user views their properties.
 
 **Interactions**:
 
@@ -223,13 +244,14 @@ interface ProductionBeltProps {
 ```typescript
 interface JingleBoxProps {
   jingle: JingleTimelineItem;
-  isActive: boolean;
-  isSelected: boolean;
+  isSelected: boolean; // True when user has selected this Jingle to view details
   position: "past" | "future";
-  onSelect: () => void;
-  onSkipTo: () => void;
+  onSelect: () => void; // Called when user clicks to view this Jingle's details
+  onSkipTo: () => void; // Called when user clicks to skip video to this Jingle's timestamp
 }
 ```
+
+**Note**: There is no `isActive` prop because the active Jingle is not displayed as a box - it exists only in the central processor.
 
 ### CentralProcessor Component
 
@@ -263,7 +285,13 @@ interface JingleBoxProps {
 - Full JingleMetadata display (reuses existing JingleMetadata component)
 - All relationship data (Jingleros, Cancion, Autores, Tematicas)
 - Timestamp and navigation controls
-- Replay button for current Jingle
+- Replay button (only shown when selected Jingle is the active Jingle)
+
+**Display Logic**:
+
+- By default, shows information for the active Jingle (in processor)
+- When user selects a Past or Future Jingle box, shows that Jingle's information instead
+- Selected Jingle may be different from active Jingle
 
 **Layout**:
 
@@ -307,9 +335,10 @@ interface InformationPanelProps {
 - **Action**: User clicks on a Jingle box (past or future)
 - **Effect**:
   - Information panel updates to show selected Jingle details
-  - Selected box is visually highlighted
+  - Selected box is visually highlighted (distinct from other boxes)
   - Video playback continues (does not seek unless explicitly requested)
-- **Implementation**: State update for selected Jingle ID
+  - Selected Jingle may be different from the active Jingle (which is in the processor)
+- **Implementation**: State update for selected Jingle ID (independent of active Jingle ID)
 
 #### 3. Skip to Jingle
 
@@ -369,10 +398,11 @@ interface InformationPanelProps {
 **Visual Hierarchy**:
 
 - Central processor is most prominent (largest, most visual weight)
-- Active Jingle box is highlighted (border, glow, or color change)
-- Selected Jingle box has distinct styling (different from active)
+- Selected Jingle box is highlighted (border, glow, or color change) - indicates which Jingle's details are being viewed
 - Past Jingles may be slightly dimmed
 - Future Jingles have normal appearance
+
+**Note**: The active Jingle (currently playing) is not a box - it exists only in the central processor. Only Past and Future Jingle boxes can be selected/highlighted when viewing their properties.
 
 ### Animation and Transitions
 
@@ -380,13 +410,13 @@ interface InformationPanelProps {
 
 - Smooth transitions as Jingles move from Future → Processor → Past
 - CSS transitions for position changes
-- Optional: Slide animation when Jingle becomes active
+- Optional: Slide animation when Jingle transitions from Future to Processor
 
 **Box Interactions**:
 
 - Hover effects (scale, shadow, or color change)
 - Click feedback (brief highlight or animation)
-- Active state transitions (smooth highlight appearance)
+- Selected state transitions (smooth highlight appearance when user selects a box)
 
 **Panel Docking**:
 
@@ -447,8 +477,8 @@ interface ProductionBeltState {
   isPlaying: boolean;
 
   // Jingle Management
-  activeJingleId: string | null; // Determined by currentTime
-  selectedJingleId: string | null; // User selection, defaults to active
+  activeJingleId: string | null; // Determined by currentTime (exists in processor, not as a box)
+  selectedJingleId: string | null; // User selection (Past or Future box), defaults to active
 
   // Layout
   pastJingles: JingleTimelineItem[];
@@ -463,9 +493,9 @@ interface ProductionBeltState {
 **State Updates**:
 
 - `currentTime` updates from YouTube player events
-- `activeJingleId` calculated from `currentTime` and Jingle timestamps
+- `activeJingleId` calculated from `currentTime` and Jingle timestamps (active Jingle is in processor, not a box)
 - `pastJingles` and `futureJingles` recalculated when `activeJingleId` changes
-- `selectedJingleId` updated by user interaction (defaults to `activeJingleId`)
+- `selectedJingleId` updated by user interaction when clicking a Past or Future box (defaults to `activeJingleId` for information panel display)
 
 ### YouTube Player Integration
 
@@ -497,9 +527,8 @@ interface ProductionBeltState {
 **Lazy Loading**:
 
 - Full Jingle data (with relationships) fetched when:
-  - Jingle becomes active (for information panel)
-  - User selects a Jingle box
-  - User expands a Jingle box (if expandable)
+  - Jingle becomes active (for information panel default display)
+  - User selects a Past or Future Jingle box (to view its details)
 
 **Caching**:
 
@@ -590,8 +619,8 @@ interface ProductionBeltState {
 
 - Create JingleBox component
 - Render boxes in Past and Future containers
-- Implement active Jingle detection
-- Basic box interactions (select, skip to)
+- Implement selected Jingle highlighting (when user views a box's details)
+- Basic box interactions (select to view details, skip to timestamp)
 
 ### Phase 3: Information Panel
 
@@ -602,10 +631,11 @@ interface ProductionBeltState {
 
 ### Phase 4: Playback Integration
 
-- Connect YouTube player time updates to active Jingle
+- Connect YouTube player time updates to active Jingle (in processor)
 - Implement automatic Jingle movement (Future → Processor → Past)
 - Handle seeking and playback state
-- Auto-scroll to keep active Jingle visible (optional)
+- Update information panel when active Jingle changes (if showing active Jingle)
+- Auto-scroll to keep processor visible (optional)
 
 ### Phase 5: Polish and Optimization
 
@@ -739,11 +769,11 @@ interface ProductionBeltState {
    - Fixed size or responsive?
    - How many boxes visible at once?
 
-2. **Auto-scroll**: Should the conveyor belt auto-scroll to keep active Jingle visible?
+2. **Auto-scroll**: Should the conveyor belt auto-scroll to keep the central processor (active Jingle area) visible?
 
    - Always, never, or user preference?
 
-3. **Box Content**: What information should be visible on boxes?
+3. **Box Content**: What information should be visible on Past/Future Jingle boxes?
 
    - Minimal (timestamp + title)?
    - More detailed (thumbnail, artist)?
@@ -767,9 +797,10 @@ interface ProductionBeltState {
 
 ## Change History
 
-| Date       | Change                                 | Author        |
-| ---------- | -------------------------------------- | ------------- |
-| 2025-12-09 | Initial design intent document created | Design System |
+| Date       | Change                                              | Author        |
+| ---------- | --------------------------------------------------- | ------------- |
+| 2025-12-09 | Initial design intent document created              | Design System |
+| 2025-12-09 | Validation completed - all code references verified | AI Assistant  |
 
 ---
 
@@ -777,4 +808,5 @@ interface ProductionBeltState {
 
 - Current Implementation: `frontend/src/pages/FabricaPage.tsx`
 - Placeholder: `frontend/src/components/composite/FeaturedFabricaPlaceholder.tsx`
+- Validation Report: `PRODUCTION_BELT_COMPONENT_DESIGN_2025-12-09_VALIDATION.md`
 - Design System Playbook: `docs/2_frontend_ui-design-system/playbooks/PLAYBOOK_02_01_DOCUMENT_DESIGN_INTENT.md`
