@@ -148,30 +148,77 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
         return;
       }
 
+      // Store startSeconds in a variable to use in callbacks
+      const initialStartSeconds = startSeconds > 0 ? Math.floor(startSeconds) : 0;
+
       try {
+        // Initialize player with start parameter in playerVars
+        // This should show the thumbnail at the correct timestamp
         const player = new window.YT.Player(containerRef.current, {
           width: '100%',
           height: '100%',
           videoId,
           playerVars: {
             autoplay: autoplay ? 1 : 0,
-            start: startSeconds > 0 ? Math.floor(startSeconds) : undefined,
+            start: initialStartSeconds > 0 ? initialStartSeconds : undefined,
             controls: controls ? 1 : 0,
             rel: showRelatedVideos ? 1 : 0,
             enablejsapi: enablejsapi ? 1 : 0,
             modestbranding: 1,
-            playsinline: 1, // Required for iOS to play inline instead of opening YouTube app
-            origin: window.location.origin, // Helps with security and mobile compatibility
+            playsinline: 1,
+            origin: window.location.origin,
           },
           events: {
             onReady: (event) => {
               playerRef.current = event.target;
               setIsPlayerReady(true);
               setError(null);
+              
+              // Even though we set start in playerVars, also cue it to ensure it's positioned correctly
+              if (initialStartSeconds > 0 && playerRef.current) {
+                try {
+                  // Use cueVideoById to ensure the video is cued at the correct position
+                  // This helps ensure the thumbnail shows at the right timestamp
+                  playerRef.current.cueVideoById(videoId, initialStartSeconds);
+                } catch (err) {
+                  console.warn('Error cueing video at start position:', err);
+                }
+              }
+              
               onReady?.();
             },
             onStateChange: (event) => {
-              onStateChange?.(event.data);
+              const state = event.data;
+              
+              // When video starts playing, immediately check and seek if needed
+              // This is critical because YouTube might reset the position when play is clicked
+              if (state === 1 && initialStartSeconds > 0 && playerRef.current) {
+                // Use requestAnimationFrame to check immediately after state change
+                requestAnimationFrame(() => {
+                  if (playerRef.current) {
+                    try {
+                      const currentTime = playerRef.current.getCurrentTime();
+                      // If we're more than 1 second away from target, seek immediately
+                      if (currentTime !== null && Math.abs(currentTime - initialStartSeconds) > 1) {
+                        playerRef.current.seekTo(initialStartSeconds, true);
+                        // Double-check after a brief delay
+                        setTimeout(() => {
+                          if (playerRef.current) {
+                            const checkTime = playerRef.current.getCurrentTime();
+                            if (checkTime !== null && Math.abs(checkTime - initialStartSeconds) > 1) {
+                              playerRef.current.seekTo(initialStartSeconds, true);
+                            }
+                          }
+                        }, 200);
+                      }
+                    } catch (err) {
+                      console.warn('Error seeking to start position on play:', err);
+                    }
+                  }
+                });
+              }
+              
+              onStateChange?.(state);
             },
             onError: (event) => {
               setError(`YouTube player error: ${event.data}`);
