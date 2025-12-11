@@ -2,16 +2,18 @@
 
 ## Status
 
-- **Status**: draft (design intent documented)
+- **Status**: draft (design intent documented, not yet implemented)
 - **Last Updated**: 2025-12-10
-- **Last Validated**: not yet validated
+- **Last Validated**: 2025-12-10
+- **Validation Status**: ⚠️ Major discrepancies found - design intent does not match current implementation
+- **Validation Report**: `PRODUCTION_BELT_COMPONENT_DESIGN_2025-12-10_VALIDATION.md`
 - **Code Reference**:
   - `frontend/src/components/production-belt/ProductionBelt.tsx:1-218`
   - `frontend/src/components/production-belt/ConveyorBelt.tsx:1-87`
   - `frontend/src/components/production-belt/InformationPanel.tsx:1-55`
   - `frontend/src/components/production-belt/JingleBox.tsx:1-69`
   - `frontend/src/styles/components/production-belt.css:1-235`
-- **Related Implementation**: Current Production Belt implementation (2025-12-09)
+- **Related Implementation**: Current Production Belt implementation (2025-12-09) - uses horizontal scrolling layout, not the industrial factory design described in this document
 - **Previous Design Document**: `PRODUCTION_BELT_COMPONENT_DESIGN_2025-12-09.md`
 
 ## Overview
@@ -206,27 +208,18 @@ Based on the design specification, the Production Belt component consists of thr
 
 ## Component Specifications
 
+This section provides technical implementation specifications for the three core components. For visual design and functional descriptions, refer to the [Core Elements](#core-elements) section above.
+
 ### 1. CRT Monitor Component (Main Video Player)
 
-**Purpose**: Display video playback in a retro CRT monitor style
+**Technical Implementation**:
 
-**Visual Specifications**:
-
-- **Frame**: Dark, rounded corners, typical CRT television appearance
-- **Screen Area**: 16:9 aspect ratio video player embedded in monitor
-- **Controls**:
-  - Progress bar: "0:00 / 0:00" format
-  - Skip Back button: Large yellow button
-  - Skip Forward button: Large blue button
-- **Indicator Lights**: Four small green lights below the monitor
-
-**Functional Specifications**:
-
-- Embeds YouTubePlayer component
-- Never remounts (continuous playback)
-- Video controls are nested in the YouTubePlayer component
-- Provides skip forward/backward and pause/play controls (on the border of the CRT monitor)
-- Provides a status (playing, paused, buffering) indicator light (green, yellow, red) below the monitor
+- **Component Structure**: Wraps YouTubePlayer component within CRT-styled frame
+- **Video Player**: Embeds YouTubePlayer component (never remounts for continuous playback)
+- **Aspect Ratio**: 16:9 for video content
+- **Controls Integration**: Video controls (progress bar, volume, fullscreen) are nested within YouTubePlayer component
+- **External Controls**: Three buttons (skip forward, skip backward, pause/play) and one status indicator light positioned below the monitor frame
+- **Status Indicator**: Single light with three states (red: buffering, yellow: paused, green: playing)
 
 **Code Reference**:
 
@@ -234,59 +227,30 @@ Based on the design specification, the Production Belt component consists of thr
 - YouTubePlayer: `frontend/src/components/player/YouTubePlayer.tsx`
 - Styles: `frontend/src/styles/components/production-belt.css:72-94`
 
-**Design Notes**:
+**Implementation Notes**:
 
-- The CRT styling should be prominent but not interfere with video playback (the edges overlapping the video is acceptable)
-- Controls should blend into the CRT styling and not be too intrusive
-- Indicator lights provide visual feedback for system status
+- CRT frame styling should overlap video edges slightly (acceptable design choice)
+- Monitor frame must not interfere with video playback functionality
+- Status indicator light state managed by YouTubePlayer playback state
 
 ### 2. Machine Control Panel Component
 
-**Purpose**: Provide interactive controls and information display in an industrial machine interface style
+**Technical Implementation**:
 
-**Visual Specifications**:
-
-- **Panel Style**: Large metallic interface with industrial aesthetic
-- **Connections**: Visual pipes connecting to monitor (with steam effects)
-- **Pressure Gauge**: Visible on connecting pipe (showing ~20)
-
-**Control Sections**:
-
-**A. Category Buttons (Top)**:
-
-- Five buttons with indicator lights:
-  - JINGLAZO (yellow light)
-  - JDD (red light)
-  - PRECARIO (green light)
-  - VIVO (yellow light)
-  - CLÁSICO (red light)
-- Two gauges above buttons (green and red needles)
-
-**B. Information Fields (Middle)**:
-
-- Five text fields with industrial labels:
-  - SEGMENT: [Jingle title]
-  - RAW MATERIAL: [Song name]
-  - SUPPLIER: [Author/artist]
-  - WORKER: [Jinglero name]
-  - TAGS: [Topics/themes]
-
-**C. Action Buttons (Bottom)**:
-
-- Four buttons:
-  - SKIP TO
-  - OPEN SONG
-  - OPEN SUPPLIER
-  - OPEN JINGLERO
-- Vent and three indicator lights (yellow, red, green)
-
-**Functional Specifications**:
-
-- Category buttons: Filter or categorize Jingles by type
-- Information fields: Display current/selected Jingle metadata
-- Action buttons: Navigate to Jingle or open related entities
-- Indicator lights: Show system status and selected categories
-- Gauges: Display playback metrics or system status
+- **Component Structure**: Replaces current InformationPanel with industrial-styled interface
+- **Layout Sections**: Three distinct sections (top: category indicators, middle: information fields, right of each information field: action buttons)
+- **Category Indicators**: Five boolean indicator lights corresponding to Jingle properties (JINGLAZO, JDD, PRECARIO, VIVO, CLÁSICO)
+  - State: Off with red tint when property is false/null, lit green when property is true
+- **Information Fields**: Five read-only text fields displaying Jingle metadata
+  - Field labels: "JINGLE", "CANCION", "PROVEEDOR", "JINGLERO", "TEMATICAS"
+  - Data source: Jingle metadata via Public API
+  - Empty state: Fields display empty when data is missing
+- **Action Buttons**: Five buttons positioned to the right of each information field
+  - ">>" button: Navigate to selected Jingle timestamp
+  - "VER" buttons (4): Open related entity detail pages in new tabs (song, supplier, jinglero, tematicas)
+- **Decorative Elements**: Two pressure gauges (green and red needles), steam effects from pipes, vent with three indicator lights at bottom
+  - Gauges: Purely decorative (TBD for future metrics display)
+  - Bottom indicator lights: Purely decorative (TBD for future system status)
 
 **Code Reference**:
 
@@ -294,33 +258,26 @@ Based on the design specification, the Production Belt component consists of thr
 - JingleMetadata: `frontend/src/components/player/JingleMetadata.tsx`
 - Styles: `frontend/src/styles/components/production-belt.css:165-208`
 
-**Design Notes**:
+**Implementation Notes**:
 
-- Replaces current InformationPanel with more immersive industrial interface
-- Uses factory terminology to match the metaphor
-- Indicator lights provide visual feedback
-- Gauges add to the industrial aesthetic
+- Control panel must cover conveyor belt at bottom (opening allows belt to slide in/out)
+- Boolean indicator lights update based on active/selected Jingle properties
+- Information fields update when Jingle selection changes
+- Action buttons trigger navigation or open new tabs based on entity type
 
 ### 3. Conveyor Belt Component (Sequence of Jingles)
 
-**Purpose**: Visualize Jingles as metallic boxes moving along a production line
+**Technical Implementation**:
 
-**Visual Specifications**:
-
-- **Belt Style**: Industrial conveyor belt with metallic appearance
-- **Box Design**: Metallic boxes with:
-  - Label (Jingle title or category name)
-  - Three indicator lights (red, yellow, green)
-- **Background**: Industrial setting with gears, pipes, machinery
-- **Movement**: Boxes move along the belt (temporal flow)
-
-**Functional Specifications**:
-
-- Displays Past and Future Jingles as boxes
-- Active Jingle is "processed" in the monitor (not shown as a box)
-- Boxes can be clicked to select/view details
-- Boxes move as playback progresses
-- Visual indicators show box status
+- **Component Structure**: Horizontal scrolling container with metallic belt surface
+- **Box Rendering**: Displays all the Jingles in the Fabrica as metallic boxes **This is a change from previous implementation**
+- **Box Elements**:
+  - Label: Displays Jingle title using `displayPrimary` property (Title or song/author)
+  - Indicator Lights: Two lights per box
+    - Playing indicator: Lit green when Jingle is currently playing
+    - Selected indicator: Lit green when Jingle is selected and displayed in control panel
+- **Movement**: Boxes animate along belt during horizontal scroll navigation
+- **Background Elements**: Industrial setting with gears, pipes, and machinery (decorative)
 
 **Code Reference**:
 
@@ -328,12 +285,12 @@ Based on the design specification, the Production Belt component consists of thr
 - JingleBox: `frontend/src/components/production-belt/JingleBox.tsx:1-69`
 - Styles: `frontend/src/styles/components/production-belt.css:33-163`
 
-**Design Notes**:
+**Implementation Notes**:
 
-- Boxes maintain industrial metallic aesthetic
-- Indicator lights on boxes show status (active, selected, etc.)
-- Labels can show Jingle title or category (JINGLAZO, PRECARIO, etc.)
-- Belt connects monitor (processing) to control panel (monitoring)
+- Belt extends full width of screen (behind control panel)
+- Horizontal scrolling allows navigation through all Jingles
+- Box click updates selected Jingle and control panel information
+- Box indicator lights update based on playing and selected states
 
 ## Visual Design Details
 
@@ -633,10 +590,11 @@ ProductionBelt (Root)
 
 ## Change History
 
-| Date       | Change                                           | Author        |
-| ---------- | ------------------------------------------------ | ------------- |
-| 2025-12-10 | Initial re-shaped design intent document created | Design System |
-| 2025-12-10 | Core elements identified and documented          | AI Assistant  |
+| Date       | Change                                                                                       | Author        |
+| ---------- | -------------------------------------------------------------------------------------------- | ------------- |
+| 2025-12-10 | Initial re-shaped design intent document created                                             | Design System |
+| 2025-12-10 | Core elements identified and documented                                                      | AI Assistant  |
+| 2025-12-10 | Component Specifications section revised to remove redundancies and align with Core Elements | AI Assistant  |
 
 ---
 

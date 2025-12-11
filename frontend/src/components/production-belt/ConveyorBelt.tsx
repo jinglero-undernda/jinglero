@@ -1,86 +1,58 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import type { JingleTimelineItem } from '../player/JingleTimeline';
+import type { Jingle } from '../../types';
 import JingleBox from './JingleBox';
 
 export interface ConveyorBeltProps {
-  pastJingles: JingleTimelineItem[];
-  futureJingles: JingleTimelineItem[];
+  allJingles: JingleTimelineItem[];
+  fullJingleData: Record<string, Jingle>;
+  activeJingleId: string | null;
   selectedJingleId: string | null;
-  onJingleSelect: (jingle: JingleTimelineItem, position: 'past' | 'future') => void;
+  onJingleSelect: (jingle: JingleTimelineItem) => void;
   onSkipTo: (jingle: JingleTimelineItem) => void;
-  children: React.ReactNode; // For the Central Processor (Video Player)
 }
 
 export default function ConveyorBelt({
-  pastJingles,
-  futureJingles,
+  allJingles,
+  fullJingleData,
+  activeJingleId,
   selectedJingleId,
   onJingleSelect,
-  onSkipTo,
-  children
+  onSkipTo
 }: ConveyorBeltProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const processorRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll to center the processor on mount or when jingles change?
-  // Ideally, we want the "Active" area to be centered in the viewport.
-  // Since the processor is the active area, we should scroll the container so the processor is in the middle.
-  
-  useEffect(() => {
-    if (containerRef.current && processorRef.current) {
-      const container = containerRef.current;
-      const processor = processorRef.current;
-      
-      // Calculate position to center the processor
-      // processor.offsetLeft is relative to the track (which is inside container)
-      // We want: processor.offsetLeft - (container.width / 2) + (processor.width / 2)
-      
-      const centerPosition = processor.offsetLeft - (container.clientWidth / 2) + (processor.clientWidth / 2);
-      
-      container.scrollTo({
-        left: centerPosition,
-        behavior: 'smooth'
-      });
-    }
-  }, [pastJingles.length]); // Re-center when past jingles grow (pushing processor to right)
 
   return (
-    <div className="conveyor-section" ref={containerRef}>
-      <div className="conveyor-track">
-        {/* Past Section: Left */}
-        <div className="past-section">
-          {pastJingles.map((jingle) => (
-            <JingleBox
-              key={jingle.id}
-              jingle={jingle}
-              isSelected={selectedJingleId === jingle.id}
-              position="past"
-              onSelect={() => onJingleSelect(jingle, 'past')}
-              onSkipTo={(e) => onSkipTo(jingle)}
-            />
-          ))}
+    <div className="conveyor-belt-container" ref={containerRef}>
+      <div className="conveyor-belt-surface">
+        <div className="conveyor-belt-track">
+          {allJingles.map((jingle) => {
+            // Merge timeline item with full jingle data if available
+            const fullJingle = fullJingleData[jingle.id];
+            const jingleWithData = fullJingle 
+              ? { ...jingle, displayPrimary: fullJingle.displayPrimary }
+              : jingle;
+            
+            return (
+              <JingleBox
+                key={jingle.id}
+                jingle={jingleWithData}
+                isPlaying={activeJingleId === jingle.id}
+                isSelected={selectedJingleId === jingle.id}
+                onSelect={() => onJingleSelect(jingle)}
+                onSkipTo={(e) => {
+                  e.stopPropagation();
+                  onSkipTo(jingle);
+                }}
+              />
+            );
+          })}
         </div>
-
-        {/* Central Processor: Center */}
-        <div className="processor-section" ref={processorRef}>
-          <div className="processor-frame">
-            {children}
-          </div>
-        </div>
-
-        {/* Future Section: Right */}
-        <div className="future-section">
-          {futureJingles.map((jingle) => (
-            <JingleBox
-              key={jingle.id}
-              jingle={jingle}
-              isSelected={selectedJingleId === jingle.id}
-              position="future"
-              onSelect={() => onJingleSelect(jingle, 'future')}
-              onSkipTo={(e) => onSkipTo(jingle)}
-            />
-          ))}
-        </div>
+      </div>
+      {/* Industrial background elements */}
+      <div className="conveyor-belt-background">
+        <div className="belt-gear belt-gear-left"></div>
+        <div className="belt-gear belt-gear-right"></div>
       </div>
     </div>
   );

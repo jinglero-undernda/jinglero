@@ -1724,6 +1724,13 @@ router.post('/:type', asyncHandler(async (req, res) => {
   delete properties.createdAt;
   delete properties.updatedAt;
   
+  // Handle Fabrica date conversion to datetime object
+  let dateValue: string | undefined;
+  if (label === 'Fabrica' && properties.date) {
+    dateValue = properties.date;
+    delete properties.date; // Remove from properties to set separately
+  }
+  
   // Set default status for entities that support it (Jingle, Cancion, Artista, Tematica)
   if ((label === 'Jingle' || label === 'Cancion' || label === 'Artista' || label === 'Tematica') && !properties.status) {
     properties.status = 'DRAFT';
@@ -1735,6 +1742,16 @@ router.post('/:type', asyncHandler(async (req, res) => {
     updatedAt: now, // Always use current timestamp for creation
     properties
   }, undefined, true);
+  
+  // Set Fabrica date as datetime object if provided
+  if (label === 'Fabrica' && dateValue) {
+    const dateUpdateQuery = `
+      MATCH (n:${label} { id: $id })
+      SET n.date = datetime($date)
+      RETURN n
+    `;
+    await db.executeQuery(dateUpdateQuery, { id, date: dateValue }, undefined, true);
+  }
   
   // Sync redundant properties with relationships (auto-create relationships if needed)
   if (label === 'Jingle') {
@@ -1815,16 +1832,32 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   const properties = { ...payload } as any;
   delete properties.createdAt; // Don't allow updating createdAt
   delete properties.updatedAt; // Always use current timestamp for updatedAt
+  
+  // Handle Fabrica date conversion to datetime object
+  let dateValue: string | undefined;
+  if (label === 'Fabrica' && properties.date) {
+    dateValue = properties.date;
+    delete properties.date; // Remove from properties to set separately
+  }
+  
+  // Build SET clause - include date conversion for Fabricas
+  const setClause = label === 'Fabrica' && dateValue
+    ? `SET n += $properties,
+        n.date = datetime($date),
+        n.updatedAt = datetime()`
+    : `SET n += $properties,
+        n.updatedAt = datetime()`;
+  
   const updateQuery = `
     MATCH (n:${label} { id: $id })
-    SET n += $properties,
-        n.updatedAt = datetime()
+    ${setClause}
     RETURN n
   `;
-  const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, { 
-    id, 
-    properties 
-  }, undefined, true);
+  const queryParams: any = { id, properties };
+  if (label === 'Fabrica' && dateValue) {
+    queryParams.date = dateValue;
+  }
+  const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, queryParams, undefined, true);
   if (result.length === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }
@@ -1883,17 +1916,34 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
   const cleanPayload = { ...payload } as any;
   delete cleanPayload.createdAt; // Don't allow updating createdAt
   delete cleanPayload.updatedAt; // Always use current timestamp for updatedAt
+  
+  // Handle Fabrica date conversion to datetime object
+  let dateValue: string | undefined;
+  if (label === 'Fabrica' && cleanPayload.date) {
+    dateValue = cleanPayload.date;
+    delete cleanPayload.date; // Remove from payload to set separately
+  }
+  
   const mergedProps = { ...existingProps, ...cleanPayload, id };
+  
+  // Build SET clause - include date conversion for Fabricas
+  const setClause = label === 'Fabrica' && dateValue
+    ? `SET n = $properties,
+        n.date = datetime($date),
+        n.updatedAt = datetime()`
+    : `SET n = $properties,
+        n.updatedAt = datetime()`;
+  
   const updateQuery = `
     MATCH (n:${label} { id: $id })
-    SET n = $properties,
-        n.updatedAt = datetime()
+    ${setClause}
     RETURN n
   `;
-  const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, { 
-    id, 
-    properties: mergedProps 
-  }, undefined, true);
+  const queryParams: any = { id, properties: mergedProps };
+  if (label === 'Fabrica' && dateValue) {
+    queryParams.date = dateValue;
+  }
+  const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, queryParams, undefined, true);
   
   // Sync redundant properties with relationships (auto-create/delete relationships if needed)
   if (label === 'Jingle') {

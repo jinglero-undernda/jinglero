@@ -352,8 +352,11 @@ router.get('/fabricas', async (req, res) => {
 // Get the latest Fabrica (by date property)
 router.get('/fabricas/latest', async (req, res) => {
   try {
+    // Now that all dates are datetime objects, we can use simple Neo4j sorting
+    // This is much more efficient - returns only 1 record directly from the database
     const query = `
       MATCH (f:Fabrica)
+      WHERE f.date IS NOT NULL
       RETURN f
       ORDER BY f.date DESC
       LIMIT 1
@@ -368,6 +371,7 @@ router.get('/fabricas/latest', async (req, res) => {
       });
     }
     
+    // Convert Neo4j dates to ISO strings for the response
     const fabrica = convertNeo4jDates((result[0] as any).f.properties);
     res.json(fabrica);
   } catch (error: any) {

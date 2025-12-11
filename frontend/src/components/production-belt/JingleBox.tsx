@@ -3,16 +3,16 @@ import type { JingleTimelineItem } from '../player/JingleTimeline';
 
 export interface JingleBoxProps {
   jingle: JingleTimelineItem;
+  isPlaying: boolean;
   isSelected: boolean;
-  position: 'past' | 'future';
   onSelect: () => void;
   onSkipTo: (e: React.MouseEvent) => void;
 }
 
 export default function JingleBox({
   jingle,
+  isPlaying,
   isSelected,
-  position,
   onSelect,
   onSkipTo
 }: JingleBoxProps) {
@@ -21,14 +21,21 @@ export default function JingleBox({
     onSkipTo(e);
   };
 
+  // Get display label - use displayPrimary if available, fallback to title
+  // displayPrimary might be on the full Jingle object, not the timeline item
+  const displayPrimary = (jingle as any).displayPrimary;
+  const displayLabel = displayPrimary 
+    ? String(displayPrimary).replace(/^[\p{Emoji}]/u, '').trim() // Remove emoji if present
+    : jingle.title || 'Sin título';
+
   return (
     <div 
-      className={`jingle-box ${position} ${isSelected ? 'selected' : ''}`}
+      className={`jingle-box-metallic ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
       onClick={onSelect}
       role="button"
       tabIndex={0}
       aria-pressed={isSelected}
-      aria-label={`Jingle: ${jingle.title || 'Untitled'} at ${jingle.timestamp}`}
+      aria-label={`Jingle: ${displayLabel} at ${jingle.timestamp}`}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           onSelect();
@@ -36,30 +43,30 @@ export default function JingleBox({
         }
       }}
     >
-      <div className="jingle-box-time">
-        <span>{jingle.timestamp}</span>
-        <button 
-          className="jingle-box-skip-btn"
-          onClick={handleSkip}
-          title="Saltar a este jingle"
-          aria-label="Play from start"
-        >
-          ▶
-        </button>
-      </div>
-      
-      <div className="jingle-box-title" title={jingle.title}>
-        {jingle.title || 'Sin título'}
-      </div>
-      
-      {/* Optional: Add artist or other metadata if available in JingleTimelineItem */}
-      {jingle.jingleros && (
-        <div style={{ fontSize: '11px', color: '#888', marginTop: 'auto', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {Array.isArray(jingle.jingleros) 
-            ? jingle.jingleros.map(j => j.stageName || j.name).join(', ') 
-            : (jingle.jingleros.stageName || jingle.jingleros.name)}
+      {/* Indicator Lights */}
+      <div className="jingle-box-indicators">
+        <div className={`jingle-indicator-light playing-indicator ${isPlaying ? 'indicator-on' : 'indicator-off'}`}>
+          <div className="indicator-glow"></div>
         </div>
-      )}
+        <div className={`jingle-indicator-light selected-indicator ${isSelected ? 'indicator-on' : 'indicator-off'}`}>
+          <div className="indicator-glow"></div>
+        </div>
+      </div>
+
+      {/* Box Label */}
+      <div className="jingle-box-label" title={displayLabel}>
+        {displayLabel}
+      </div>
+
+      {/* Skip Button */}
+      <button 
+        className="jingle-box-skip-btn"
+        onClick={handleSkip}
+        title="Saltar a este jingle"
+        aria-label="Saltar a este jingle"
+      >
+        ▶
+      </button>
     </div>
   );
 }

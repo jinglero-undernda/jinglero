@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useYouTubePlayer } from '../../lib/hooks/useYouTubePlayer';
 import { useJingleSync } from '../../lib/hooks/useJingleSync';
 import { publicApi } from '../../lib/api/client';
 import YouTubePlayer from '../player/YouTubePlayer';
 import type { YouTubePlayerRef } from '../player/YouTubePlayer';
 import ConveyorBelt from './ConveyorBelt';
-import InformationPanel from './InformationPanel';
+import MachineControlPanel from './MachineControlPanel';
 import type { Fabrica, Jingle } from '../../types';
 import type { JingleTimelineItem } from '../player/JingleTimeline';
 import type { JingleMetadataData } from '../player/JingleMetadata';
@@ -28,12 +28,11 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
   const [error, setError] = useState<string | null>(null);
 
   // UI State
-  const [isPanelDocked, setIsPanelDocked] = useState(true);
   const [userSelectedJingleId, setUserSelectedJingleId] = useState<string | null>(null);
 
   // Player State
   const playerRef = useRef<YouTubePlayerRef>(null);
-  const { state: playerState } = useYouTubePlayer(playerRef);
+  const { state: playerState, play, pause } = useYouTubePlayer(playerRef);
 
   // Sync State
   const { activeJingle, activeJingleId } = useJingleSync(
@@ -53,14 +52,17 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
   // Prepare metadata for panel
   const panelMetadata: JingleMetadataData | null = useMemo(() => {
     if (displayedJingleFull) {
+      // API returns cancion, autores, jingleros, tematicas as direct properties
+      // but they might also be in _metadata
+      const metadata = displayedJingleFull._metadata;
       return {
         id: displayedJingleFull.id,
         timestamp: displayedJingleFull.timestamp,
         title: displayedJingleFull.title,
-        jingleros: displayedJingleFull.jingleros,
-        cancion: displayedJingleFull.cancion,
-        autores: displayedJingleFull.autores,
-        tematicas: displayedJingleFull.tematicas,
+        jingleros: (displayedJingleFull as any).jingleros || metadata?.jingleros || null,
+        cancion: (displayedJingleFull as any).cancion || metadata?.cancion || null,
+        autores: (displayedJingleFull as any).autores || metadata?.autores || null,
+        tematicas: (displayedJingleFull as any).tematicas || null,
         comment: displayedJingleFull.comment,
         lyrics: displayedJingleFull.lyrics
       };
@@ -90,25 +92,8 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
     }
   }, [displayedJingleId, fullJingleData]);
 
-  // Split Jingles into Past / Active / Future
-  const { pastJingles, futureJingles } = useMemo(() => {
-    if (!activeJingle) {
-      // If nothing is active (e.g. start), everything is Future? 
-      // Or if time is 0, first one might be active.
-      // Let's assume everything before "now" is past (unlikely if active is null)
-      // If no active jingle found, it means we are before the first one or in a gap?
-      // Design: "Active Jingle ... exists only in central processor"
-      return { pastJingles: [], futureJingles: allJingles };
-    }
-
-    const activeIndex = allJingles.findIndex(j => j.id === activeJingle.id);
-    if (activeIndex === -1) return { pastJingles: [], futureJingles: allJingles };
-
-    return {
-      pastJingles: allJingles.slice(0, activeIndex),
-      futureJingles: allJingles.slice(activeIndex + 1)
-    };
-  }, [allJingles, activeJingle]);
+  // All jingles are displayed on the belt (no past/future split)
+  // Active jingle is determined by playback time, but all jingles appear as boxes
 
   // Initial Data Fetch
   useEffect(() => {
@@ -142,77 +127,224 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
   // Handlers
   const handleJingleSelect = (jingle: JingleTimelineItem) => {
     setUserSelectedJingleId(jingle.id);
-    // If undocked, maybe open panel?
-    if (!isPanelDocked) {
-      // Logic to show panel if hidden? But design says toggle is manual.
-    }
   };
 
   const handleSkipTo = (jingle: JingleTimelineItem) => {
     const seconds = normalizeTimestampToSeconds(jingle.timestamp);
     if (seconds !== null && playerRef.current) {
       playerRef.current.seekTo(seconds);
-      // Auto-select this jingle too?
-      // Design says "Active Jingle updates... Information panel updates if showing active Jingle"
-      // If user had manually selected a different jingle, we might want to clear that selection so it follows active?
-      // Let's clear manual selection so it follows playback.
+      // Clear manual selection so it follows playback
       setUserSelectedJingleId(null);
     }
   };
 
-  const handleReplay = () => {
-    if (activeJingle && playerRef.current) {
-      const seconds = normalizeTimestampToSeconds(activeJingle.timestamp);
-      if (seconds !== null) {
-        playerRef.current.seekTo(seconds);
+  const handleSkipToSelected = () => {
+    if (displayedJingleId) {
+      const jingle = allJingles.find(j => j.id === displayedJingleId);
+      if (jingle) {
+        handleSkipTo(jingle);
       }
     }
   };
 
-  // If user clicks outside or wants to "close" selection and go back to active
-  // We can provide a way. For now, if active changes, do we clear selection?
-  // Design: "Selected Jingle may be different from the active Jingle"
-  // So we shouldn't auto-clear unless requested.
+  // Player controls
+  const handlePlayPause = () => {
+    if (playerState.isPlaying) {
+      pause();
+    } else {
+      play();
+    }
+  };
+
+  const handleSkipBack = () => {
+    if (!playerRef.current || allJingles.length === 0) return;
+    
+    // Get current playback time as fallback
+    const currentTime = playerState.currentTime ?? 0;
+    
+    // If we have an active jingle, find the previous one before it
+    if (activeJingle) {
+      const activeIndex = allJingles.findIndex(j => j.id === activeJingle.id);
+      if (activeIndex !== -1) {
+        if (activeIndex > 0) {
+          const previousJingle = allJingles[activeIndex - 1];
+          const seconds = normalizeTimestampToSeconds(previousJingle.timestamp);
+          if (seconds !== null) {
+            playerRef.current.seekTo(seconds);
+            setUserSelectedJingleId(null); // Clear selection to follow playback
+          }
+        } else {
+          // If at first jingle, go to start of current jingle
+          const seconds = normalizeTimestampToSeconds(activeJingle.timestamp);
+          if (seconds !== null) {
+            playerRef.current.seekTo(seconds);
+          }
+        }
+        return;
+      }
+    }
+    
+    // If no active jingle, find the last jingle that started before or at current time
+    // Sort jingles by timestamp to ensure we find the correct previous one
+    const sortedJingles = [...allJingles].sort((a, b) => {
+      const aSeconds = normalizeTimestampToSeconds(a.timestamp) ?? 0;
+      const bSeconds = normalizeTimestampToSeconds(b.timestamp) ?? 0;
+      return aSeconds - bSeconds;
+    });
+    
+    // Find the last jingle that started at or before the current time
+    const previousJingle = sortedJingles
+      .filter(jingle => {
+        const jingleSeconds = normalizeTimestampToSeconds(jingle.timestamp);
+        return jingleSeconds !== null && jingleSeconds <= currentTime;
+      })
+      .pop();
+    
+    if (previousJingle) {
+      const seconds = normalizeTimestampToSeconds(previousJingle.timestamp);
+      if (seconds !== null) {
+        playerRef.current.seekTo(seconds);
+        setUserSelectedJingleId(null); // Clear selection to follow playback
+      }
+    } else if (sortedJingles.length > 0) {
+      // If no previous jingle found, go to the first jingle
+      const firstJingle = sortedJingles[0];
+      const seconds = normalizeTimestampToSeconds(firstJingle.timestamp);
+      if (seconds !== null) {
+        playerRef.current.seekTo(seconds);
+        setUserSelectedJingleId(null);
+      }
+    }
+  };
+
+  const handleSkipForward = () => {
+    if (!playerRef.current || allJingles.length === 0) return;
+    
+    // Get current playback time as fallback
+    const currentTime = playerState.currentTime ?? 0;
+    
+    // If we have an active jingle, find the next one after it
+    if (activeJingle) {
+      const activeIndex = allJingles.findIndex(j => j.id === activeJingle.id);
+      if (activeIndex !== -1 && activeIndex < allJingles.length - 1) {
+        const nextJingle = allJingles[activeIndex + 1];
+        const seconds = normalizeTimestampToSeconds(nextJingle.timestamp);
+        if (seconds !== null) {
+          playerRef.current.seekTo(seconds);
+          setUserSelectedJingleId(null); // Clear selection to follow playback
+        }
+        return;
+      }
+    }
+    
+    // If no active jingle or at last jingle, find the first jingle after current time
+    // Sort jingles by timestamp to ensure we find the correct next one
+    const sortedJingles = [...allJingles].sort((a, b) => {
+      const aSeconds = normalizeTimestampToSeconds(a.timestamp) ?? 0;
+      const bSeconds = normalizeTimestampToSeconds(b.timestamp) ?? 0;
+      return aSeconds - bSeconds;
+    });
+    
+    // Find the first jingle that starts after the current time
+    const nextJingle = sortedJingles.find(jingle => {
+      const jingleSeconds = normalizeTimestampToSeconds(jingle.timestamp);
+      return jingleSeconds !== null && jingleSeconds > currentTime;
+    });
+    
+    if (nextJingle) {
+      const seconds = normalizeTimestampToSeconds(nextJingle.timestamp);
+      if (seconds !== null) {
+        playerRef.current.seekTo(seconds);
+        setUserSelectedJingleId(null); // Clear selection to follow playback
+      }
+    }
+    // If no next jingle found, do nothing (already at or past the last jingle)
+  };
 
   if (loading) return <div className="p-10 text-center">Cargando fábrica...</div>;
   if (error || !fabrica) return <div className="p-10 text-center text-red-600">{error || "Fábrica no encontrada"}</div>;
 
+  // Determine status indicator state
+  const statusIndicatorState = playerState.isBuffering ? 'buffering' : 
+                                playerState.isPaused ? 'paused' : 
+                                'playing';
+
   return (
     <div className={`production-belt-container ${className || ''}`} style={style}>
-      {/* Conveyor Belt Wrapper */}
-      <div className="conveyor-belt-wrapper">
-        <div className="production-header">
-           <h1 style={{ margin: 0, fontSize: '24px' }}>{fabrica.title}</h1>
-           <div style={{ fontSize: '14px', color: '#666' }}>
-             {activeJingle ? `Reproduciendo: ${activeJingle.title}` : 'Esperando inicio...'}
-           </div>
+      {/* Factory Background */}
+      <div className="factory-background"></div>
+
+      {/* Main Layout: Monitor (Left) and Control Panel (Right) */}
+      <div className="production-belt-main-layout">
+        {/* CRT Monitor Section (Left) */}
+        <div className="crt-monitor-section">
+          <div className="crt-monitor-frame">
+            <div className="crt-monitor-screen">
+              <YouTubePlayer
+                ref={playerRef}
+                videoIdOrUrl={fabrica.youtubeUrl || fabrica.id || fabricaId}
+                startSeconds={initialTimestamp || 0}
+                autoplay={true}
+                className="production-belt-player"
+              />
+            </div>
+          </div>
+          
+          {/* External Controls Below Monitor */}
+          <div className="monitor-controls">
+            <button 
+              className="monitor-control-btn skip-back-btn"
+              onClick={handleSkipBack}
+              title="Retroceder 10 segundos"
+              aria-label="Retroceder"
+            >
+              SKIP BACK
+            </button>
+            <button 
+              className="monitor-control-btn play-pause-btn"
+              onClick={handlePlayPause}
+              title={playerState.isPlaying ? "Pausar" : "Reproducir"}
+              aria-label={playerState.isPlaying ? "Pausar" : "Reproducir"}
+            >
+              {playerState.isPlaying ? 'PAUSE' : 'PLAY'}
+            </button>
+            <button 
+              className="monitor-control-btn skip-forward-btn"
+              onClick={handleSkipForward}
+              title="Avanzar 10 segundos"
+              aria-label="Avanzar"
+            >
+              SKIP FORWARD
+            </button>
+          </div>
+
+          {/* Status Indicator Light */}
+          <div className={`status-indicator status-indicator-${statusIndicatorState}`}>
+            <div className="indicator-glow"></div>
+          </div>
         </div>
 
+        {/* Machine Control Panel (Right) */}
+        <div className="control-panel-section">
+          <MachineControlPanel
+            jingle={panelMetadata}
+            fullJingleData={displayedJingleFull}
+            onSkipTo={handleSkipToSelected}
+          />
+        </div>
+      </div>
+
+      {/* Conveyor Belt (Bottom, Full Width) */}
+      <div className="conveyor-belt-section">
         <ConveyorBelt
-          pastJingles={pastJingles}
-          futureJingles={futureJingles}
+          allJingles={allJingles}
+          fullJingleData={fullJingleData}
+          activeJingleId={activeJingleId}
           selectedJingleId={displayedJingleId}
           onJingleSelect={handleJingleSelect}
           onSkipTo={handleSkipTo}
-        >
-          <YouTubePlayer
-            ref={playerRef}
-            videoIdOrUrl={fabrica.youtubeUrl || fabrica.id || fabricaId}
-            startSeconds={initialTimestamp || 0}
-            autoplay={true}
-            className="production-belt-player"
-          />
-        </ConveyorBelt>
+        />
       </div>
-
-      {/* Information Panel */}
-      <InformationPanel
-        jingle={panelMetadata}
-        isDocked={isPanelDocked}
-        onDockToggle={() => setIsPanelDocked(!isPanelDocked)}
-        onClose={() => setUserSelectedJingleId(null)} // Or close panel logic
-        onReplay={displayedJingleId === activeJingleId ? handleReplay : undefined}
-      />
     </div>
   );
 }
