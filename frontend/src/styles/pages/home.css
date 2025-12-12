@@ -1,6 +1,9 @@
 .home-page {
   width: 100%;
+  max-width: 100%;
   padding: var(--spacing-xl) var(--spacing-md);
+  box-sizing: border-box;
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 .home-page__hero {

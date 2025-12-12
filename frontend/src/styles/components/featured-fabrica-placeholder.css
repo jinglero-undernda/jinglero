@@ -26,6 +26,26 @@
   margin: 0;
 }
 
+.featured-fabrica-section {
+  width: 100%;
+  margin: var(--spacing-xl) 0;
+  box-sizing: border-box;
+  max-width: 100%;
+  overflow-x: hidden; /* Prevent horizontal overflow */
+}
+
+.featured-fabrica-section > div {
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.featured-production-belt {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .featured-fabrica-placeholder__message {

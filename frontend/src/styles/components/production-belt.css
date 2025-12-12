@@ -68,8 +68,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 40px 20px 20px;
+  justify-content: center; /* Center vertically */
+  padding: 0; /* Gap will be handled by monitor size */
   position: relative;
   z-index: 3; /* Above conveyor belt */
   box-sizing: border-box;
@@ -79,8 +79,16 @@
 }
 
 .crt-monitor-frame {
-  width: 100%;
-  max-width: 400px; /* 50% of original 800px */
+  /* 1/3 of available space (67% width), with 1/6 gap around it */
+  /* Available space is 67% of width (100% - 33% panel) */
+  /* Monitor should be 1/3 of 67% = ~22.33% of total width */
+  /* Gap is 1/6 of available space = ~11.17% on each side */
+  /* So monitor width = 67% - (2 * 11.17%) = ~44.66%, but that's too large */
+  /* Instead: monitor = 1/3 of available = 22.33%, centered leaves ~22.33% gap each side */
+  /* For 1/6 gap: if gap = 1/6 of available = 11.17%, then monitor = 67% - 22.34% = 44.66% */
+  /* But user said "1/3 in size", so: monitor = 67% / 3 = 22.33%, centered */
+  width: calc((100% - 33%) / 3); /* 1/3 of available space */
+  max-width: calc((100% - 33%) / 3);
   aspect-ratio: 16/9;
   background: 
     linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 30%, #3a3a3a 50%, #2d2d2d 70%, #1a1a1a 100%),
@@ -162,24 +170,22 @@
   z-index: 1;
 }
 
-/* Monitor Controls */
+/* Monitor Controls - Subtle, icon-only */
 .monitor-controls {
   display: flex;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 10px;
+  margin-top: 15px;
   align-items: center;
   justify-content: center;
 }
 
 .monitor-control-btn {
-  padding: 14px 28px;
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
-  border: 3px solid #555;
-  border-top: 2px solid #666;
-  border-bottom: 4px solid #333;
+  padding: 8px 12px;
+  font-size: 16px; /* Larger for icons */
+  font-weight: 400;
+  border: 2px solid #555;
+  border-top: 1px solid #666;
+  border-bottom: 3px solid #333;
   border-radius: 3px;
   background: 
     linear-gradient(145deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%),
@@ -194,18 +200,23 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 
-    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
     inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-  min-width: 130px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: none; /* Remove text shadow for icons */
 }
 
 .monitor-control-btn:hover {
   background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
   border-color: #777;
   transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
 
 .monitor-control-btn:active {
@@ -227,15 +238,15 @@
   background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
 }
 
-/* Status Indicator Light */
+/* Status Indicator Light - More subtle */
 .status-indicator {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  margin-top: 15px;
+  margin-top: 10px;
   position: relative;
   border: 2px solid #333;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
 .status-indicator-buffering {
@@ -274,12 +285,13 @@
    ============================================ */
 
 .control-panel-section {
-  width: 33vw; /* Use viewport width units to avoid parent padding issues */
-  min-width: 300px; /* Ensure minimum usable width */
-  height: 150%; /* Extend to cover full container (main-layout is 2/3, so 150% covers 3/3) */
+  width: 33%; /* Exactly 33% width */
+  max-width: 33%;
+  min-width: 0; /* Allow shrinking on small screens */
+  height: 100%; /* Full height of container */
   display: flex;
   flex-direction: column;
-  position: absolute; /* Position absolutely to extend over conveyor belt */
+  position: absolute; /* Position absolutely relative to container */
   top: 0;
   right: 0;
   z-index: 4; /* Above conveyor belt */
@@ -313,7 +325,7 @@
     inset -2px 0 10px rgba(0, 0, 0, 0.5);
   display: flex;
   flex-direction: column;
-  padding: 25px;
+  padding: 20px; /* Reduced padding */
   position: relative;
   overflow-y: auto;
   overflow-x: hidden; /* Hide horizontal overflow */
@@ -576,6 +588,8 @@
     0 3px 6px rgba(0, 0, 0, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
     inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+  align-self: flex-start;
+  margin-top: 19px; /* Align with field-value: label height (~14px) + gap (5px) */
 }
 
 .control-action-btn:hover:not(:disabled) {
@@ -652,14 +666,15 @@
    ============================================ */
 
 .conveyor-belt-section {
-  flex: 1; /* Takes 1/3 of container height */
-  min-height: 200px;
+  flex: 1; /* Takes exactly 1/3 of container height */
+  min-height: 0;
   width: 100%;
   position: relative; /* Use relative positioning within flex layout */
   z-index: 1; /* Behind monitor and control panel */
-  overflow: hidden;
+  overflow: hidden; /* Prevent overspill */
   box-sizing: border-box;
   pointer-events: auto; /* Ensure conveyor belt can receive interactions */
+  max-height: 33.33%; /* Ensure it doesn't exceed 1/3 */
 }
 
 .conveyor-belt-container {
@@ -705,7 +720,7 @@
 
 .conveyor-belt-track {
   display: flex;
-  gap: 15px;
+  gap: 25px; /* Increased gap - boxes further apart */
   padding: 0 50px;
   align-items: center;
   min-width: max-content;
@@ -766,8 +781,8 @@
    ============================================ */
 
 .jingle-box-metallic {
-  flex: 0 0 200px;
-  height: 150px;
+  flex: 0 0 140px; /* Reduced from 200px - smaller boxes */
+  height: 100px; /* Reduced from 150px, proportional to belt height */
   background: 
     linear-gradient(145deg, #4a4a4a 0%, #3a3a3a 30%, #2a2a2a 50%, #3a3a3a 70%, #4a4a4a 100%),
     repeating-linear-gradient(
@@ -781,7 +796,7 @@
   border-top: 2px solid #666;
   border-bottom: 4px solid #333;
   border-radius: 4px;
-  padding: 14px;
+  padding: 10px; /* Reduced from 14px */
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -876,13 +891,14 @@
 
 /* Box Label */
 .jingle-box-label {
-  font-size: 13px;
+  font-size: 11px; /* Reduced from 13px */
   font-weight: 600;
   color: #fff;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.4;
   flex: 1;
@@ -918,12 +934,40 @@
 
 @media (max-width: 1024px) {
   .crt-monitor-frame {
-    max-width: 600px;
+    max-width: 50vw; /* Max 50% of screen width to prevent overlaps */
   }
 
   .control-panel-section {
-    width: 40%;
-    min-width: 300px;
+    width: 33%; /* Maintain 33% width */
+    min-width: 0; /* Allow shrinking */
+  }
+
+  /* Smaller labels, buttons, margins on small screens */
+  .machine-control-panel {
+    padding: 15px;
+  }
+
+  .control-panel-title h2 {
+    font-size: 14px;
+  }
+
+  .indicator-label {
+    font-size: 8px;
+  }
+
+  .control-field label {
+    font-size: 10px;
+  }
+
+  .field-value {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  .control-action-btn {
+    padding: 6px 10px;
+    font-size: 9px;
+    min-width: 45px;
   }
 }
 
@@ -951,5 +995,19 @@
   .conveyor-belt-section {
     height: auto;
     min-height: 150px;
+  }
+
+  /* Boxes closer together on small screens */
+  .conveyor-belt-track {
+    gap: 15px;
+  }
+
+  .jingle-box-metallic {
+    flex: 0 0 120px;
+    height: 85px;
+  }
+
+  .jingle-box-label {
+    font-size: 10px;
   }
 }

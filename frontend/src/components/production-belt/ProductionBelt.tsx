@@ -274,7 +274,7 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
       {/* Factory Background */}
       <div className="factory-background"></div>
 
-      {/* Main Layout: Monitor (Left) and Control Panel (Right) */}
+      {/* Main Layout: Monitor (Left) */}
       <div className="production-belt-main-layout">
         {/* CRT Monitor Section (Left) */}
         <div className="crt-monitor-section">
@@ -295,10 +295,10 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
             <button 
               className="monitor-control-btn skip-back-btn"
               onClick={handleSkipBack}
-              title="Retroceder 10 segundos"
+              title="Retroceder"
               aria-label="Retroceder"
             >
-              SKIP BACK
+              &lt;&lt;
             </button>
             <button 
               className="monitor-control-btn play-pause-btn"
@@ -306,15 +306,15 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
               title={playerState.isPlaying ? "Pausar" : "Reproducir"}
               aria-label={playerState.isPlaying ? "Pausar" : "Reproducir"}
             >
-              {playerState.isPlaying ? 'PAUSE' : 'PLAY'}
+              {playerState.isPlaying ? '&gt;|' : '&gt;&gt;'}
             </button>
             <button 
               className="monitor-control-btn skip-forward-btn"
               onClick={handleSkipForward}
-              title="Avanzar 10 segundos"
+              title="Avanzar"
               aria-label="Avanzar"
             >
-              SKIP FORWARD
+              &gt;&gt;
             </button>
           </div>
 
@@ -323,15 +323,15 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
             <div className="indicator-glow"></div>
           </div>
         </div>
+      </div>
 
-        {/* Machine Control Panel (Right) */}
-        <div className="control-panel-section">
-          <MachineControlPanel
-            jingle={panelMetadata}
-            fullJingleData={displayedJingleFull}
-            onSkipTo={handleSkipToSelected}
-          />
-        </div>
+      {/* Machine Control Panel (Right, Full Height, Above Conveyor) */}
+      <div className="control-panel-section">
+        <MachineControlPanel
+          jingle={panelMetadata}
+          fullJingleData={displayedJingleFull}
+          onSkipTo={handleSkipToSelected}
+        />
       </div>
 
       {/* Conveyor Belt (Bottom, Full Width) */}

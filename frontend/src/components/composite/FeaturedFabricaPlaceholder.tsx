@@ -38,7 +38,7 @@ export default function FeaturedFabricaPlaceholder() {
 
   if (latestFabrica) {
     return (
-      <section className="featured-fabrica-section" style={{ width: '100%', margin: '40px 0' }}>
+      <section className="featured-fabrica-section">
          <div style={{ marginBottom: '20px', padding: '0 20px' }}>
            <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#333' }}>Fábrica Destacada</h2>
          </div>

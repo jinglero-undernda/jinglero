@@ -5,6 +5,7 @@
 
 .filete-sign {
   width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -13,12 +14,15 @@
   background-color: var(--color-bg-primary);
   transition: opacity var(--transition-normal);
   will-change: opacity;
+  box-sizing: border-box;
+  overflow-x: hidden; /* Prevent horizontal overflow */
 }
 
 .filete-sign__container {
   width: 100%;
   max-width: 900px;
   position: relative;
+  box-sizing: border-box;
 }
 
 /* Single unified SVG structure

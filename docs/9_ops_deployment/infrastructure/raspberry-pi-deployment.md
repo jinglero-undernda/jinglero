@@ -422,6 +422,35 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
 
 ---
 
+### 9. Internet Access Setup
+
+**Description**: Configure internet access to your Raspberry Pi web portal from outside your local network.
+
+**Note**: This step is separate from the basic deployment and requires router configuration. For detailed step-by-step instructions on setting up internet access, port forwarding, domain names, and Dynamic DNS, see the dedicated guide:
+
+📖 **See**: [`internet-access-setup.md`](./internet-access-setup.md) for complete instructions.
+
+**Quick Summary**:
+
+- Configure port forwarding on your router (ports 80 and 443)
+- Set up a domain name or use Dynamic DNS
+- Ensure your Raspberry Pi has a static local IP address
+- Test access from external networks
+
+**Code Reference**: N/A (network configuration)
+
+**Context**:
+After completing the basic deployment, you may want to access your web portal from the internet. This requires configuring your home router to forward traffic to your Raspberry Pi and optionally setting up a domain name.
+
+**Validation**:
+
+- Verify port forwarding is configured correctly
+- Test access from external network
+- Verify domain name resolves (if configured)
+- Test HTTPS access (if SSL is configured)
+
+---
+
 ## Deployment Validation Checklist
 
 - [ ] Hardware setup complete (Raspberry Pi 3B booted and accessible)
@@ -438,6 +467,7 @@ SSL/TLS encryption secures data transmission between clients and the server. Let
 - [ ] Firewall configured and active
 - [ ] Services start on boot (backend and nginx enabled)
 - [ ] SSL/TLS configured (if using HTTPS)
+- [ ] Internet access configured (if needed - see `internet-access-setup.md`)
 
 ## Troubleshooting
 
