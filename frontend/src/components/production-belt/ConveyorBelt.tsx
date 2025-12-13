@@ -49,11 +49,6 @@ export default function ConveyorBelt({
           })}
         </div>
       </div>
-      {/* Industrial background elements */}
-      <div className="conveyor-belt-background">
-        <div className="belt-gear belt-gear-left"></div>
-        <div className="belt-gear belt-gear-right"></div>
-      </div>
     </div>
   );
 }

@@ -57,6 +57,61 @@
   min-height: 0; /* Allow flex shrinking */
   box-sizing: border-box;
   pointer-events: none; /* Allow clicks to pass through to conveyor belt */
+  
+  /* New image dimensions: 807 x 590 pixels */
+  --image-width: 807;
+  --image-height: 590;
+  --image-aspect-ratio: calc(var(--image-width) / var(--image-height));
+  --image-inverse-aspect-ratio: calc(var(--image-height) / var(--image-width));
+  
+  /* Calculate size: min(50% width, 80% height * aspect_ratio) for width */
+  /* and min(50% width * inverse_aspect, 80% height) for height */
+  /* Values are now calculated in JavaScript and set as pixel CSS variables */
+  /* --monitor-width and --monitor-height are set via JavaScript */
+  /* --player-width and --player-height are set via JavaScript */
+  
+  /* Fallback values (will be overridden by JavaScript) */
+  --monitor-width: 0px;
+  --monitor-height: 0px;
+  --player-width: 0px;
+  --player-height: 0px;
+}
+
+/* Debug size labels */
+.debug-size-labels {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1000;
+  pointer-events: none;
+  font-family: monospace;
+  font-size: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.debug-label {
+  background: rgba(0, 0, 0, 0.85);
+  padding: 6px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  white-space: nowrap;
+}
+
+.debug-label-container {
+  color: #0f0;
+  border-color: #0f0;
+}
+
+.debug-label-image {
+  color: #0ff;
+  border-color: #0ff;
+}
+
+.debug-label-player {
+  color: #ff0;
+  border-color: #ff0;
 }
 
 /* ============================================
@@ -76,43 +131,55 @@
   min-width: 0; /* Allow flex shrinking */
   margin-right: 33%; /* Reserve space for absolutely positioned control panel */
   pointer-events: auto; /* Enable interactions for monitor section */
+  
+  /* Controls positioning - relative to container */
+  --controls-bottom: calc(100% * 0.26);
+  --controls-left: 50%;
+  --controls-transform-x: -50%;
+  --controls-gap: 10px;
+  --controls-width: 100%;
+  
+  /* Individual control button size */
+  --control-btn-size: 16px;
+  --control-btn-font-size: 12px;
+  
+  /* Status indicator positioning */
+  --indicator-margin-left: -9px;
+}
+
+/* CRT Monitor Background Image */
+.crt-monitor-section::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--monitor-width);
+  height: var(--monitor-height);
+  background-image: var(--player-image);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 3; /* Above screen, below buttons */
 }
 
 .crt-monitor-frame {
-  /* 1/3 of available space (67% width), with 1/6 gap around it */
-  /* Available space is 67% of width (100% - 33% panel) */
-  /* Monitor should be 1/3 of 67% = ~22.33% of total width */
-  /* Gap is 1/6 of available space = ~11.17% on each side */
-  /* So monitor width = 67% - (2 * 11.17%) = ~44.66%, but that's too large */
-  /* Instead: monitor = 1/3 of available = 22.33%, centered leaves ~22.33% gap each side */
-  /* For 1/6 gap: if gap = 1/6 of available = 11.17%, then monitor = 67% - 22.34% = 44.66% */
-  /* But user said "1/3 in size", so: monitor = 67% / 3 = 22.33%, centered */
-  width: calc((100% - 33%) / 3); /* 1/3 of available space */
-  max-width: calc((100% - 33%) / 3);
-  aspect-ratio: 16/9;
-  background: 
-    linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 30%, #3a3a3a 50%, #2d2d2d 70%, #1a1a1a 100%),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 10px,
-      rgba(0, 0, 0, 0.1) 10px,
-      rgba(0, 0, 0, 0.1) 11px
-    );
-  border: 12px solid #222;
-  border-top: 16px solid #1a1a1a;
-  border-bottom: 16px solid #1a1a1a;
-  border-radius: 8px;
-  box-shadow: 
-    0 0 40px rgba(0, 0, 0, 0.9),
-    inset 0 0 30px rgba(0, 0, 0, 0.7),
-    0 8px 16px rgba(0, 0, 0, 0.8),
-    inset 0 2px 4px rgba(255, 255, 255, 0.05);
-  position: relative;
-  padding: 16px;
+  /* Centered positioning - same size as image */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--monitor-width);
+  height: var(--monitor-height);
+  padding: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: 1; /* Frame is lowest */
 }
 
-.crt-monitor-frame::before {
+/* Frame top extension - COMMENTED OUT */
+/* .crt-monitor-frame::before {
   content: '';
   position: absolute;
   top: -16px;
@@ -121,9 +188,11 @@
   height: 16px;
   background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
   border-radius: 8px 8px 0 0;
-}
+  pointer-events: none; 
+} */
 
-.crt-monitor-frame::after {
+/* Frame bottom extension - COMMENTED OUT */
+/* .crt-monitor-frame::after {
   content: '';
   position: absolute;
   bottom: -16px;
@@ -132,26 +201,32 @@
   height: 16px;
   background: linear-gradient(0deg, #2a2a2a 0%, #1a1a1a 100%);
   border-radius: 0 0 8px 8px;
-}
+  pointer-events: none;
+} */
 
 .crt-monitor-screen {
-  width: 100%;
-  height: 100%;
+  /* Positioned relative to centered image */
+  /* Horizontal: centered, Vertical: 53/590 from top of image */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% - var(--monitor-height) * (242 / 590) + var(--player-height) / 2));
+  width: var(--player-width);
+  height: var(--player-height);
   background: #000;
   border-radius: 2px;
   overflow: hidden;
-  position: relative;
   box-shadow: 
     inset 0 0 40px rgba(0, 0, 0, 1),
     inset 0 2px 4px rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(0, 0, 0, 0.5);
-  z-index: 5; /* Ensure video player is above conveyor belt */
+  z-index: 2; /* Above frame, below image */
 }
 
 /* Ensure YouTube player iframe is accessible */
 .production-belt-player {
   position: relative;
-  z-index: 6;
+  z-index: 2; /* Same as screen */
   width: 100%;
   height: 100%;
 }
@@ -173,20 +248,28 @@
 /* Monitor Controls - Subtle, icon-only */
 .monitor-controls {
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  gap: var(--controls-gap);
+  margin-top: 0;
   align-items: center;
   justify-content: center;
+  position: absolute;
+  bottom: var(--controls-bottom);
+  left: var(--controls-left);
+  transform: translateX(var(--controls-transform-x));
+  width: var(--controls-width);
+  z-index: 10; /* Ensure controls are above image */
+}
+
+.monitor-controls .status-indicator {
+  margin-left: var(--indicator-margin-left); /* Override gap: 10px gap - 9px = 1px distance from last button */
 }
 
 .monitor-control-btn {
-  padding: 8px 12px;
-  font-size: 16px; /* Larger for icons */
+  padding: 0;
+  font-size: var(--control-btn-font-size);
   font-weight: 400;
-  border: 2px solid #555;
-  border-top: 1px solid #666;
-  border-bottom: 3px solid #333;
-  border-radius: 3px;
+  border: 2px solid #333;
+  border-radius: 50%; /* Circular buttons */
   background: 
     linear-gradient(145deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%),
     repeating-linear-gradient(
@@ -203,9 +286,8 @@
     0 2px 4px rgba(0, 0, 0, 0.4),
     inset 0 1px 2px rgba(255, 255, 255, 0.1),
     inset 0 -1px 2px rgba(0, 0, 0, 0.3);
-  min-width: 40px;
-  width: 40px;
-  height: 40px;
+  width: var(--control-btn-size);
+  height: var(--control-btn-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -240,10 +322,10 @@
 
 /* Status Indicator Light - More subtle */
 .status-indicator {
-  width: 16px;
-  height: 16px;
+  width: var(--control-btn-size);
+  height: var(--control-btn-size);
   border-radius: 50%;
-  margin-top: 10px;
+  margin-top: 0; /* Remove top margin since it's now in the same row */
   position: relative;
   border: 2px solid #333;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
@@ -783,15 +865,10 @@
 .jingle-box-metallic {
   flex: 0 0 140px; /* Reduced from 200px - smaller boxes */
   height: 100px; /* Reduced from 150px, proportional to belt height */
-  background: 
-    linear-gradient(145deg, #4a4a4a 0%, #3a3a3a 30%, #2a2a2a 50%, #3a3a3a 70%, #4a4a4a 100%),
-    repeating-linear-gradient(
-      45deg,
-      transparent,
-      transparent 10px,
-      rgba(0, 0, 0, 0.1) 10px,
-      rgba(0, 0, 0, 0.1) 11px
-    );
+  background-image: var(--belt-caja-image);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border: 3px solid #555;
   border-top: 2px solid #666;
   border-bottom: 4px solid #333;
@@ -809,56 +886,53 @@
     inset 0 -2px 4px rgba(0, 0, 0, 0.5);
   user-select: none;
   pointer-events: auto; /* Ensure boxes are clickable */
-}
-
-.jingle-box-metallic::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 50%;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  border-radius: 6px 6px 0 0;
-  pointer-events: none;
+  overflow: hidden; /* Ensure image doesn't overflow rounded corners */
 }
 
 .jingle-box-metallic:hover {
   transform: translateY(-3px);
   box-shadow: 
-    0 6px 12px rgba(0, 0, 0, 0.5),
+    0 8px 16px rgba(0, 0, 0, 0.6),
+    0 0 0 2px rgba(255, 255, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
   border-color: #777;
+  filter: brightness(1.1);
 }
 
 .jingle-box-metallic.selected {
   border-color: #5a9fd4;
   box-shadow: 
-    0 0 0 3px rgba(90, 159, 212, 0.3),
+    0 0 0 4px rgba(90, 159, 212, 0.5),
     0 6px 12px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  filter: brightness(1.05);
 }
 
 .jingle-box-metallic.playing {
   border-color: #44ff44;
   box-shadow: 
-    0 0 0 3px rgba(68, 255, 68, 0.3),
+    0 0 0 4px rgba(68, 255, 68, 0.5),
     0 6px 12px rgba(0, 0, 0, 0.5),
     inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  filter: brightness(1.05);
 }
 
 /* Indicator Lights on Boxes */
 .jingle-box-indicators {
+  position: absolute;
+  right: 10px;
+  top: 30px; /* Top light moved down 10px from 20px */
   display: flex;
-  gap: 8px;
-  margin-bottom: 8px;
+  flex-direction: column;
+  gap: 40px; /* Original 20px gap + 30px for lower light = 40px total gap */
+  z-index: 3;
 }
 
 .jingle-indicator-light {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
-  border: 1px solid #333;
+  border: 2px solid #333;
   background: #1a1a1a;
   position: relative;
   box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.8);
@@ -869,8 +943,9 @@
   background: #44ff44;
   border-color: #44ff44;
   box-shadow: 
-    0 0 10px rgba(68, 255, 68, 0.8),
-    inset 0 0 5px rgba(68, 255, 68, 0.4);
+    0 0 15px rgba(68, 255, 68, 1),
+    0 0 8px rgba(68, 255, 68, 0.8),
+    inset 0 0 8px rgba(68, 255, 68, 0.5);
 }
 
 .jingle-indicator-light.indicator-off {
@@ -891,9 +966,13 @@
 
 /* Box Label */
 .jingle-box-label {
+  position: absolute;
+  left: 29px;
+  top: 32px;
+  width: calc(100% - 80px); /* Narrower, leave space for button and lights */
   font-size: 11px; /* Reduced from 13px */
   font-weight: 600;
-  color: #fff;
+  color: #000;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -901,31 +980,38 @@
   line-clamp: 2;
   -webkit-box-orient: vertical;
   line-height: 1.4;
-  flex: 1;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  padding: 0;
+  background: transparent;
+  z-index: 2;
+  height: 2.8em; /* Fixed height for 2 lines */
+  -webkit-box-pack: center; /* Vertically center when using vertical orientation */
+  -webkit-box-align: start; /* Align text to start horizontally */
 }
 
 /* Skip Button */
 .jingle-box-skip-btn {
-  align-self: flex-end;
-  background: rgba(90, 159, 212, 0.2);
-  border: 1px solid #5a9fd4;
-  border-radius: 50%;
-  width: 28px;
-  height: 28px;
+  position: absolute;
+  left: 29px;
+  top: 82px;
+  background: #808080;
+  border: 1px solid #666;
+  border-radius: 3px;
+  width: 35px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #5a9fd4;
+  color: #fff;
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-top: auto;
+  z-index: 3;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .jingle-box-skip-btn:hover {
-  background: rgba(90, 159, 212, 0.4);
-  transform: scale(1.1);
+  background: #999;
+  transform: translateY(-1px);
 }
 
 /* ============================================
@@ -982,6 +1068,15 @@
 
   .crt-monitor-frame {
     max-width: 100%;
+    padding: 24px 22px 22px 22px; /* Adjusted for mobile */
+  }
+
+  .crt-monitor-screen {
+    margin-top: -10px; /* Adjusted for mobile */
+  }
+
+  .monitor-controls {
+    bottom: calc(100% * 0.20); /* Adjusted for mobile */
   }
 
   .control-panel-section {
@@ -1005,9 +1100,46 @@
   .jingle-box-metallic {
     flex: 0 0 120px;
     height: 85px;
+    padding: 8px;
   }
 
   .jingle-box-label {
+    font-size: 10px;
+    left: 21px;
+    top: 27px;
+    width: calc(100% - 70px);
+    padding: 0;
+    background: transparent;
+    color: #000;
+  }
+
+  .jingle-box-skip-btn {
+    left: 21px;
+    top: 67px;
+    width: 30px;
+    height: 20px;
+    font-size: 10px;
+    background: #808080;
+    border: 1px solid #666;
+    color: #fff;
+  }
+
+  .jingle-box-indicators {
+    right: 8px;
+    top: 24px;
+    gap: 40px;
+  }
+
+  .jingle-indicator-light {
+    width: 12px;
+    height: 12px;
+  }
+
+  .jingle-box-skip-btn {
+    bottom: 6px;
+    right: 6px;
+    width: 24px;
+    height: 24px;
     font-size: 10px;
   }
 }

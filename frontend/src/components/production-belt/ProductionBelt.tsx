@@ -11,6 +11,7 @@ import type { JingleTimelineItem } from '../player/JingleTimeline';
 import type { JingleMetadataData } from '../player/JingleMetadata';
 import '../../styles/components/production-belt.css';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
+import playerImage from '../../assets/images/Player2.png';
 
 export interface ProductionBeltProps {
   fabricaId: string;
@@ -33,6 +34,16 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
   // Player State
   const playerRef = useRef<YouTubePlayerRef>(null);
   const { state: playerState, play, pause } = useYouTubePlayer(playerRef);
+
+  // Debug refs and state
+  const mainLayoutRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLDivElement>(null);
+  const playerRef_debug = useRef<HTMLDivElement>(null);
+  const [debugSizes, setDebugSizes] = useState<{
+    container: { width: number; height: number };
+    image: { width: number; height: number };
+    player: { width: number; height: number };
+  } | null>(null);
 
   // Sync State
   const { activeJingle, activeJingleId } = useJingleSync(
@@ -123,6 +134,74 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
     }
     fetchData();
   }, [fabricaId]);
+
+  // Calculate sizes in pixels and set CSS custom properties
+  useEffect(() => {
+    const calculateSizes = () => {
+      if (mainLayoutRef.current) {
+        const containerRect = mainLayoutRef.current.getBoundingClientRect();
+        const containerWidth = containerRect.width;
+        const containerHeight = containerRect.height;
+        
+        // Constants
+        const IMAGE_WIDTH = 807;
+        const IMAGE_HEIGHT = 590;
+        const PLAYER_WIDTH = 800;
+        const PLAYER_HEIGHT = 450;
+        const IMAGE_ASPECT = IMAGE_WIDTH / IMAGE_HEIGHT; // 1.3688
+        const IMAGE_INVERSE_ASPECT = IMAGE_HEIGHT / IMAGE_WIDTH; // 0.7308
+        
+        // Calculate monitor/image size in pixels
+        const monitorWidthOption1 = 0.5 * containerWidth;
+        const monitorWidthOption2 = 0.8 * containerHeight * IMAGE_ASPECT;
+        const monitorWidth = Math.min(monitorWidthOption1, monitorWidthOption2);
+        
+        const monitorHeightOption1 = 0.5 * containerWidth * IMAGE_INVERSE_ASPECT;
+        const monitorHeightOption2 = 0.8 * containerHeight;
+        const monitorHeight = Math.min(monitorHeightOption1, monitorHeightOption2);
+        
+        // Calculate player size in pixels
+        const playerWidth = monitorWidth * (PLAYER_WIDTH / IMAGE_WIDTH);
+        const playerHeight = monitorHeight * (PLAYER_HEIGHT / IMAGE_HEIGHT);
+        
+        // Set CSS custom properties as pixel values
+        mainLayoutRef.current.style.setProperty('--monitor-width', `${monitorWidth}px`);
+        mainLayoutRef.current.style.setProperty('--monitor-height', `${monitorHeight}px`);
+        mainLayoutRef.current.style.setProperty('--player-width', `${playerWidth}px`);
+        mainLayoutRef.current.style.setProperty('--player-height', `${playerHeight}px`);
+        
+        // Update debug labels
+        if (imageRef.current && playerRef_debug.current) {
+          const imageRect = imageRef.current.getBoundingClientRect();
+          const playerRect = playerRef_debug.current.getBoundingClientRect();
+          
+          setDebugSizes({
+            container: {
+              width: Math.round(containerWidth),
+              height: Math.round(containerHeight)
+            },
+            image: {
+              width: Math.round(imageRect.width),
+              height: Math.round(imageRect.height)
+            },
+            player: {
+              width: Math.round(playerRect.width),
+              height: Math.round(playerRect.height)
+            }
+          });
+        }
+      }
+    };
+
+    calculateSizes();
+    const resizeObserver = new ResizeObserver(calculateSizes);
+    
+    if (mainLayoutRef.current) resizeObserver.observe(mainLayoutRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [loading]);
 
   // Handlers
   const handleJingleSelect = (jingle: JingleTimelineItem) => {
@@ -275,11 +354,29 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
       <div className="factory-background"></div>
 
       {/* Main Layout: Monitor (Left) */}
-      <div className="production-belt-main-layout">
+      <div className="production-belt-main-layout" ref={mainLayoutRef}>
+        {/* Debug size labels */}
+        {debugSizes && (
+          <div className="debug-size-labels">
+            <div className="debug-label debug-label-container">
+              Container: {debugSizes.container.width} × {debugSizes.container.height}px
+            </div>
+            <div className="debug-label debug-label-image">
+              Image: {debugSizes.image.width} × {debugSizes.image.height}px
+            </div>
+            <div className="debug-label debug-label-player">
+              Player: {debugSizes.player.width} × {debugSizes.player.height}px
+            </div>
+          </div>
+        )}
+        
         {/* CRT Monitor Section (Left) */}
-        <div className="crt-monitor-section">
-          <div className="crt-monitor-frame">
-            <div className="crt-monitor-screen">
+        <div 
+          className="crt-monitor-section"
+          style={{ '--player-image': `url(${playerImage})` } as React.CSSProperties}
+        >
+          <div className="crt-monitor-frame" ref={imageRef}>
+            <div className="crt-monitor-screen" ref={playerRef_debug}>
               <YouTubePlayer
                 ref={playerRef}
                 videoIdOrUrl={fabrica.youtubeUrl || fabrica.id || fabricaId}
@@ -298,7 +395,7 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
               title="Retroceder"
               aria-label="Retroceder"
             >
-              &lt;&lt;
+              ⏮
             </button>
             <button 
               className="monitor-control-btn play-pause-btn"
@@ -306,7 +403,7 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
               title={playerState.isPlaying ? "Pausar" : "Reproducir"}
               aria-label={playerState.isPlaying ? "Pausar" : "Reproducir"}
             >
-              {playerState.isPlaying ? '&gt;|' : '&gt;&gt;'}
+              {playerState.isPlaying ? '⏸' : '▶'}
             </button>
             <button 
               className="monitor-control-btn skip-forward-btn"
@@ -314,13 +411,12 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
               title="Avanzar"
               aria-label="Avanzar"
             >
-              &gt;&gt;
+              ⏭
             </button>
-          </div>
-
-          {/* Status Indicator Light */}
-          <div className={`status-indicator status-indicator-${statusIndicatorState}`}>
-            <div className="indicator-glow"></div>
+            {/* Status Indicator Light */}
+            <div className={`status-indicator status-indicator-${statusIndicatorState}`}>
+              <div className="indicator-glow"></div>
+            </div>
           </div>
         </div>
       </div>

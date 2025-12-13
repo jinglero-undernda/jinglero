@@ -1,5 +1,6 @@
 import React from 'react';
 import type { JingleTimelineItem } from '../player/JingleTimeline';
+import beltCajaImage from '../../assets/images/belt.caja.jpg';
 
 export interface JingleBoxProps {
   jingle: JingleTimelineItem;
@@ -31,6 +32,7 @@ export default function JingleBox({
   return (
     <div 
       className={`jingle-box-metallic ${isSelected ? 'selected' : ''} ${isPlaying ? 'playing' : ''}`}
+      style={{ '--belt-caja-image': `url(${beltCajaImage})` } as React.CSSProperties}
       onClick={onSelect}
       role="button"
       tabIndex={0}
