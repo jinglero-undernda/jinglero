@@ -114,6 +114,11 @@
   border-color: #ff0;
 }
 
+.debug-label-controls {
+  color: #f0f;
+  border-color: #f0f;
+}
+
 /* ============================================
    CRT MONITOR SECTION (Left)
    ============================================ */
@@ -132,19 +137,17 @@
   margin-right: 33%; /* Reserve space for absolutely positioned control panel */
   pointer-events: auto; /* Enable interactions for monitor section */
   
-  /* Controls positioning - relative to container */
-  --controls-bottom: calc(100% * 0.26);
-  --controls-left: 50%;
-  --controls-transform-x: -50%;
-  --controls-gap: 10px;
-  --controls-width: 100%;
+  /* Controls positioning - calculated in JavaScript and set as pixel values */
+  /* --controls-center-x-offset, --controls-center-y-offset, --controls-container-width are set via JavaScript */
   
   /* Individual control button size */
   --control-btn-size: 16px;
   --control-btn-font-size: 12px;
   
-  /* Status indicator positioning */
-  --indicator-margin-left: -9px;
+  /* Fallback values (will be overridden by JavaScript) */
+  --controls-center-x-offset: 0px;
+  --controls-center-y-offset: 0px;
+  --controls-container-width: 0px;
 }
 
 /* CRT Monitor Background Image */
@@ -248,20 +251,22 @@
 /* Monitor Controls - Subtle, icon-only */
 .monitor-controls {
   display: flex;
-  gap: var(--controls-gap);
-  margin-top: 0;
+  justify-content: space-between; /* Distribute 4 items equally */
   align-items: center;
-  justify-content: center;
   position: absolute;
-  bottom: var(--controls-bottom);
-  left: var(--controls-left);
-  transform: translateX(var(--controls-transform-x));
-  width: var(--controls-width);
+  /* Position using transform: translate() like image/player for consistency */
+  /* Image center is at (50%, 50%) of .crt-monitor-section */
+  /* Container center is offset from image center by --controls-center-x-offset and --controls-center-y-offset */
+  /* With space-between: first button left edge = container left, last button right edge = container right */
+  top: 50%;
+  left: 50%;
+  transform: translate(
+    calc(-50% + var(--controls-center-x-offset)),
+    calc(-50% + var(--controls-center-y-offset))
+  );
+  width: calc(var(--controls-container-width) + var(--control-btn-size));
   z-index: 10; /* Ensure controls are above image */
-}
-
-.monitor-controls .status-indicator {
-  margin-left: var(--indicator-margin-left); /* Override gap: 10px gap - 9px = 1px distance from last button */
+  gap: 0; /* Remove gap, use space-between instead */
 }
 
 .monitor-control-btn {

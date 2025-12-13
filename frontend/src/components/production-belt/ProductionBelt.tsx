@@ -37,12 +37,14 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
 
   // Debug refs and state
   const mainLayoutRef = useRef<HTMLDivElement>(null);
+  const crtMonitorSectionRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLDivElement>(null);
   const playerRef_debug = useRef<HTMLDivElement>(null);
   const [debugSizes, setDebugSizes] = useState<{
     container: { width: number; height: number };
     image: { width: number; height: number };
     player: { width: number; height: number };
+    controls: { y: number; xFirst: number; xLast: number };
   } | null>(null);
 
   // Sync State
@@ -164,11 +166,45 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
         const playerWidth = monitorWidth * (PLAYER_WIDTH / IMAGE_WIDTH);
         const playerHeight = monitorHeight * (PLAYER_HEIGHT / IMAGE_HEIGHT);
         
+        // Calculate controls container position (proportional to image)
+        // Y = 557px from top, X-first = 570px, X-last = 705px (on 807×590 image)
+        // Calculate container center position relative to image center
+        // Image center is at (807/2, 590/2) = (403.5, 295)
+        // Container center X = (X₁ + X₄) / 2 = (570 + 705) / 2 = 637.5px
+        // Container center Y = Y = 557px
+        // Offsets from image center:
+        const X_FIRST = 570;
+        const X_LAST = 705;
+        const Y = 557;
+        
+        const containerCenterX = (X_FIRST + X_LAST) / 2; // 637.5px
+        const containerCenterY = Y; // 557px
+        const imageCenterX = IMAGE_WIDTH / 2; // 403.5px
+        const imageCenterY = IMAGE_HEIGHT / 2; // 295px
+        
+        // Calculate proportional offsets from image center
+        const controlsCenterXOffset = monitorWidth * ((containerCenterX - imageCenterX) / IMAGE_WIDTH);
+        const controlsCenterYOffset = monitorHeight * ((containerCenterY - imageCenterY) / IMAGE_HEIGHT);
+        const controlsContainerWidth = monitorWidth * ((X_LAST - X_FIRST) / IMAGE_WIDTH); // 135/807 of image width
+        
         // Set CSS custom properties as pixel values
+        // Set on main layout for image/player sizing
         mainLayoutRef.current.style.setProperty('--monitor-width', `${monitorWidth}px`);
         mainLayoutRef.current.style.setProperty('--monitor-height', `${monitorHeight}px`);
         mainLayoutRef.current.style.setProperty('--player-width', `${playerWidth}px`);
         mainLayoutRef.current.style.setProperty('--player-height', `${playerHeight}px`);
+        
+        // Set control positioning variables on crt-monitor-section where they're used
+        if (crtMonitorSectionRef.current) {
+          crtMonitorSectionRef.current.style.setProperty('--controls-center-x-offset', `${controlsCenterXOffset}px`);
+          crtMonitorSectionRef.current.style.setProperty('--controls-center-y-offset', `${controlsCenterYOffset}px`);
+          crtMonitorSectionRef.current.style.setProperty('--controls-container-width', `${controlsContainerWidth}px`);
+        }
+        
+          // Calculate control positions in pixels from image top-left (for debug display)
+          const controlsY = Math.round(monitorHeight * (Y / IMAGE_HEIGHT));
+          const controlsXFirst = Math.round(monitorWidth * (X_FIRST / IMAGE_WIDTH));
+          const controlsXLast = Math.round(monitorWidth * (X_LAST / IMAGE_WIDTH));
         
         // Update debug labels
         if (imageRef.current && playerRef_debug.current) {
@@ -187,6 +223,32 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
             player: {
               width: Math.round(playerRect.width),
               height: Math.round(playerRect.height)
+            },
+            controls: {
+              y: controlsY,
+              xFirst: controlsXFirst,
+              xLast: controlsXLast
+            }
+          });
+        } else {
+          // Set debug sizes with controls even if refs aren't ready
+          setDebugSizes({
+            container: {
+              width: Math.round(containerWidth),
+              height: Math.round(containerHeight)
+            },
+            image: {
+              width: Math.round(monitorWidth),
+              height: Math.round(monitorHeight)
+            },
+            player: {
+              width: Math.round(playerWidth),
+              height: Math.round(playerHeight)
+            },
+            controls: {
+              y: controlsY,
+              xFirst: controlsXFirst,
+              xLast: controlsXLast
             }
           });
         }
@@ -355,23 +417,9 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
 
       {/* Main Layout: Monitor (Left) */}
       <div className="production-belt-main-layout" ref={mainLayoutRef}>
-        {/* Debug size labels */}
-        {debugSizes && (
-          <div className="debug-size-labels">
-            <div className="debug-label debug-label-container">
-              Container: {debugSizes.container.width} × {debugSizes.container.height}px
-            </div>
-            <div className="debug-label debug-label-image">
-              Image: {debugSizes.image.width} × {debugSizes.image.height}px
-            </div>
-            <div className="debug-label debug-label-player">
-              Player: {debugSizes.player.width} × {debugSizes.player.height}px
-            </div>
-          </div>
-        )}
-        
         {/* CRT Monitor Section (Left) */}
         <div 
+          ref={crtMonitorSectionRef}
           className="crt-monitor-section"
           style={{ '--player-image': `url(${playerImage})` } as React.CSSProperties}
         >
