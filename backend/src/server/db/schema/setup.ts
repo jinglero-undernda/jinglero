@@ -29,15 +29,17 @@ const constraints = [
 
 const indexes = [
   // Original full-text search indexes
-  'CREATE FULLTEXT INDEX jingle_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.comment, j.displayPrimary, j.displaySecondary, j.displayBadges]',
-  'CREATE FULLTEXT INDEX tematica_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description, t.displayPrimary, t.displaySecondary, t.displayBadges]',
-  'CREATE FULLTEXT INDEX artista_search IF NOT EXISTS FOR (a:Artista) ON EACH [a.stageName, a.name, a.displayPrimary, a.displaySecondary, a.displayBadges]',
-  'CREATE FULLTEXT INDEX cancion_search IF NOT EXISTS FOR (c:Cancion) ON EACH [c.title, c.displayPrimary, c.displaySecondary, c.displayBadges]',
-  'CREATE FULLTEXT INDEX fabrica_search IF NOT EXISTS FOR (f:Fabrica) ON EACH [f.title, f.displayPrimary, f.displaySecondary, f.displayBadges]',
+  // NOTE: We index the single canonical normalized search field `normSearch` for performance + consistency.
+  // `normSearch` is ISO-normalized (accents removed, lowercased) and maintained by the display-properties pipeline.
+  'CREATE FULLTEXT INDEX jingle_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.normSearch]',
+  'CREATE FULLTEXT INDEX tematica_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.normSearch]',
+  'CREATE FULLTEXT INDEX artista_search IF NOT EXISTS FOR (a:Artista) ON EACH [a.normSearch]',
+  'CREATE FULLTEXT INDEX cancion_search IF NOT EXISTS FOR (c:Cancion) ON EACH [c.normSearch]',
+  'CREATE FULLTEXT INDEX fabrica_search IF NOT EXISTS FOR (f:Fabrica) ON EACH [f.normSearch]',
 
   // Index names expected by tests (aliases for clip/term terminology)
-  'CREATE FULLTEXT INDEX clip_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.title, j.songTitle, j.comment, j.displayPrimary, j.displaySecondary, j.displayBadges]',
-  'CREATE FULLTEXT INDEX term_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.name, t.description, t.displayPrimary, t.displaySecondary, t.displayBadges]',
+  'CREATE FULLTEXT INDEX clip_search IF NOT EXISTS FOR (j:Jingle) ON EACH [j.normSearch]',
+  'CREATE FULLTEXT INDEX term_search IF NOT EXISTS FOR (t:Tematica) ON EACH [t.normSearch]',
 
   // Regular indexes for frequent lookups
   'CREATE INDEX jingle_timestamp IF NOT EXISTS FOR (j:Jingle) ON j.timestamp',

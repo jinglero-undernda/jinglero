@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-12-14
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:77-187`
 
@@ -18,7 +18,7 @@ This document describes all node types in the Neo4j knowledge graph. The schema 
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-12-14
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:79-96`
 
@@ -177,7 +177,7 @@ Usuario represents a user account in the system. Users can have roles (ADMIN or 
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-12-14
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:99-123`
 
@@ -342,6 +342,17 @@ Jingle represents a clip or segment from a Fabrica (stream). Each Jingle appears
 - **Read-only**: Yes (system-managed)
 - **Auto-update triggers**: Any change to Jingle properties or relationships (APPEARS_IN, VERSIONA, JINGLERO_DE, TAGGED_WITH, AUTOR_DE)
 - **Code Reference**: `backend/src/server/utils/jingleAutoComment.ts`
+
+### normSearch
+
+- **Type**: string (optional)
+- **Required**: No
+- **Default**: null
+- **Description**: System-generated normalized search text. ISO normalized (accents removed, lowercase) to enable accent-insensitive, case-insensitive search. Contains concatenated searchable information: title/cancion title, autores, jingleros, fabrica title, all tags (primary and non-primary), and comment. Automatically updated whenever any Jingle property or relationship changes.
+- **Example**: For a jingle with title "Páez canta", the normSearch would be "paez canta" (allowing search for "pAez" to match "Páez")
+- **Read-only**: Yes (system-managed)
+- **Auto-update triggers**: Any change to Jingle properties or relationships (APPEARS_IN, VERSIONA, JINGLERO_DE, TAGGED_WITH, AUTOR_DE)
+- **Code Reference**: `backend/src/server/utils/displayProperties.ts`
 
 ### status
 
@@ -758,7 +769,7 @@ Cancion represents a song or musical composition. Songs can have multiple author
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-12-14
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:161-175`
 
@@ -894,7 +905,7 @@ Fabrica represents a stream or broadcast episode. Each Fabrica is identified by 
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-01-27
+- **Last Updated**: 2025-12-14
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:177-187`
 

@@ -53,6 +53,31 @@ Auto-Sync Behavior:
 - Validation: Auto-fix discrepancies after CRUD operations
 
 ================================================================================
+SYSTEM-MANAGED PROPERTIES
+================================================================================
+
+The following properties are automatically generated and maintained by the system:
+- displayPrimary: Primary display text with icon
+- displaySecondary: Secondary display text with metadata
+- displayBadges: Array of badge strings
+- normSearch: Normalized search text (ISO normalized - accents removed, lowercase)
+
+These properties are:
+- READ-ONLY: Users cannot manually set these values
+- AUTO-UPDATED: Automatically recalculated when any relevant property or relationship changes
+- SYSTEM-MANAGED: Updated via updateDisplayProperties() function
+
+normSearch Property:
+- Purpose: Enable accent-insensitive, case-insensitive search
+- Normalization: Uses Unicode NFD normalization to remove accents, then converts to lowercase
+- Content varies by entity type:
+  * Jingle: Includes title/cancion title, autores, jingleros, fabrica title, all tags (primary and non-primary), comment
+  * Tematica (GENTE category): Parses "Surname, Name" format as "Name Surname" before normalization
+  * Other entities: Includes displayPrimary and displaySecondary content
+
+Example: "Páez" -> "paez", allowing search for "pAez" to match "Páez"
+
+================================================================================
 APPEARS_IN ORDER MANAGEMENT
 ================================================================================
 
@@ -122,6 +147,7 @@ Nodes:
   - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
   - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
   - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
+  - normSearch: string (optional, system-generated normalized search text, ISO normalized - accents removed, lowercase, read-only, auto-updated)
    - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
    - createdAt: datetime
    - updatedAt: datetime
@@ -146,6 +172,7 @@ Nodes:
   - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
   - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
   - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
+  - normSearch: string (optional, system-generated normalized search text, ISO normalized - accents removed, lowercase, read-only, auto-updated)
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime
@@ -166,6 +193,7 @@ Nodes:
   - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
   - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
   - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
+  - normSearch: string (optional, system-generated normalized search text, ISO normalized - accents removed, lowercase, read-only, auto-updated)
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime
@@ -185,6 +213,7 @@ Nodes:
   - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
   - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
   - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
+  - normSearch: string (optional, system-generated normalized search text, ISO normalized - accents removed, lowercase, read-only, auto-updated)
   - status: string (enum: DRAFT, PROCESSING, COMPLETED)
   - createdAt: datetime
   - updatedAt: datetime
@@ -200,6 +229,7 @@ Nodes:
   - displayPrimary: string (optional, system-generated primary display text with icon, read-only, auto-updated)
   - displaySecondary: string (optional, system-generated secondary display text, read-only, auto-updated)
   - displayBadges: string[] (optional, system-generated badges array, read-only, auto-updated)
+  - normSearch: string (optional, system-generated normalized search text, ISO normalized - accents removed, lowercase, read-only, auto-updated. For GENTE category, parses "Surname, Name" as "Name Surname")
   - status: string (optional, enum: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED, default: DRAFT)
   - createdAt: datetime
   - updatedAt: datetime

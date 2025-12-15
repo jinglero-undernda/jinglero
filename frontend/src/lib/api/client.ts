@@ -1131,7 +1131,23 @@ export const api = {
   get: async (endpoint: string, options?: any) => {
     const response = await fetch(`${API_BASE}${endpoint}`, options);
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      // Best-effort parse error payload from server (or Vite proxy), fall back to status text.
+      let message = `API Error: ${response.status} ${response.statusText}`;
+      try {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          message =
+            (errorData && (errorData.error || errorData.message)) ||
+            message;
+        } else {
+          const text = await response.text();
+          if (text && text.trim()) message = text;
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(message);
     }
     return response.json();
   },
@@ -1144,7 +1160,22 @@ export const api = {
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      let message = `API Error: ${response.status} ${response.statusText}`;
+      try {
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('application/json')) {
+          const errorData = await response.json();
+          message =
+            (errorData && (errorData.error || errorData.message)) ||
+            message;
+        } else {
+          const text = await response.text();
+          if (text && text.trim()) message = text;
+        }
+      } catch {
+        // ignore parse errors
+      }
+      throw new Error(message);
     }
     return response.json();
   }

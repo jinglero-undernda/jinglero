@@ -10,7 +10,9 @@
 
 ## Overview
 
-The Search API provides global search functionality across multiple entity types (Jingles, Canciones, Artistas, Tematicas, Fabricas). It supports both basic (case-insensitive contains) and fulltext search modes, with filtering by entity type and pagination.
+The Search API provides global search functionality across multiple entity types (Jingles, Canciones, Artistas, Tematicas, Fabricas). It supports filtering by entity type and pagination.
+
+Search is implemented using **Neo4j FULLTEXT indexes** over the system-generated `normSearch` field (accent-insensitive, case-insensitive).
 
 **Base Path**: `/api/search`
 
@@ -34,64 +36,9 @@ The Search API provides global search functionality across multiple entity types
 - `types` (optional): Comma-separated list of entity types to search (jingles, canciones, artistas, tematicas, fabricas). If not provided, all types are searched.
 - `limit` (optional): Number of results per type (default: 10, min: 1, max: 100)
 - `offset` (optional): Number of results to skip per type (default: 0, min: 0)
-- `mode` (optional): Search mode - `basic` (default) or `fulltext`
 - `excludeWithRelationship` (optional): Filter out entities with specific relationships. For Jingles: `appears_in` or `versiona`
 
 **Success Response (200)**
-
-**Basic Mode:**
-
-```json
-{
-  "jingles": [
-    {
-      "id": "j1a2b3c4",
-      "title": "Jingle Title",
-      "timestamp": 120,
-      "songTitle": "Song Title",
-      "type": "jingle"
-    }
-  ],
-  "canciones": [
-    {
-      "id": "c1d2e3f4",
-      "title": "Song Title",
-      "type": "cancion"
-    }
-  ],
-  "artistas": [
-    {
-      "id": "a1b2c3d4",
-      "stageName": "Stage Name",
-      "name": "Artist Name",
-      "type": "artista"
-    }
-  ],
-  "tematicas": [
-    {
-      "id": "t1a2b3c4",
-      "name": "Tematica Name",
-      "type": "tematica"
-    }
-  ],
-  "fabricas": [
-    {
-      "id": "0hmxZPp0xq0",
-      "title": "Fabrica Title",
-      "date": "2025-01-01T00:00:00.000Z",
-      "type": "fabrica"
-    }
-  ],
-  "meta": {
-    "limit": 10,
-    "offset": 0,
-    "types": ["jingles", "canciones", "artistas", "tematicas", "fabricas"],
-    "mode": "basic"
-  }
-}
-```
-
-**Fulltext Mode:**
 
 ```json
 {
@@ -156,29 +103,22 @@ The Search API provides global search functionality across multiple entity types
 
 **Search Behavior**
 
-**Basic Mode (default):**
-
-- Case-insensitive contains search
-- Searches:
-  - Jingles: `title`, `songTitle`, `comment`, `autoComment`
-  - Canciones: `title`, and Artista names via AUTOR_DE relationships
-  - Artistas: `stageName`, `name` (excludes "None" values)
-  - Tematicas: `name`
-  - Fabricas: `title`
-- Results ordered alphabetically by primary field
-
-**Fulltext Mode:**
+**Fulltext Search (current implementation):**
 
 - Uses Neo4j fulltext indexes
 - Returns relevance scores
-- Searches:
-  - Jingles: Fulltext index on `title`, `songTitle`, `artistName`, `comment`, `autoComment`
-  - Canciones: Fulltext index on `title`
-  - Artistas: Fulltext index on `stageName`, `name`
-  - Tematicas: Fulltext index on `name`, `description`
-  - Fabricas: Not supported (falls back to basic mode)
 - Results ordered by relevance score (descending)
-- Falls back to basic mode if fulltext index is unavailable
+- Indexes are built over `normSearch` for each entity label.
+
+**Multi-word query semantics (plain input):**
+
+- If the user types multiple words (e.g. `my way`), the API will:
+  1. **Prefer phrase matches** (`"my way"`)
+  2. If the phrase yields **0 results** for an entity type, fall back to **AND-of-words** with prefix matching (`+my* +way*`)
+
+**Power-user Lucene queries:**
+
+- If the query already includes Lucene operators/quotes (e.g. `"my way"`, `OR`, `AND`, `*`, field syntax), the API preserves it (only accent-normalizes + trims).
 
 **Filtering**
 
@@ -280,14 +220,15 @@ Invalid types return 400 Bad Request error.
 
 The Search API uses Neo4j fulltext indexes for improved search performance:
 
-- **jingle_search**: Index on Jingle `title`, `songTitle`, `artistName`, `comment`
-- **cancion_search**: Index on Cancion `title`
-- **artista_search**: Index on Artista `stageName`, `name`
-- **tematica_search**: Index on Tematica `name`, `description`
+- **jingle_search**: Index on Jingle `normSearch`
+- **cancion_search**: Index on Cancion `normSearch`
+- **artista_search**: Index on Artista `normSearch`
+- **tematica_search**: Index on Tematica `normSearch`
+- **fabrica_search**: Index on Fabrica `normSearch`
 
 **Code Reference**: `docs/4_backend_database-schema/schema/nodes.md` for index definitions
 
-**Note**: If fulltext indexes are not available, the API automatically falls back to basic mode.
+**Note**: `normSearch` must be populated (backfilled for existing nodes) for these indexes to be effective.
 
 ---
 

@@ -3,7 +3,7 @@
 ## Status
 
 - **Status**: current_implementation
-- **Last Updated**: 2025-11-23
+- **Last Updated**: 2025-12-14
 - **Last Validated**: not yet validated
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:1-261`
 
@@ -17,124 +17,145 @@ This document provides comprehensive property specifications for all nodes and r
 
 ### Usuario Properties
 
-| Property | Type | Required | Unique | Default | Description |
-|----------|------|----------|--------|---------|-------------|
-| id | string | Yes | Yes | Auto-generated | Unique identifier (format: `u{8-chars}`) |
-| email | string | Yes | Yes | None | User's email address |
-| role | string (enum) | Yes | No | GUEST | Role: ADMIN or GUEST |
-| artistId | string | No | No | None | Redundant: ID of related Artista from SOY_YO |
-| displayName | string | Yes | No | None | User's display name |
-| profilePictureUrl | string | No | No | None | URL to profile picture |
-| twitterHandle | string | No | Yes* | None | Twitter/X handle (*unique if provided) |
-| instagramHandle | string | No | Yes* | None | Instagram handle (*unique if provided) |
-| facebookProfile | string | No | Yes* | None | Facebook profile URL (*unique if provided) |
-| youtubeHandle | string | No | Yes* | None | YouTube handle (*unique if provided) |
-| contributionsCount | number | Yes | No | 0 | Count of user contributions |
-| createdAt | datetime | Yes | No | Current | Account creation timestamp |
-| lastLogin | datetime | No | No | None | Last login timestamp |
-| updatedAt | datetime | Yes | No | Current | Last update timestamp |
+| Property           | Type          | Required | Unique | Default        | Description                                  |
+| ------------------ | ------------- | -------- | ------ | -------------- | -------------------------------------------- |
+| id                 | string        | Yes      | Yes    | Auto-generated | Unique identifier (format: `u{8-chars}`)     |
+| email              | string        | Yes      | Yes    | None           | User's email address                         |
+| role               | string (enum) | Yes      | No     | GUEST          | Role: ADMIN or GUEST                         |
+| artistId           | string        | No       | No     | None           | Redundant: ID of related Artista from SOY_YO |
+| displayName        | string        | Yes      | No     | None           | User's display name                          |
+| profilePictureUrl  | string        | No       | No     | None           | URL to profile picture                       |
+| twitterHandle      | string        | No       | Yes\*  | None           | Twitter/X handle (\*unique if provided)      |
+| instagramHandle    | string        | No       | Yes\*  | None           | Instagram handle (\*unique if provided)      |
+| facebookProfile    | string        | No       | Yes\*  | None           | Facebook profile URL (\*unique if provided)  |
+| youtubeHandle      | string        | No       | Yes\*  | None           | YouTube handle (\*unique if provided)        |
+| contributionsCount | number        | Yes      | No     | 0              | Count of user contributions                  |
+| createdAt          | datetime      | Yes      | No     | Current        | Account creation timestamp                   |
+| lastLogin          | datetime      | No       | No     | None           | Last login timestamp                         |
+| updatedAt          | datetime      | Yes      | No     | Current        | Last update timestamp                        |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:83-96`
 
 ### Jingle Properties
 
-| Property | Type | Required | Unique | Default | Description |
-|----------|------|----------|--------|---------|-------------|
-| id | string | Yes | Yes | Auto-generated | Unique identifier (format: `j{8-chars}`) |
-| youtubeUrl | string | Yes | No | None | YouTube URL for the jingle clip |
-| timestamp | number | No | No | None | Redundant: Timestamp from APPEARS_IN |
-| youtubeClipUrl | string | No | No | None | URL for clips on YouTube |
-| title | string | No | No | None | Optional title for the jingle |
-| comment | string | No | No | None | Optional comment or description |
-| lyrics | string | No | No | None | Optional lyrics |
-| songTitle | string | No | No | None | Redundant: Inherited from Cancion via VERSIONA |
-| artistName | string | No | No | None | Redundant: Inherited from Cancion's Artista |
-| genre | string | No | No | None | Redundant: Inherited from Cancion |
-| isJinglazo | boolean | No | No | false | Indicates special highlight |
-| isJinglazoDelDia | boolean | No | No | false | Indicates jingle of the day |
-| isPrecario | boolean | No | No | false | Indicates low quality/temporary |
-| fabricaId | string | No | No | None | Redundant: ID of Fabrica from APPEARS_IN |
-| fabricaDate | datetime | No | No | None | Redundant: Date from APPEARS_IN->Fabrica.date |
-| cancionId | string | No | No | None | Redundant: ID of Cancion from VERSIONA |
-| isLive | boolean | No | No | false | Indicates live performance |
-| isRepeat | boolean | No | No | false | Indicates song performed before |
-| status | string (enum) | No | No | DRAFT | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED |
-| createdAt | datetime | Yes | No | Current | Creation timestamp |
-| updatedAt | datetime | Yes | No | Current | Last update timestamp |
+| Property         | Type          | Required | Unique | Default        | Description                                                                       |
+| ---------------- | ------------- | -------- | ------ | -------------- | --------------------------------------------------------------------------------- |
+| id               | string        | Yes      | Yes    | Auto-generated | Unique identifier (format: `j{8-chars}`)                                          |
+| youtubeUrl       | string        | Yes      | No     | None           | YouTube URL for the jingle clip                                                   |
+| timestamp        | number        | No       | No     | None           | Redundant: Timestamp from APPEARS_IN                                              |
+| youtubeClipUrl   | string        | No       | No     | None           | URL for clips on YouTube                                                          |
+| title            | string        | No       | No     | None           | Optional title for the jingle                                                     |
+| comment          | string        | No       | No     | None           | Optional comment or description                                                   |
+| lyrics           | string        | No       | No     | None           | Optional lyrics                                                                   |
+| songTitle        | string        | No       | No     | None           | Redundant: Inherited from Cancion via VERSIONA                                    |
+| artistName       | string        | No       | No     | None           | Redundant: Inherited from Cancion's Artista                                       |
+| genre            | string        | No       | No     | None           | Redundant: Inherited from Cancion                                                 |
+| isJinglazo       | boolean       | No       | No     | false          | Indicates special highlight                                                       |
+| isJinglazoDelDia | boolean       | No       | No     | false          | Indicates jingle of the day                                                       |
+| isPrecario       | boolean       | No       | No     | false          | Indicates low quality/temporary                                                   |
+| fabricaId        | string        | No       | No     | None           | Redundant: ID of Fabrica from APPEARS_IN                                          |
+| fabricaDate      | datetime      | No       | No     | None           | Redundant: Date from APPEARS_IN->Fabrica.date                                     |
+| cancionId        | string        | No       | No     | None           | Redundant: ID of Cancion from VERSIONA                                            |
+| isLive           | boolean       | No       | No     | false          | Indicates live performance                                                        |
+| isRepeat         | boolean       | No       | No     | false          | Indicates song performed before                                                   |
+| autoComment      | string        | No       | No     | null           | System-generated summary comment (read-only, auto-updated)                        |
+| displayPrimary   | string        | No       | No     | null           | System-generated primary display text with icon (read-only, auto-updated)         |
+| displaySecondary | string        | No       | No     | null           | System-generated secondary display text (read-only, auto-updated)                 |
+| displayBadges    | string[]      | No       | No     | []             | System-generated badges array (read-only, auto-updated)                           |
+| normSearch       | string        | No       | No     | null           | System-generated normalized search text, ISO normalized (read-only, auto-updated) |
+| status           | string (enum) | No       | No     | DRAFT          | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED                               |
+| createdAt        | datetime      | Yes      | No     | Current        | Creation timestamp                                                                |
+| updatedAt        | datetime      | Yes      | No     | Current        | Last update timestamp                                                             |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:103-123`
 
 ### Artista Properties
 
-| Property | Type | Required | Unique | Default | Description |
-|----------|------|----------|--------|---------|-------------|
-| id | string | Yes | Yes | Auto-generated | Unique identifier (format: `a{8-chars}`) |
-| name | string | Yes* | Yes | None | Artist's real/primary name (*at least one of name or stageName) |
-| stageName | string | No* | No | None | Artist's stage name (*at least one of name or stageName) |
-| idUsuario | string | No | No | None | Redundant: ID of Usuario from SOY_YO |
-| nationality | string | No | No | None | Artist's nationality |
-| isArg | boolean | No | No | Auto-calc | Auto-managed: true if nationality === 'Argentina' |
-| youtubeHandle | string | No | No | None | YouTube handle |
-| instagramHandle | string | No | No | None | Instagram handle |
-| twitterHandle | string | No | No | None | Twitter/X handle |
-| facebookProfile | string | No | No | None | Facebook profile URL |
-| website | string | No | No | None | Website URL |
-| bio | string | No | No | None | Biography or description |
-| musicBrainzId | string | No | No | None | MusicBrainz ID for linking to external MusicBrainz database |
-| status | string (enum) | No | No | DRAFT | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED |
-| createdAt | datetime | Yes | No | Current | Creation timestamp |
-| updatedAt | datetime | Yes | No | Current | Last update timestamp |
+| Property         | Type          | Required | Unique | Default        | Description                                                                       |
+| ---------------- | ------------- | -------- | ------ | -------------- | --------------------------------------------------------------------------------- |
+| id               | string        | Yes      | Yes    | Auto-generated | Unique identifier (format: `a{8-chars}`)                                          |
+| name             | string        | Yes\*    | Yes    | None           | Artist's real/primary name (\*at least one of name or stageName)                  |
+| stageName        | string        | No\*     | No     | None           | Artist's stage name (\*at least one of name or stageName)                         |
+| idUsuario        | string        | No       | No     | None           | Redundant: ID of Usuario from SOY_YO                                              |
+| nationality      | string        | No       | No     | None           | Artist's nationality                                                              |
+| isArg            | boolean       | No       | No     | Auto-calc      | Auto-managed: true if nationality === 'Argentina'                                 |
+| youtubeHandle    | string        | No       | No     | None           | YouTube handle                                                                    |
+| instagramHandle  | string        | No       | No     | None           | Instagram handle                                                                  |
+| twitterHandle    | string        | No       | No     | None           | Twitter/X handle                                                                  |
+| facebookProfile  | string        | No       | No     | None           | Facebook profile URL                                                              |
+| website          | string        | No       | No     | None           | Website URL                                                                       |
+| bio              | string        | No       | No     | None           | Biography or description                                                          |
+| musicBrainzId    | string        | No       | No     | None           | MusicBrainz ID for linking to external MusicBrainz database                       |
+| displayPrimary   | string        | No       | No     | null           | System-generated primary display text with icon (read-only, auto-updated)         |
+| displaySecondary | string        | No       | No     | null           | System-generated secondary display text (read-only, auto-updated)                 |
+| displayBadges    | string[]      | No       | No     | []             | System-generated badges array (read-only, auto-updated)                           |
+| normSearch       | string        | No       | No     | null           | System-generated normalized search text, ISO normalized (read-only, auto-updated) |
+| status           | string (enum) | No       | No     | DRAFT          | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED                               |
+| createdAt        | datetime      | Yes      | No     | Current        | Creation timestamp                                                                |
+| updatedAt        | datetime      | Yes      | No     | Current        | Last update timestamp                                                             |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:129-143`
 
 ### Cancion Properties
 
-| Property | Type | Required | Unique | Default | Description |
-|----------|------|----------|--------|---------|-------------|
-| id | string | Yes | Yes | Auto-generated | Unique identifier (format: `c{8-chars}`) |
-| title | string | Yes | No | None | Song title |
-| album | string | No | No | None | Album name |
-| year | number | No | No | None | Release/recording year |
-| genre | string | No | No | None | Musical genre |
-| youtubeMusic | string | No | No | None | YouTube Music URL |
-| lyrics | string | No | No | None | URL to retrieve lyrics |
-| autorIds | string[] | No | No | None | Redundant: Array of Artista IDs from AUTOR_DE |
-| musicBrainzId | string | No | No | None | MusicBrainz ID for linking to external MusicBrainz database |
-| status | string (enum) | No | No | DRAFT | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED |
-| createdAt | datetime | Yes | No | Current | Creation timestamp |
-| updatedAt | datetime | Yes | No | Current | Last update timestamp |
+| Property         | Type          | Required | Unique | Default        | Description                                                                       |
+| ---------------- | ------------- | -------- | ------ | -------------- | --------------------------------------------------------------------------------- |
+| id               | string        | Yes      | Yes    | Auto-generated | Unique identifier (format: `c{8-chars}`)                                          |
+| title            | string        | Yes      | No     | None           | Song title                                                                        |
+| album            | string        | No       | No     | None           | Album name                                                                        |
+| year             | number        | No       | No     | None           | Release/recording year                                                            |
+| genre            | string        | No       | No     | None           | Musical genre                                                                     |
+| youtubeMusic     | string        | No       | No     | None           | YouTube Music URL                                                                 |
+| lyrics           | string        | No       | No     | None           | URL to retrieve lyrics                                                            |
+| autorIds         | string[]      | No       | No     | None           | Redundant: Array of Artista IDs from AUTOR_DE                                     |
+| musicBrainzId    | string        | No       | No     | None           | MusicBrainz ID for linking to external MusicBrainz database                       |
+| displayPrimary   | string        | No       | No     | null           | System-generated primary display text with icon (read-only, auto-updated)         |
+| displaySecondary | string        | No       | No     | null           | System-generated secondary display text (read-only, auto-updated)                 |
+| displayBadges    | string[]      | No       | No     | []             | System-generated badges array (read-only, auto-updated)                           |
+| normSearch       | string        | No       | No     | null           | System-generated normalized search text, ISO normalized (read-only, auto-updated) |
+| status           | string (enum) | No       | No     | DRAFT          | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED                               |
+| createdAt        | datetime      | Yes      | No     | Current        | Creation timestamp                                                                |
+| updatedAt        | datetime      | Yes      | No     | Current        | Last update timestamp                                                             |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:149-159`
 
 ### Fabrica Properties
 
-| Property | Type | Required | Unique | Default | Description |
-|----------|------|----------|--------|---------|-------------|
-| id | string | Yes | Yes | YouTube ID | YouTube video ID (11 chars, external identifier) |
-| title | string | Yes | No | None | Title of the Fabrica/stream |
-| date | datetime | Yes | No | None | Broadcast date |
-| youtubeUrl | string | Yes | No | None | Full YouTube URL |
-| visualizations | number | Yes | No | 0 | Number of views on YouTube |
-| likes | number | Yes | No | 0 | Number of likes on YouTube |
-| description | string | Yes | No | None | Description from YouTube |
-| contents | string | Yes | No | None | Contents from YouTube video comment |
-| status | string (enum) | Yes | No | DRAFT | Status: DRAFT, PROCESSING, COMPLETED |
-| createdAt | datetime | Yes | No | Current | Creation timestamp |
-| updatedAt | datetime | Yes | No | Current | Last update timestamp |
+| Property         | Type          | Required | Unique | Default    | Description                                                                       |
+| ---------------- | ------------- | -------- | ------ | ---------- | --------------------------------------------------------------------------------- |
+| id               | string        | Yes      | Yes    | YouTube ID | YouTube video ID (11 chars, external identifier)                                  |
+| title            | string        | Yes      | No     | None       | Title of the Fabrica/stream                                                       |
+| date             | datetime      | Yes      | No     | None       | Broadcast date                                                                    |
+| youtubeUrl       | string        | Yes      | No     | None       | Full YouTube URL                                                                  |
+| visualizations   | number        | Yes      | No     | 0          | Number of views on YouTube                                                        |
+| likes            | number        | Yes      | No     | 0          | Number of likes on YouTube                                                        |
+| description      | string        | Yes      | No     | None       | Description from YouTube                                                          |
+| contents         | string        | Yes      | No     | None       | Contents from YouTube video comment                                               |
+| displayPrimary   | string        | No       | No     | null       | System-generated primary display text with icon (read-only, auto-updated)         |
+| displaySecondary | string        | No       | No     | null       | System-generated secondary display text (read-only, auto-updated)                 |
+| displayBadges    | string[]      | No       | No     | []         | System-generated badges array (read-only, auto-updated)                           |
+| normSearch       | string        | No       | No     | null       | System-generated normalized search text, ISO normalized (read-only, auto-updated) |
+| status           | string (enum) | Yes      | No     | DRAFT      | Status: DRAFT, PROCESSING, COMPLETED                                              |
+| createdAt        | datetime      | Yes      | No     | Current    | Creation timestamp                                                                |
+| updatedAt        | datetime      | Yes      | No     | Current    | Last update timestamp                                                             |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:165-175`
 
 ### Tematica Properties
 
-| Property | Type | Required | Unique | Default | Description |
-|----------|------|----------|--------|---------|-------------|
-| id | string | Yes | Yes | Auto-generated | Unique identifier (format: `t{8-chars}`) |
-| name | string | Yes | Yes | None | Name of the thematic category |
-| category | string (enum) | No | No | None | Category: ACTUALIDAD, POLITICA, CULTURA, GENTE, GELATINA |
-| description | string | Yes | No | None | Description of the category |
-| status | string (enum) | No | No | DRAFT | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED |
-| createdAt | datetime | Yes | No | Current | Creation timestamp |
-| updatedAt | datetime | Yes | No | Current | Last update timestamp |
+| Property         | Type          | Required | Unique | Default        | Description                                                                                                                                     |
+| ---------------- | ------------- | -------- | ------ | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| id               | string        | Yes      | Yes    | Auto-generated | Unique identifier (format: `t{8-chars}`)                                                                                                        |
+| name             | string        | Yes      | Yes    | None           | Name of the thematic category                                                                                                                   |
+| category         | string (enum) | No       | No     | None           | Category: ACTUALIDAD, POLITICA, CULTURA, GENTE, GELATINA                                                                                        |
+| description      | string        | Yes      | No     | None           | Description of the category                                                                                                                     |
+| displayPrimary   | string        | No       | No     | null           | System-generated primary display text with icon (read-only, auto-updated)                                                                       |
+| displaySecondary | string        | No       | No     | null           | System-generated secondary display text (read-only, auto-updated)                                                                               |
+| displayBadges    | string[]      | No       | No     | []             | System-generated badges array (read-only, auto-updated)                                                                                         |
+| normSearch       | string        | No       | No     | null           | System-generated normalized search text, ISO normalized. For GENTE category, parses "Surname, Name" as "Name Surname" (read-only, auto-updated) |
+| status           | string (enum) | No       | No     | DRAFT          | Status: DRAFT, REVIEW, PUBLISHED, ARCHIVED, DELETED                                                                                             |
+| createdAt        | datetime      | Yes      | No     | Current        | Creation timestamp                                                                                                                              |
+| updatedAt        | datetime      | Yes      | No     | Current        | Last update timestamp                                                                                                                           |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:181-187`
 
@@ -144,72 +165,72 @@ This document provides comprehensive property specifications for all nodes and r
 
 ### APPEARS_IN Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| order | number | Yes (system) | Auto-calc | READ-ONLY: Sequential order calculated from timestamp |
-| timestamp | number | No | 0 | Timestamp in seconds (used to calculate order) |
-| status | string (enum) | No | DRAFT | Status: DRAFT, CONFIRMED |
-| createdAt | datetime | Yes | Current | Creation timestamp |
+| Property  | Type          | Required     | Default   | Description                                           |
+| --------- | ------------- | ------------ | --------- | ----------------------------------------------------- |
+| order     | number        | Yes (system) | Auto-calc | READ-ONLY: Sequential order calculated from timestamp |
+| timestamp | number        | No           | 0         | Timestamp in seconds (used to calculate order)        |
+| status    | string (enum) | No           | DRAFT     | Status: DRAFT, CONFIRMED                              |
+| createdAt | datetime      | Yes          | Current   | Creation timestamp                                    |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:196-199`
 
 ### JINGLERO_DE Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| status | string (enum) | No | DRAFT | Status: DRAFT, CONFIRMED |
-| createdAt | datetime | Yes | Current | Creation timestamp |
+| Property  | Type          | Required | Default | Description              |
+| --------- | ------------- | -------- | ------- | ------------------------ |
+| status    | string (enum) | No       | DRAFT   | Status: DRAFT, CONFIRMED |
+| createdAt | datetime      | Yes      | Current | Creation timestamp       |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:212-213`
 
 ### AUTOR_DE Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| status | string (enum) | No | DRAFT | Status: DRAFT, CONFIRMED |
-| createdAt | datetime | Yes | Current | Creation timestamp |
+| Property  | Type          | Required | Default | Description              |
+| --------- | ------------- | -------- | ------- | ------------------------ |
+| status    | string (enum) | No       | DRAFT   | Status: DRAFT, CONFIRMED |
+| createdAt | datetime      | Yes      | Current | Creation timestamp       |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:220-221`
 
 ### VERSIONA Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| status | string (enum) | No | DRAFT | Status: DRAFT, CONFIRMED |
-| createdAt | datetime | Yes | Current | Creation timestamp |
+| Property  | Type          | Required | Default | Description              |
+| --------- | ------------- | -------- | ------- | ------------------------ |
+| status    | string (enum) | No       | DRAFT   | Status: DRAFT, CONFIRMED |
+| createdAt | datetime      | Yes      | Current | Creation timestamp       |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:228-229`
 
 ### TAGGED_WITH Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| isPrimary | boolean | No | false | Indicates if this is the primary tag |
-| status | string (enum) | No | DRAFT | Status: DRAFT, CONFIRMED |
-| createdAt | datetime | Yes | Current | Creation timestamp |
+| Property  | Type          | Required | Default | Description                          |
+| --------- | ------------- | -------- | ------- | ------------------------------------ |
+| isPrimary | boolean       | No       | false   | Indicates if this is the primary tag |
+| status    | string (enum) | No       | DRAFT   | Status: DRAFT, CONFIRMED             |
+| createdAt | datetime      | Yes      | Current | Creation timestamp                   |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:236-238`
 
 ### SOY_YO Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| status | string (enum) | Yes | REQUESTED | Status: REQUESTED, REJECTED, APPROVED |
-| requestedAt | datetime | Yes | Current | When identity claim was requested |
-| isVerified | boolean | No | false | True if APPROVED |
-| verifiedAt | datetime | Yes | Current | When identity was verified (APPROVED/REJECTED) |
-| verifiedBy | string | Yes | None | ID of admin user who verified |
+| Property    | Type          | Required | Default   | Description                                    |
+| ----------- | ------------- | -------- | --------- | ---------------------------------------------- |
+| status      | string (enum) | Yes      | REQUESTED | Status: REQUESTED, REJECTED, APPROVED          |
+| requestedAt | datetime      | Yes      | Current   | When identity claim was requested              |
+| isVerified  | boolean       | No       | false     | True if APPROVED                               |
+| verifiedAt  | datetime      | Yes      | Current   | When identity was verified (APPROVED/REJECTED) |
+| verifiedBy  | string        | Yes      | None      | ID of admin user who verified                  |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:245-249`
 
 ### REACCIONA_A Properties
 
-| Property | Type | Required | Default | Description |
-|----------|------|----------|---------|-------------|
-| type | string (enum) | Yes | None | Type: ME_GUSTA, JINGLAZO, JINGLAZO_DEL_DIA |
-| createdAt | datetime | Yes | Current | Creation timestamp |
-| updatedAt | datetime | Yes | Current | Last update timestamp |
-| removedAt | datetime | No | None | Soft delete: timestamp when reaction was removed |
+| Property  | Type          | Required | Default | Description                                      |
+| --------- | ------------- | -------- | ------- | ------------------------------------------------ |
+| type      | string (enum) | Yes      | None    | Type: ME_GUSTA, JINGLAZO, JINGLAZO_DEL_DIA       |
+| createdAt | datetime      | Yes      | Current | Creation timestamp                               |
+| updatedAt | datetime      | Yes      | Current | Last update timestamp                            |
+| removedAt | datetime      | No       | None    | Soft delete: timestamp when reaction was removed |
 
 **Code Reference**: `backend/src/server/db/schema/schema.ts:256-259`
 
@@ -226,6 +247,7 @@ Entity IDs follow the format: `{prefix}{8-chars}`
 - **Collision detection**: IDs are checked for uniqueness before assignment
 
 **Prefixes:**
+
 - `a`: Artista (e.g., a1b2c3d4, ax9y8z7w6)
 - `c`: Cancion (e.g., c9f0a1b2, cx7y6z5w4)
 - `j`: Jingle (e.g., j5e6f7g8, j9f0a1b2c)
@@ -233,6 +255,7 @@ Entity IDs follow the format: `{prefix}{8-chars}`
 - `u`: Usuario (e.g., u1a2b3c4d, ux7y4z9w0)
 
 **Special case - Fabrica:**
+
 - Fabricas use external YouTube video IDs (11 characters)
 - Example: 0hmxZPp0xq0, DBbyI99TtIM
 - NOT subject to ID migration
@@ -242,10 +265,12 @@ Entity IDs follow the format: `{prefix}{8-chars}`
 ### Enum Types
 
 #### Usuario.role
+
 - `ADMIN`: Administrator with elevated permissions
 - `GUEST`: Regular user
 
 #### Jingle.status / Artista.status / Cancion.status / Tematica.status
+
 - `DRAFT`: Initial state, not yet published
 - `REVIEW`: Under review for publication
 - `PUBLISHED`: Published and visible
@@ -253,25 +278,30 @@ Entity IDs follow the format: `{prefix}{8-chars}`
 - `DELETED`: Soft deleted, not visible
 
 #### Fabrica.status
+
 - `DRAFT`: Not yet processed
 - `PROCESSING`: Currently being processed
 - `COMPLETED`: Fully processed with all Jingles extracted
 
 #### Relationship status (APPEARS_IN, JINGLERO_DE, AUTOR_DE, VERSIONA, TAGGED_WITH)
+
 - `DRAFT`: Pending confirmation
 - `CONFIRMED`: Verified and confirmed
 
 #### SOY_YO.status
+
 - `REQUESTED`: User has claimed identity
 - `REJECTED`: Claim was rejected
 - `APPROVED`: Claim was verified and approved
 
 #### REACCIONA_A.type
+
 - `ME_GUSTA`: Like reaction
 - `JINGLAZO`: Special highlight reaction
 - `JINGLAZO_DEL_DIA`: Jingle of the day reaction
 
 #### Tematica.category
+
 - `ACTUALIDAD`: Current events
 - `POLITICA`: Politics
 - `CULTURA`: Culture
@@ -398,22 +428,27 @@ Redundant properties (denormalized data) improve query performance by storing fr
 ### Auto-Sync Behavior Summary
 
 **Entity CREATE:**
+
 - If redundant properties provided, auto-create relationships
 - Example: Creating Jingle with `fabricaId` → auto-creates APPEARS_IN
 
 **Entity UPDATE:**
+
 - If redundant properties changed, auto-update relationships
 - Example: Updating Jingle `cancionId` → auto-updates VERSIONA
 
 **Relationship CREATE:**
+
 - Auto-update redundant properties
 - Example: Creating APPEARS_IN → auto-updates `jingle.fabricaId` and `jingle.fabricaDate`
 
 **Relationship DELETE:**
+
 - Auto-update redundant properties (or clear if none remain)
 - Example: Deleting VERSIONA → clears `jingle.cancionId`, `jingle.songTitle`, `jingle.genre`
 
 **Validation:**
+
 - Auto-fix discrepancies after CRUD operations
 - Relationships are source of truth, redundant properties are updated to match
 
@@ -423,11 +458,39 @@ Redundant properties (denormalized data) improve query performance by storing fr
 
 ## System-Managed Properties
 
+### Display Properties (displayPrimary, displaySecondary, displayBadges, normSearch)
+
+The following properties are automatically generated and maintained by the system for all entity types:
+
+- **displayPrimary**: Primary display text with icon
+- **displaySecondary**: Secondary display text with metadata
+- **displayBadges**: Array of badge strings
+- **normSearch**: Normalized search text (ISO normalized - accents removed, lowercase)
+
+**Characteristics:**
+
+- **READ-ONLY**: Users cannot manually set these values
+- **AUTO-UPDATED**: Automatically recalculated when any relevant property or relationship changes
+- **SYSTEM-MANAGED**: Updated via `updateDisplayProperties()` function
+
+**normSearch Property Details:**
+
+- **Purpose**: Enable accent-insensitive, case-insensitive search
+- **Normalization**: Uses Unicode NFD normalization to remove accents, then converts to lowercase
+- **Content varies by entity type:**
+  - **Jingle**: Includes title/cancion title, autores, jingleros, fabrica title, all tags (primary and non-primary), comment
+  - **Tematica (GENTE category)**: Parses "Surname, Name" format as "Name Surname" before normalization
+  - **Other entities**: Includes displayPrimary and displaySecondary content
+- **Example**: "Páez" → "paez", allowing search for "pAez" to match "Páez"
+
+**Code Reference**: `backend/src/server/utils/displayProperties.ts`
+
 ### APPEARS_IN.order
 
 The `order` property in APPEARS_IN relationships is system-managed and READ-ONLY.
 
 **Calculation:**
+
 - Based on `timestamp` property (integer seconds)
 - Timestamps sorted ascending (numeric sort)
 - Sequential order assigned: 1, 2, 3, 4, ...
@@ -436,6 +499,7 @@ The `order` property in APPEARS_IN relationships is system-managed and READ-ONLY
 **Default timestamp**: 0 (seconds) if not provided
 
 **Conflict handling:**
+
 - If multiple relationships have same timestamp, order assigned arbitrarily
 - Warning logged for timestamp conflicts
 
@@ -448,6 +512,7 @@ The `order` property in APPEARS_IN relationships is system-managed and READ-ONLY
 The `isArg` property is auto-managed from the `nationality` property.
 
 **Calculation:**
+
 - `isArg = true` if `nationality === 'Argentina'`
 - `isArg = false` otherwise
 
@@ -459,3 +524,4 @@ The `isArg` property is auto-managed from the `nationality` property.
 
 - **2025-01-27**: Initial documentation created from `schema.ts` and `setup.ts`
 - **2025-11-23**: Added `musicBrainzId` property to Artista and Cancion nodes
+- **2025-12-14**: Added `normSearch` property to all node types for accent-insensitive, case-insensitive search

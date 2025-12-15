@@ -429,7 +429,7 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
                 ref={playerRef}
                 videoIdOrUrl={fabrica.youtubeUrl || fabrica.id || fabricaId}
                 startSeconds={initialTimestamp || 0}
-                autoplay={true}
+                autoplay={false}
                 className="production-belt-player"
               />
             </div>

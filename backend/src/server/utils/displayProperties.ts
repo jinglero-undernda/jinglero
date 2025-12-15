@@ -1,12 +1,25 @@
 /**
  * Display Properties Generation
  * 
- * Generates pre-computed display properties (displayPrimary, displaySecondary, displayBadges)
+ * Generates pre-computed display properties (displayPrimary, displaySecondary, displayBadges, normSearch)
  * for all entity types. These properties are read-only and automatically updated when
  * any relevant property or relationship changes.
  */
 
 import { Neo4jClient } from '../db/index';
+
+/**
+ * Normalize text for search: remove accents and convert to lowercase
+ * Uses Unicode normalization (NFD) to decompose characters, then removes diacritics
+ * Example: "Páez" -> "paez", "José" -> "jose"
+ */
+function normalizeSearchText(text: string | null | undefined): string {
+  if (!text) return '';
+  // Remove accents using Unicode normalization
+  const normalized = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  // Convert to lowercase and trim
+  return normalized.toLowerCase().trim();
+}
 
 /**
  * Format date as DD/MM/YYYY
@@ -693,8 +706,290 @@ export async function generateDisplayBadges(
 }
 
 /**
+ * Generate normSearch for Fabrica
+ * Includes: displayPrimary + displaySecondary content (normalized)
+ */
+async function generateFabricaNormSearch(
+  db: Neo4jClient,
+  fabricaId: string
+): Promise<string> {
+  const [displayPrimary, displaySecondary] = await Promise.all([
+    generateFabricaDisplayPrimary(db, fabricaId),
+    generateFabricaDisplaySecondary(db, fabricaId),
+  ]);
+  
+  const parts: string[] = [];
+  if (displayPrimary) {
+    // Remove emoji and normalize
+    parts.push(normalizeSearchText(displayPrimary.replace(/^🏭\s*/, '')));
+  }
+  if (displaySecondary) {
+    // Remove emojis and normalize
+    parts.push(normalizeSearchText(displaySecondary.replace(/🎤:\s*\d+/g, '').replace(/•/g, '')));
+  }
+  
+  return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * Generate normSearch for Jingle
+ * Includes: displayPrimary + displaySecondary + non-primary tags + comment (normalized)
+ */
+async function generateJingleNormSearch(
+  db: Neo4jClient,
+  jingleId: string
+): Promise<string> {
+  const query = `
+    MATCH (j:Jingle {id: $id})
+    
+    // Get primary Fabrica (first one ordered by timestamp/order)
+    OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+    WITH j, f, appearsIn
+    ORDER BY appearsIn.timestamp ASC, appearsIn.order ASC
+    WITH j, collect({date: f.date, title: f.title})[0] AS fabricaRel
+    
+    // Get Cancion
+    OPTIONAL MATCH (j)-[:VERSIONA]->(c:Cancion)
+    
+    // Get Jinglero (Artista who performed the jingle)
+    OPTIONAL MATCH (jinglero:Artista)-[:JINGLERO_DE]->(j)
+    
+    // Get Autor (Artista who wrote the Cancion)
+    OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+    
+    // Get ALL Tematicas (both primary and non-primary)
+    OPTIONAL MATCH (j)-[tagRel:TAGGED_WITH]->(t:Tematica)
+    
+    RETURN j.title AS title,
+           j.comment AS comment,
+           fabricaRel.title AS fabricaTitle,
+           fabricaRel.date AS fabricaDate,
+           c.title AS cancionTitle,
+           collect(DISTINCT COALESCE(jinglero.stageName, jinglero.name)) AS jingleroNames,
+           collect(DISTINCT COALESCE(autor.stageName, autor.name)) AS autorNames,
+           collect(DISTINCT t.name) AS allTematicas
+  `;
+  
+  const result = await db.executeQuery(query, { id: jingleId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const parts: string[] = [];
+  
+  // Add displayPrimary content (title or cancion title with autores)
+  if (record.title) {
+    parts.push(normalizeSearchText(record.title));
+  } else if (record.cancionTitle) {
+    parts.push(normalizeSearchText(record.cancionTitle));
+    const autorNames = (record.autorNames || []).filter((name: any) => name != null);
+    if (autorNames.length > 0) {
+      parts.push(...autorNames.map((name: string) => normalizeSearchText(name)));
+    }
+  }
+  
+  // Add displaySecondary content
+  if (record.fabricaTitle) {
+    parts.push(normalizeSearchText(record.fabricaTitle));
+  }
+  if (record.cancionTitle) {
+    parts.push(normalizeSearchText(record.cancionTitle));
+  }
+  const autorNames = (record.autorNames || []).filter((name: any) => name != null);
+  if (autorNames.length > 0) {
+    parts.push(...autorNames.map((name: string) => normalizeSearchText(name)));
+  }
+  const jingleroNames = (record.jingleroNames || []).filter((name: any) => name != null);
+  if (jingleroNames.length > 0) {
+    parts.push(...jingleroNames.map((name: string) => normalizeSearchText(name)));
+  }
+  
+  // Add all tags (both primary and non-primary)
+  const allTematicas = (record.allTematicas || []).filter((name: any) => name != null);
+  if (allTematicas.length > 0) {
+    parts.push(...allTematicas.map((name: string) => normalizeSearchText(name)));
+  }
+  
+  // Add comment
+  if (record.comment) {
+    parts.push(normalizeSearchText(record.comment));
+  }
+  
+  return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * Generate normSearch for Cancion
+ * Includes: displayPrimary + displaySecondary content (normalized)
+ */
+async function generateCancionNormSearch(
+  db: Neo4jClient,
+  cancionId: string
+): Promise<string> {
+  const query = `
+    MATCH (c:Cancion {id: $id})
+    OPTIONAL MATCH (c)<-[:VERSIONA]-(j:Jingle)
+    OPTIONAL MATCH (autor:Artista)-[:AUTOR_DE]->(c)
+    WITH c, count(DISTINCT j) AS jingleCount, collect(DISTINCT COALESCE(autor.stageName, autor.name)) AS autorNames
+    RETURN c.title AS title,
+           c.album AS album,
+           c.year AS year,
+           autorNames
+  `;
+  
+  const result = await db.executeQuery(query, { id: cancionId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const parts: string[] = [];
+  
+  // Add title
+  if (record.title) {
+    parts.push(normalizeSearchText(record.title));
+  }
+  
+  // Add autores
+  const autorNames = (record.autorNames || []).filter((name: any) => name != null);
+  if (autorNames.length > 0) {
+    parts.push(...autorNames.map((name: string) => normalizeSearchText(name)));
+  }
+  
+  // Add album
+  if (record.album) {
+    parts.push(normalizeSearchText(record.album));
+  }
+  
+  // Add year
+  if (record.year) {
+    parts.push(normalizeSearchText(String(record.year)));
+  }
+  
+  return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * Generate normSearch for Artista
+ * Includes: displayPrimary + displaySecondary content (normalized)
+ */
+async function generateArtistaNormSearch(
+  db: Neo4jClient,
+  artistaId: string
+): Promise<string> {
+  const query = `
+    MATCH (a:Artista {id: $id})
+    OPTIONAL MATCH (a)-[:AUTOR_DE]->(c:Cancion)
+    OPTIONAL MATCH (a)-[:JINGLERO_DE]->(j:Jingle)
+    WITH a, count(DISTINCT c) AS autorCount, count(DISTINCT j) AS jingleroCount
+    RETURN a.stageName AS stageName,
+           a.name AS name
+  `;
+  
+  const result = await db.executeQuery(query, { id: artistaId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const parts: string[] = [];
+  
+  // Add stageName (primary)
+  if (record.stageName) {
+    parts.push(normalizeSearchText(record.stageName));
+  }
+  
+  // Add name (if different from stageName)
+  if (record.name && record.name !== record.stageName) {
+    parts.push(normalizeSearchText(record.name));
+  }
+  
+  return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * Generate normSearch for Tematica
+ * Includes: name (normalized)
+ * Special handling for GENTE category: parse {surname}, {name} as {name} {surname}
+ */
+async function generateTematicaNormSearch(
+  db: Neo4jClient,
+  tematicaId: string
+): Promise<string> {
+  const query = `
+    MATCH (t:Tematica {id: $id})
+    RETURN t.name AS name,
+           t.category AS category
+  `;
+  
+  const result = await db.executeQuery(query, { id: tematicaId });
+  
+  if (result.length === 0) {
+    return '';
+  }
+  
+  const record: any = result[0];
+  const parts: string[] = [];
+  
+  if (record.name) {
+    let nameToNormalize = record.name;
+    
+    // Special handling for GENTE category: parse "Surname, Name" as "Name Surname"
+    if (record.category === 'GENTE') {
+      const commaMatch = record.name.match(/^(.+),\s*(.+)$/);
+      if (commaMatch) {
+        const [, surname, firstName] = commaMatch;
+        nameToNormalize = `${firstName} ${surname}`;
+      }
+    }
+    
+    parts.push(normalizeSearchText(nameToNormalize));
+  }
+  
+  // Also add category if present
+  if (record.category) {
+    parts.push(normalizeSearchText(record.category));
+  }
+  
+  return parts.filter(Boolean).join(' ');
+}
+
+/**
+ * Generate normSearch for an entity
+ */
+export async function generateNormSearch(
+  db: Neo4jClient,
+  entityType: string,
+  entityId: string
+): Promise<string> {
+  switch (entityType.toLowerCase()) {
+    case 'fabricas':
+    case 'fabrica':
+      return generateFabricaNormSearch(db, entityId);
+    case 'jingles':
+    case 'jingle':
+      return generateJingleNormSearch(db, entityId);
+    case 'canciones':
+    case 'cancion':
+      return generateCancionNormSearch(db, entityId);
+    case 'artistas':
+    case 'artista':
+      return generateArtistaNormSearch(db, entityId);
+    case 'tematicas':
+    case 'tematica':
+      return generateTematicaNormSearch(db, entityId);
+    default:
+      throw new Error(`Unknown entity type: ${entityType}`);
+  }
+}
+
+/**
  * Update all display properties for an entity
- * Computes displayPrimary, displaySecondary, and displayBadges, then saves to database
+ * Computes displayPrimary, displaySecondary, displayBadges, and normSearch, then saves to database
  */
 export async function updateDisplayProperties(
   db: Neo4jClient,
@@ -721,10 +1016,11 @@ export async function updateDisplayProperties(
   }
   
   // Generate all display properties
-  const [displayPrimary, displaySecondary, displayBadges] = await Promise.all([
+  const [displayPrimary, displaySecondary, displayBadges, normSearch] = await Promise.all([
     generateDisplayPrimary(db, entityType, entityId),
     generateDisplaySecondary(db, entityType, entityId),
     generateDisplayBadges(db, entityType, entityId),
+    generateNormSearch(db, entityType, entityId),
   ]);
   
   // Update entity in database
@@ -733,6 +1029,7 @@ export async function updateDisplayProperties(
     SET n.displayPrimary = $displayPrimary,
         n.displaySecondary = $displaySecondary,
         n.displayBadges = $displayBadges,
+        n.normSearch = $normSearch,
         n.updatedAt = datetime()
     RETURN n.id AS id
   `;
@@ -744,6 +1041,7 @@ export async function updateDisplayProperties(
       displayPrimary,
       displaySecondary,
       displayBadges,
+      normSearch,
     },
     undefined,
     true

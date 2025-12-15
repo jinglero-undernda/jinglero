@@ -53,6 +53,8 @@ export interface Artista {
   displaySecondary?: string;
   /** System-generated badges array (read-only, auto-updated) */
   displayBadges?: string[];
+  /** System-generated normalized search text (read-only, auto-updated) */
+  normSearch?: string;
 }
 
 /**
@@ -85,6 +87,8 @@ export interface Cancion {
   displaySecondary?: string;
   /** System-generated badges array (read-only, auto-updated) */
   displayBadges?: string[];
+  /** System-generated normalized search text (read-only, auto-updated) */
+  normSearch?: string;
 }
 
 /**
@@ -111,6 +115,8 @@ export interface Fabrica {
   displaySecondary?: string;
   /** System-generated badges array (read-only, auto-updated) */
   displayBadges?: string[];
+  /** System-generated normalized search text (read-only, auto-updated) */
+  normSearch?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -132,6 +138,8 @@ export interface Tematica {
   displaySecondary?: string;
   /** System-generated badges array (read-only, auto-updated) */
   displayBadges?: string[];
+  /** System-generated normalized search text (read-only, auto-updated) */
+  normSearch?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -185,6 +193,8 @@ export interface Jingle {
   displaySecondary?: string;
   /** System-generated badges array (read-only, auto-updated) */
   displayBadges?: string[];
+  /** System-generated normalized search text (read-only, auto-updated) */
+  normSearch?: string;
 }
 
 // API Response types

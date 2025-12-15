@@ -73,7 +73,7 @@ export default function MachineControlPanel({
 
       {/* Title */}
       <div className="control-panel-title">
-        <h2>MACHINE CONTROL PANEL</h2>
+        <h2>USINA DE LA FABRICA DE JINGLES</h2>
       </div>
 
       {/* Top Section - Boolean Indicator Lights */}
@@ -100,8 +100,8 @@ export default function MachineControlPanel({
         {/* SEGMENT / JINGLE */}
         <div className="control-field-row">
           <div className="control-field">
-            <label>SEGMENT:</label>
-            <div className="field-value">{jingleTitle || '[PLACEHOLDER TITLE]'}</div>
+            <label>JINGLE:</label>
+            <div className="field-value">{jingleTitle || '...'}</div>
           </div>
           <button 
             className="control-action-btn skip-to-btn"
@@ -116,8 +116,8 @@ export default function MachineControlPanel({
         {/* RAW MATERIAL / CANCION */}
         <div className="control-field-row">
           <div className="control-field">
-            <label>RAW MATERIAL:</label>
-            <div className="field-value">{cancionTitle || '[PLACEHOLDER SONG]'}</div>
+            <label>MATERIA PRIMA (CANCION):</label>
+            <div className="field-value">{cancionTitle || '...'}</div>
           </div>
           <button
             className="control-action-btn"
@@ -132,8 +132,8 @@ export default function MachineControlPanel({
         {/* SUPPLIER / AUTOR */}
         <div className="control-field-row">
           <div className="control-field">
-            <label>SUPPLIER:</label>
-            <div className="field-value">{autorNames || '[PLACEHOLDER AUTHOR]'}</div>
+            <label>PROVEEDOR (DE LA MATERIA PRIMA):</label>
+            <div className="field-value">{autorNames || '...'}</div>
           </div>
           <button
             className="control-action-btn"
@@ -148,8 +148,8 @@ export default function MachineControlPanel({
         {/* WORKER / JINGLERO */}
         <div className="control-field-row">
           <div className="control-field">
-            <label>WORKER:</label>
-            <div className="field-value">{jingleroNames || '[PLACEHOLDER JINGLERO]'}</div>
+            <label>JINGLERO:</label>
+            <div className="field-value">{jingleroNames || '[ANONIMO?]'}</div>
           </div>
           <button
             className="control-action-btn"
@@ -164,8 +164,8 @@ export default function MachineControlPanel({
         {/* TAGS / TEMATICAS */}
         <div className="control-field-row">
           <div className="control-field">
-            <label>TAGS:</label>
-            <div className="field-value">{tematicaNames || '[PLACEHOLDER TOPICS]'}</div>
+            <label>TEMATICAS:</label>
+            <div className="field-value">{tematicaNames || '...'}</div>
           </div>
           <button
             className="control-action-btn"

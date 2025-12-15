@@ -4,25 +4,85 @@ import { Neo4jClient } from '../db';
 import { asyncHandler, BadRequestError } from './core';
 
 const router = Router();
-const db = Neo4jClient.getInstance();
 
-// Normalize query for fulltext search: remove accents and add prefix wildcard for partial matching
-function normalizeQuery(q: string): string {
-  // Remove accents (é -> e, á -> a, etc.) using Unicode normalization
-  const normalized = q.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  
-  // Add prefix wildcard for partial matching (unless query already has operators)
-  // Neo4j fulltext uses Lucene syntax - prefix wildcards (beat*) are faster and more reliable than both-side (*beat*)
-  if (!normalized.includes('*') && !normalized.includes('?') && !normalized.includes('"')) {
-    // Trim whitespace and add prefix wildcard
-    const trimmed = normalized.trim();
-    if (trimmed.length > 0) {
-      // Use prefix wildcard: "beat" becomes "beat*" (matches "beatles", "beat", "beating", etc.)
-      // This is more efficient than "*beat*" and works better with tokenization
-      return `${trimmed}*`;
-    }
+function getDb() {
+  // Lazily initialize so importing this module in unit tests doesn't require DB env vars.
+  return Neo4jClient.getInstance();
+}
+
+function stripAccents(input: string): string {
+  return input.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+function collapseWhitespace(input: string): string {
+  return input.replace(/\s+/g, ' ').trim();
+}
+
+// Lucene special chars that should be escaped when treating input as "plain text".
+// We intentionally do NOT include '*' and '?' here because we add '*' ourselves for prefix queries.
+function escapeLuceneTerm(input: string): string {
+  // From Lucene query parser reserved chars: + - && || ! ( ) { } [ ] ^ " ~ * ? : \ /
+  // We escape everything except '*' and '?' (see note above).
+  return input.replace(/([+\-!(){}[\]^"~:\\/]|&&|\|\|)/g, '\\$1');
+}
+
+function looksAdvancedLucene(raw: string): boolean {
+  const s = raw.trim();
+  if (!s) return false;
+  if (s.includes('"')) return true;
+  if (/[?*:^~()[\]{}\\]/.test(s)) return true;
+  if (/(^|\s)[+\-]\S+/.test(s)) return true; // +required / -prohibited
+  // Keep case: Lucene boolean operators are typically uppercase.
+  if (/(^|\s)(AND|OR|NOT)(\s|$)/.test(s)) return true;
+  if (s.includes('&&') || s.includes('||')) return true;
+  return false;
+}
+
+export type FulltextQueryPlan =
+  | { kind: 'advanced'; query: string }
+  | { kind: 'single'; query: string }
+  | { kind: 'multi'; phraseQuery: string; andQuery: string };
+
+/**
+ * Builds fulltext query strings with these semantics:
+ * - If query looks like "advanced Lucene", preserve it (only accent-normalize + trim).
+ * - If plain text:
+ *   - single token -> token*
+ *   - multiple tokens -> phrase-first: "t1 t2", fallback AND: +t1* +t2*
+ */
+export function buildFulltextQueryPlan(rawQuery: string): FulltextQueryPlan {
+  const raw = collapseWhitespace(rawQuery);
+  if (!raw) return { kind: 'single', query: '' };
+
+  if (looksAdvancedLucene(raw)) {
+    // Preserve operators/case; only normalize accents.
+    return { kind: 'advanced', query: collapseWhitespace(stripAccents(raw)) };
   }
-  return normalized.trim();
+
+  const normalized = collapseWhitespace(stripAccents(raw)).toLowerCase();
+  const tokens = normalized
+    .split(' ')
+    .map((t) => t.trim())
+    .filter(Boolean)
+    .map((t) => escapeLuceneTerm(t));
+
+  if (tokens.length <= 1) {
+    const t = tokens[0] || '';
+    return { kind: 'single', query: t ? `${t}*` : '' };
+  }
+
+  // Phrase query: do not add wildcards; escape quotes/backslashes by virtue of token escaping above.
+  const phraseQuery = `"${tokens.join(' ')}"`;
+  const andQuery = tokens.map((t) => `+${t}*`).join(' ');
+  return { kind: 'multi', phraseQuery, andQuery };
+}
+
+function isMissingFulltextIndexError(error: unknown): boolean {
+  const message = String((error as any)?.message || '');
+  return (
+    message.includes('There is no such fulltext schema index') ||
+    message.includes('no such fulltext schema index')
+  );
 }
 
 // Helper function to convert Neo4j dates to ISO strings
@@ -93,6 +153,7 @@ function convertNeo4jDates(obj: any): any {
 // Query param: q
 // Phase 4: Add excludeWithRelationship filter for cardinality constraints
 router.get('/', asyncHandler(async (req, res) => {
+  const db = getDb();
   const q = (req.query.q as string) || '';
   const limitParam = req.query.limit as string;
   const offsetParam = req.query.offset as string;
@@ -119,67 +180,116 @@ router.get('/', asyncHandler(async (req, res) => {
   }
   const active = (selected.length > 0 ? selected : allowed) as unknown as string[];
 
-  // Normalize query for fulltext search (remove accents, add wildcards for partial matching)
-  const normalizedQuery = normalizeQuery(q);
+  const plan = buildFulltextQueryPlan(q);
+  const fallbackNorm = collapseWhitespace(stripAccents(q)).toLowerCase();
+  const fallbackTokens = collapseWhitespace(stripAccents(q))
+    .toLowerCase()
+    .split(' ')
+    .map((t) => t.trim())
+    .filter(Boolean);
+
+  async function runFulltext(indexName: string, query: string, alias: string) {
+    const cypher = `
+      CALL db.index.fulltext.queryNodes('${indexName}', $q) YIELD node, score
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS ${alias}
+      ORDER BY ${alias}.score DESC
+      SKIP $offset
+      LIMIT $limit
+    `;
+    return db.executeQuery<any>(cypher, { q: query, limit, offset });
+  }
+
+  async function runBasicContains(label: string, alias: string, contains: string) {
+    const cypher = `
+      MATCH (node:${label})
+      WHERE node.normSearch IS NOT NULL AND node.normSearch CONTAINS $contains
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: 1.0 } AS ${alias}
+      ORDER BY ${alias}.displayPrimary ASC
+      SKIP $offset
+      LIMIT $limit
+    `;
+    return db.executeQuery<any>(cypher, { contains, limit, offset });
+  }
+
+  async function runBasicAllTokens(label: string, alias: string, tokens: string[]) {
+    const cypher = `
+      MATCH (node:${label})
+      WHERE node.normSearch IS NOT NULL AND ALL(t IN $tokens WHERE node.normSearch CONTAINS t)
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: 1.0 } AS ${alias}
+      ORDER BY ${alias}.displayPrimary ASC
+      SKIP $offset
+      LIMIT $limit
+    `;
+    return db.executeQuery<any>(cypher, { tokens, limit, offset });
+  }
+
+  async function runTypeWithFallback(params: {
+    label: string;
+    indexName: string;
+    alias: string;
+  }): Promise<{ rows: any[]; usedFallback: boolean }> {
+    const { label, indexName, alias } = params;
+    try {
+      if (plan.kind === 'multi') {
+        const phrase = await runFulltext(indexName, plan.phraseQuery, alias);
+        return { rows: phrase.length > 0 ? phrase : await runFulltext(indexName, plan.andQuery, alias), usedFallback: false };
+      }
+      return { rows: await runFulltext(indexName, plan.query, alias), usedFallback: false };
+    } catch (err) {
+      if (!isMissingFulltextIndexError(err)) throw err;
+
+      // Fallback when fulltext indexes are missing: use normSearch CONTAINS queries.
+      // We preserve the same phrase-first then AND behavior for plain multi-word input.
+      if (plan.kind === 'multi') {
+        const phraseRows = await runBasicContains(label, alias, fallbackNorm);
+        if (phraseRows.length > 0) return { rows: phraseRows, usedFallback: true };
+        return { rows: await runBasicAllTokens(label, alias, fallbackTokens), usedFallback: true };
+      }
+      return { rows: await runBasicContains(label, alias, fallbackNorm), usedFallback: true };
+    }
+  }
 
   // Fulltext search only
-  const queriesFT: Array<Promise<any[]>> = [];
-  if (active.includes('jingles')) {
-    const qJ = `
-      CALL db.index.fulltext.queryNodes('jingle_search', $q) YIELD node, score
-      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS j
-      ORDER BY j.score DESC
-      SKIP $offset
-      LIMIT $limit
-    `;
-    queriesFT.push(db.executeQuery<any>(qJ, { q: normalizedQuery, limit, offset }));
-  } else { queriesFT.push(Promise.resolve([])); }
+  const typeTasks = [
+    async () => {
+      if (!active.includes('jingles')) return { rows: [], usedFallback: false };
+      return runTypeWithFallback({ label: 'Jingle', indexName: 'jingle_search', alias: 'j' });
+    },
+    async () => {
+      if (!active.includes('canciones')) return { rows: [], usedFallback: false };
+      return runTypeWithFallback({ label: 'Cancion', indexName: 'cancion_search', alias: 'c' });
+    },
+    async () => {
+      if (!active.includes('artistas')) return { rows: [], usedFallback: false };
+      return runTypeWithFallback({ label: 'Artista', indexName: 'artista_search', alias: 'a' });
+    },
+    async () => {
+      if (!active.includes('tematicas')) return { rows: [], usedFallback: false };
+      return runTypeWithFallback({ label: 'Tematica', indexName: 'tematica_search', alias: 't' });
+    },
+    async () => {
+      if (!active.includes('fabricas')) return { rows: [], usedFallback: false };
+      return runTypeWithFallback({ label: 'Fabrica', indexName: 'fabrica_search', alias: 'f' });
+    },
+  ];
 
-  if (active.includes('canciones')) {
-    const qC = `
-      CALL db.index.fulltext.queryNodes('cancion_search', $q) YIELD node, score
-      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS c
-      ORDER BY c.score DESC
-      SKIP $offset
-      LIMIT $limit
-    `;
-    queriesFT.push(db.executeQuery<any>(qC, { q: normalizedQuery, limit, offset }));
-  } else { queriesFT.push(Promise.resolve([])); }
+  const [jinglesRes, cancionesRes, artistasRes, tematicasRes, fabricasRes] = await Promise.all(
+    typeTasks.map((fn) => fn())
+  );
 
-  if (active.includes('artistas')) {
-    const qA = `
-      CALL db.index.fulltext.queryNodes('artista_search', $q) YIELD node, score
-      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS a
-      ORDER BY a.score DESC
-      SKIP $offset
-      LIMIT $limit
-    `;
-    queriesFT.push(db.executeQuery<any>(qA, { q: normalizedQuery, limit, offset }));
-  } else { queriesFT.push(Promise.resolve([])); }
+  const usedFallback =
+    jinglesRes.usedFallback ||
+    cancionesRes.usedFallback ||
+    artistasRes.usedFallback ||
+    tematicasRes.usedFallback ||
+    fabricasRes.usedFallback;
 
-  if (active.includes('tematicas')) {
-    const qT = `
-      CALL db.index.fulltext.queryNodes('tematica_search', $q) YIELD node, score
-      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS t
-      ORDER BY t.score DESC
-      SKIP $offset
-      LIMIT $limit
-    `;
-    queriesFT.push(db.executeQuery<any>(qT, { q: normalizedQuery, limit, offset }));
-  } else { queriesFT.push(Promise.resolve([])); }
+  const jinglesRaw = jinglesRes.rows;
+  const cancionesRaw = cancionesRes.rows;
+  const artistasRaw = artistasRes.rows;
+  const tematicasRaw = tematicasRes.rows;
+  const fabricasRaw = fabricasRes.rows;
 
-  if (active.includes('fabricas')) {
-    const qF = `
-      CALL db.index.fulltext.queryNodes('fabrica_search', $q) YIELD node, score
-      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: score } AS f
-      ORDER BY f.score DESC
-      SKIP $offset
-      LIMIT $limit
-    `;
-    queriesFT.push(db.executeQuery<any>(qF, { q: normalizedQuery, limit, offset }));
-  } else { queriesFT.push(Promise.resolve([])); }
-
-  const [jinglesRaw, cancionesRaw, artistasRaw, tematicasRaw, fabricasRaw] = await Promise.all(queriesFT);
   // Extract entity data from nested structure and convert Neo4j dates to ISO strings
   // All entities return only display properties: id, displayPrimary, displaySecondary, displayBadges
   const jingles = jinglesRaw.map((r: any) => ({ ...convertNeo4jDates(r.j || r), type: 'jingle' }));
@@ -187,7 +297,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const artistas = artistasRaw.map((r: any) => ({ ...convertNeo4jDates(r.a || r), type: 'artista' }));
   const tematicas = tematicasRaw.map((r: any) => ({ ...convertNeo4jDates(r.t || r), type: 'tematica' }));
   const fabricas = fabricasRaw.map((r: any) => ({ ...convertNeo4jDates(r.f || r), type: 'fabrica' }));
-  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: 'fulltext' } });
+  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: usedFallback ? 'basic_fallback' : 'fulltext' } });
 }));
 
 export default router;
