@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import type { Jingle, Fabrica, Cancion, Artista, Tematica } from '../../types';
 import EntityCard from '../../components/common/EntityCard';
@@ -7,7 +7,7 @@ import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfi
 import { publicApi } from '../../lib/api';
 import { clearJingleRelationshipsCache } from '../../lib/services/relationshipService';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
-import YouTubePlayer, { type YouTubePlayerRef } from '../../components/player/YouTubePlayer';
+import CRTMonitorPlayer from '../../components/production-belt/CRTMonitorPlayer';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 
 // Extended Jingle type that includes relationship data from API
@@ -25,7 +25,6 @@ export default function InspectJingle() {
   const [jingle, setJingle] = useState<JingleWithRelationships | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const playerRef = useRef<YouTubePlayerRef>(null);
 
   useEffect(() => {
     const fetchJingle = async () => {
@@ -72,22 +71,6 @@ export default function InspectJingle() {
   const normalizedTimestamp = rawTimestamp ? normalizeTimestampToSeconds(rawTimestamp) : null;
   const startSeconds = normalizedTimestamp !== null ? normalizedTimestamp : 0;
   
-  // Debug logging to verify values
-  useEffect(() => {
-    if (jingle) {
-      console.log('[InspectJingle] Jingle data:', {
-        jingleId: jingle.id,
-        jingleTimestamp: jingle.timestamp,
-        fabricaTimestamp: (fabrica as any)?.timestamp,
-        rawTimestamp,
-        normalizedTimestamp,
-        startSeconds,
-        fabricaId: fabrica?.id,
-        videoIdOrUrl,
-        fabricaObject: fabrica,
-      });
-    }
-  }, [jingle, rawTimestamp, normalizedTimestamp, startSeconds, fabrica, videoIdOrUrl]);
 
   return (
     <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
@@ -108,28 +91,16 @@ export default function InspectJingle() {
             relationshipData={relationshipData}
           />
           {videoIdOrUrl && (
-            <div style={{ margin: '1.5rem 0', width: '30%' }}>
-              <YouTubePlayer
-                ref={playerRef}
+            <div style={{ 
+              margin: '0.5rem calc(50% - 50vw)', 
+              width: '100vw',
+              aspectRatio: '1 / 0.4',
+              position: 'relative'
+            }}>
+              <CRTMonitorPlayer
                 videoIdOrUrl={videoIdOrUrl}
                 startSeconds={startSeconds}
                 autoplay={false}
-                controls={true}
-                onStateChange={(state) => {
-                  // YouTube PlayerState: 1 = playing, -1 = unstarted, 0 = ended, 2 = paused, 3 = buffering, 5 = cued
-                  // When video starts playing, ensure it's at the correct timestamp
-                  if (state === 1 && startSeconds > 0 && playerRef.current?.isReady()) {
-                    try {
-                      const currentTime = playerRef.current.getCurrentTime();
-                      // If not at the correct position (within 2 seconds tolerance), seek immediately
-                      if (currentTime !== null && Math.abs(currentTime - startSeconds) > 2) {
-                        playerRef.current.seekTo(startSeconds, true);
-                      }
-                    } catch (err) {
-                      console.warn('Error seeking in onStateChange:', err);
-                    }
-                  }
-                }}
               />
             </div>
           )}

@@ -74,14 +74,6 @@ export default function FabricaPage() {
 
   return (
     <main className="fabrica-container" style={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-      {/* Header */}
-      <div className="header" style={{ flex: '0 0 auto', padding: '10px 20px', backgroundColor: '#fff', borderBottom: '1px solid #eee' }}>
-        <Link to="/" className="header-link" style={{ fontSize: '14px', color: '#666', textDecoration: 'none' }}>
-          ← Volver al inicio
-        </Link>
-        {/* We can hide title/date here if it's already in the ProductionBelt or styled differently */}
-      </div>
-
       {/* Production Belt Component */}
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         <ProductionBelt 

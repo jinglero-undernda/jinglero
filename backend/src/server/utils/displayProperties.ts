@@ -791,9 +791,7 @@ async function generateJingleNormSearch(
   }
   
   // Add displaySecondary content
-  if (record.fabricaTitle) {
-    parts.push(normalizeSearchText(record.fabricaTitle));
-  }
+  // Note: fabricaTitle is intentionally excluded from normSearch to avoid false-positive search results
   if (record.cancionTitle) {
     parts.push(normalizeSearchText(record.cancionTitle));
   }

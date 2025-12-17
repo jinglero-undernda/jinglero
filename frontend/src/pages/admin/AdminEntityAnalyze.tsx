@@ -20,6 +20,8 @@ import UnsavedChangesModal from '../../components/admin/UnsavedChangesModal';
 import type { EntityType } from '../../components/common/EntityCard';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import { clearJingleRelationshipsCache, fetchCancionAutores } from '../../lib/services/relationshipService';
+import CRTMonitorPlayer from '../../components/production-belt/CRTMonitorPlayer';
+import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 
 // Import RelationshipProperties type from RelatedEntities
 type RelationshipPropertyValue = string | number | boolean | null | undefined;
@@ -308,6 +310,19 @@ export default function AdminEntityAnalyze() {
     if (!entity || !entityType) return undefined;
     return extractRelationshipData(entity, entityType);
   }, [entity, entityType]);
+
+  // Get fabrica and video data for CRTMonitorPlayer (only for jingles)
+  const jingleFabrica = useMemo(() => {
+    if (entityType !== 'jingle' || !entity) return null;
+    const jingle = entity as Jingle;
+    const fabrica = jingle.fabrica || (relationshipData?.fabrica as Fabrica | undefined);
+    return fabrica;
+  }, [entityType, entity, relationshipData]);
+
+  const videoIdOrUrl = jingleFabrica?.youtubeUrl || jingleFabrica?.id || null;
+  const rawTimestamp = (jingleFabrica as any)?.timestamp ?? (entity as Jingle)?.timestamp;
+  const normalizedTimestamp = rawTimestamp ? normalizeTimestampToSeconds(rawTimestamp) : null;
+  const startSeconds = normalizedTimestamp !== null ? normalizedTimestamp : 0;
 
   // Debug logging for state
   console.log('AdminEntityAnalyze render - loading:', loading, 'error:', error, 'entity:', entity);
@@ -657,6 +672,22 @@ export default function AdminEntityAnalyze() {
           }}
         />
       </div>
+
+      {/* CRT Monitor Player - Only for Jingles */}
+      {entityType === 'jingle' && videoIdOrUrl && (
+        <div style={{ 
+          margin: '0.5rem 0', 
+          width: '100%', 
+          aspectRatio: '1 / 0.3',
+          position: 'relative'
+        }}>
+          <CRTMonitorPlayer
+            videoIdOrUrl={videoIdOrUrl}
+            startSeconds={startSeconds}
+            autoplay={false}
+          />
+        </div>
+      )}
 
       {/* Related Entities - Admin Mode */}
       <div>

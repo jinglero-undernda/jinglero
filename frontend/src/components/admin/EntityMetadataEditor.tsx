@@ -664,7 +664,7 @@ const EntityMetadataEditor = forwardRef<{ hasUnsavedChanges: () => boolean; save
                         {String(value || '')}
                       </span>
                     </>
-                  ) : (fieldName === 'displayPrimary' || fieldName === 'displaySecondary' || fieldName === 'displayBadges') ? (
+                  ) : (fieldName === 'displayPrimary' || fieldName === 'displaySecondary' || fieldName === 'displayBadges' || fieldName === 'normSearch') ? (
                     // Display properties are read-only (system-generated)
                     <>
                       <span

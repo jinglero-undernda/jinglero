@@ -1,0 +1,254 @@
+/* CRT Monitor Player Component - Standalone Video Player Skin */
+
+/* Main Container */
+.crt-monitor-player-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 300px;
+  min-height: 300px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  
+  /* Image dimensions: 807 x 590 pixels */
+  --image-width: 807;
+  --image-height: 590;
+  --image-aspect-ratio: calc(var(--image-width) / var(--image-height));
+  --image-inverse-aspect-ratio: calc(var(--image-height) / var(--image-width));
+  
+  /* Values calculated in JavaScript and set as pixel CSS variables */
+  --monitor-width: 0px;
+  --monitor-height: 0px;
+  --player-width: 0px;
+  --player-height: 0px;
+}
+
+/* CRT Monitor Section */
+.crt-monitor-player-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  
+  /* Controls positioning - calculated in JavaScript and set as pixel values */
+  --controls-center-x-offset: 0px;
+  --controls-center-y-offset: 0px;
+  --controls-container-width: 0px;
+  
+  /* Individual control button size */
+  --control-btn-size: 16px;
+  --control-btn-font-size: 12px;
+}
+
+/* CRT Monitor Background Image */
+.crt-monitor-player-section::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--monitor-width);
+  height: var(--monitor-height);
+  background-image: var(--player-image);
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  pointer-events: none;
+  z-index: 3; /* Above screen, below buttons */
+}
+
+.crt-monitor-player-frame {
+  /* Centered positioning - same size as image */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: var(--monitor-width);
+  height: var(--monitor-height);
+  padding: 0;
+  overflow: hidden;
+  pointer-events: auto;
+  z-index: 1; /* Frame is lowest */
+}
+
+.crt-monitor-player-screen {
+  /* Positioned relative to centered image */
+  /* Horizontal: centered, Vertical: 53/590 from top of image */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, calc(-50% - var(--monitor-height) * (242 / 590) + var(--player-height) / 2));
+  width: var(--player-width);
+  height: var(--player-height);
+  background: #000;
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 
+    inset 0 0 40px rgba(0, 0, 0, 1),
+    inset 0 2px 4px rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(0, 0, 0, 0.5);
+  z-index: 2; /* Above frame, below image */
+}
+
+/* Ensure YouTube player iframe is accessible */
+.crt-monitor-player {
+  position: relative;
+  z-index: 2; /* Same as screen */
+  width: 100%;
+  height: 100%;
+}
+
+.crt-monitor-player-screen::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.3) 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Monitor Controls - Subtle, icon-only */
+.crt-monitor-player-controls {
+  display: flex;
+  justify-content: space-between; /* Distribute 4 items equally */
+  align-items: center;
+  position: absolute;
+  /* Position using transform: translate() like image/player for consistency */
+  /* Image center is at (50%, 50%) of .crt-monitor-player-section */
+  /* Container center is offset from image center by --controls-center-x-offset and --controls-center-y-offset */
+  /* With space-between: first button left edge = container left, last button right edge = container right */
+  top: 50%;
+  left: 50%;
+  transform: translate(
+    calc(-50% + var(--controls-center-x-offset)),
+    calc(-50% + var(--controls-center-y-offset))
+  );
+  width: calc(var(--controls-container-width) + var(--control-btn-size));
+  z-index: 10; /* Ensure controls are above image */
+  gap: 0; /* Remove gap, use space-between instead */
+}
+
+.crt-monitor-control-btn {
+  padding: 0;
+  font-size: var(--control-btn-font-size);
+  font-weight: 400;
+  border: 2px solid #333;
+  border-radius: 50%; /* Circular buttons */
+  background: 
+    linear-gradient(145deg, #3a3a3a 0%, #2a2a2a 50%, #1a1a1a 100%),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 5px,
+      rgba(0, 0, 0, 0.1) 5px,
+      rgba(0, 0, 0, 0.1) 6px
+    );
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+  width: var(--control-btn-size);
+  height: var(--control-btn-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: none; /* Remove text shadow for icons */
+}
+
+.crt-monitor-control-btn:hover {
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+  border-color: #777;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.crt-monitor-control-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.crt-monitor-player-controls .skip-back-btn {
+  background: linear-gradient(145deg, #d4af37, #b8941f);
+  border-color: #d4af37;
+}
+
+.crt-monitor-player-controls .skip-forward-btn {
+  background: linear-gradient(145deg, #5a9fd4, #4a8fc4);
+  border-color: #5a9fd4;
+}
+
+.crt-monitor-player-controls .play-pause-btn {
+  background: linear-gradient(145deg, #4a4a4a, #3a3a3a);
+}
+
+/* Status Indicator Light - More subtle */
+.crt-monitor-player-controls .status-indicator {
+  width: var(--control-btn-size);
+  height: var(--control-btn-size);
+  border-radius: 50%;
+  margin-top: 0; /* Remove top margin since it's now in the same row */
+  position: relative;
+  border: 2px solid #333;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.crt-monitor-player-controls .status-indicator-buffering {
+  background: #ff4444;
+  box-shadow: 0 0 15px rgba(255, 68, 68, 0.6);
+}
+
+.crt-monitor-player-controls .status-indicator-paused {
+  background: #ffaa00;
+  box-shadow: 0 0 15px rgba(255, 170, 0, 0.6);
+}
+
+.crt-monitor-player-controls .status-indicator-playing {
+  background: #44ff44;
+  box-shadow: 0 0 15px rgba(68, 255, 68, 0.6);
+}
+
+.crt-monitor-player-controls .status-indicator .indicator-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.8; transform: translate(-50%, -50%) scale(1); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .crt-monitor-player-container {
+    --control-btn-size: 14px;
+    --control-btn-font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .crt-monitor-player-container {
+    --control-btn-size: 12px;
+    --control-btn-font-size: 9px;
+  }
+}
+
