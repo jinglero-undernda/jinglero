@@ -764,6 +764,22 @@
   max-height: 33.33%; /* Ensure it doesn't exceed 1/3 */
 }
 
+/* Background image overlay - fixed, covers full scrollable width */
+.conveyor-belt-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: var(--track-width, 100%);
+  height: 100%;
+  background-image: var(--belt-background-image, none);
+  background-size: var(--container-width, 100%) auto; /* Scale to container width */
+  background-position: bottom left; /* Start from left edge, aligned to bottom */
+  background-repeat: repeat-x; /* Repeat horizontally to cover full width */
+  z-index: 0; /* Behind content */
+  pointer-events: none;
+}
+
 .conveyor-belt-container {
   width: 100%;
   height: 100%;
@@ -788,31 +804,26 @@
 .conveyor-belt-surface {
   width: 100%;
   height: 100%;
-  background: 
-    linear-gradient(180deg, #3a3a3a 0%, #2a2a2a 30%, #1a1a1a 50%, #2a2a2a 70%, #3a3a3a 100%),
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 4px,
-      rgba(0, 0, 0, 0.1) 4px,
-      rgba(0, 0, 0, 0.1) 5px
-    );
+  background: transparent; /* Make transparent so background image shows through */
   position: relative;
   display: flex;
-  align-items: center;
-  padding: 20px 0;
-  border-top: 3px solid #444;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+  align-items: flex-end; /* Align to bottom instead of center */
+  padding: 0; /* Remove vertical padding */
+  /* Remove padding-bottom - we'll use margin-bottom on track instead */
+  /* Remove border-top and box-shadow to eliminate the grey box completely */
+  z-index: 1; /* Above background */
 }
 
 .conveyor-belt-track {
   display: flex;
   gap: 25px; /* Increased gap - boxes further apart */
   padding: 0 50px;
-  align-items: center;
+  padding-right: calc(50px + 33.33vw); /* Add 1/3 of viewport width to right padding */
+  align-items: flex-end; /* Align boxes to bottom of track */
   min-width: max-content;
   width: max-content;
-  height: 100%;
+  height: 100%; /* Restore full height */
+  margin-bottom: var(--box-bottom-padding, 0px); /* Use margin to push up from bottom */
 }
 
 /* Industrial Background Elements - Relative to conveyor belt section */

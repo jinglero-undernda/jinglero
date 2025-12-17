@@ -12,6 +12,7 @@ import type { JingleMetadataData } from '../player/JingleMetadata';
 import '../../styles/components/production-belt.css';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 import playerImage from '../../assets/images/Player2.png';
+import beltBackgroundImage from '../../assets/images/BeltBackground.png';
 
 export interface ProductionBeltProps {
   fabricaId: string;
@@ -479,7 +480,12 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
       </div>
 
       {/* Conveyor Belt (Bottom, Full Width) */}
-      <div className="conveyor-belt-section">
+      <div 
+        className="conveyor-belt-section"
+        style={{
+          '--belt-background-image': `url(${beltBackgroundImage})`
+        } as React.CSSProperties}
+      >
         <ConveyorBelt
           allJingles={allJingles}
           fullJingleData={fullJingleData}
