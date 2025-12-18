@@ -44,7 +44,7 @@ export default function FeaturedFabricaPlaceholder() {
          </div>
          <ProductionBelt 
            fabricaId={latestFabrica.id} 
-           style={{ height: '600px', border: '1px solid #eee', borderRadius: '8px' }}
+           style={{ border: '1px solid #eee', borderRadius: '8px' }}
            className="featured-production-belt"
          />
       </section>

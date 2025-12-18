@@ -44,6 +44,8 @@
   max-width: 100% !important;
   box-sizing: border-box !important;
   overflow-x: hidden !important;
+  /* Calculate height to preserve minimum proportion: min 600px, scales with viewport width */
+  height: max(600px, calc(100vw * 0.55)) !important;
 }
 
 /* Responsive design */
