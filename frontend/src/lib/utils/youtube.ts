@@ -65,9 +65,9 @@ export function extractVideoId(urlOrId: string | null | undefined): string | nul
  * @returns The embed URL, or null if the input is invalid
  * 
  * @example
- * buildEmbedUrl('dQw4w9WgXcQ') // 'https://www.youtube.com/embed/dQw4w9WgXcQ'
+ * buildEmbedUrl('dQw4w9WgXcQ') // 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ'
  * buildEmbedUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ', { autoplay: true, start: 30 })
- * // 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&start=30'
+ * // 'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?autoplay=1&start=30'
  */
 export function buildEmbedUrl(
   videoIdOrUrl: string | null | undefined,
@@ -83,7 +83,7 @@ export function buildEmbedUrl(
     return null;
   }
 
-  const embedBase = `https://www.youtube.com/embed/${videoId}`;
+  const embedBase = `https://www.youtube-nocookie.com/embed/${videoId}`;
   const params = new URLSearchParams();
 
   if (options.autoplay) {

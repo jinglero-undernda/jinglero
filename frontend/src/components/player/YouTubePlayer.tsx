@@ -69,15 +69,12 @@ export interface YouTubePlayerProps {
  * />
  */
 const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
-  (
+    (
     {
       videoIdOrUrl,
-      // width, height, // no longer used for rendering
       autoplay = false,
       startSeconds = 0,
       controls = true,
-      showRelatedVideos = false,
-      enablejsapi = true,
       onReady,
       onStateChange,
       onError,
@@ -138,23 +135,31 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
       };
     }, []);
 
+    const onReadyRef = useRef(onReady);
+    const onStateChangeRef = useRef(onStateChange);
+    const onErrorRef = useRef(onError);
+
+    useEffect(() => {
+      onReadyRef.current = onReady;
+      onStateChangeRef.current = onStateChange;
+      onErrorRef.current = onError;
+    }, [onReady, onStateChange, onError]);
+
     // Initialize player when API is ready
     useEffect(() => {
       if (!isApiReady || !containerRef.current) return;
 
       const videoId = extractVideoId(videoIdOrUrl);
       if (!videoId) {
-        setError('Invalid YouTube video ID or URL');
+        // We don't error out here anymore, just wait for a videoId
         return;
       }
 
-      // Store startSeconds in a variable to use in callbacks
       const initialStartSeconds = startSeconds > 0 ? Math.floor(startSeconds) : 0;
 
       try {
-        // Initialize player with start parameter in playerVars
-        // This should show the thumbnail at the correct timestamp
-        const player = new window.YT.Player(containerRef.current, {
+        const playerOptions = {
+          host: 'https://www.youtube-nocookie.com',
           width: '100%',
           height: '100%',
           videoId,
@@ -162,78 +167,40 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
             autoplay: autoplay ? 1 : 0,
             start: initialStartSeconds > 0 ? initialStartSeconds : undefined,
             controls: controls ? 1 : 0,
-            rel: showRelatedVideos ? 1 : 0,
-            enablejsapi: enablejsapi ? 1 : 0,
+            rel: 0,              // CRITICAL: No related videos
+            enablejsapi: 1,
             modestbranding: 1,
-            playsinline: 1,
+            playsinline: 1,      // CRITICAL: Prevent iOS native fullscreen
+            fs: 0,               // CRITICAL: Disable fullscreen button to keep in skin
             origin: window.location.origin,
           },
           events: {
-            onReady: (event) => {
+            onReady: (event: { target: YTPlayer }) => {
               playerRef.current = event.target;
               setIsPlayerReady(true);
               setError(null);
-              
-              // Even though we set start in playerVars, also cue it to ensure it's positioned correctly
-              if (initialStartSeconds > 0 && playerRef.current) {
-                try {
-                  // Use cueVideoById to ensure the video is cued at the correct position
-                  // This helps ensure the thumbnail shows at the right timestamp
-                  playerRef.current.cueVideoById(videoId, initialStartSeconds);
-                } catch (err) {
-                  console.warn('Error cueing video at start position:', err);
-                }
-              }
-              
-              onReady?.();
+              onReadyRef.current?.();
             },
-            onStateChange: (event) => {
-              const state = event.data;
-              
-              // When video starts playing, immediately check and seek if needed
-              // This is critical because YouTube might reset the position when play is clicked
-              if (state === 1 && initialStartSeconds > 0 && playerRef.current) {
-                // Use requestAnimationFrame to check immediately after state change
-                requestAnimationFrame(() => {
-                  if (playerRef.current) {
-                    try {
-                      const currentTime = playerRef.current.getCurrentTime();
-                      // If we're more than 1 second away from target, seek immediately
-                      if (currentTime !== null && Math.abs(currentTime - initialStartSeconds) > 1) {
-                        playerRef.current.seekTo(initialStartSeconds, true);
-                        // Double-check after a brief delay
-                        setTimeout(() => {
-                          if (playerRef.current) {
-                            const checkTime = playerRef.current.getCurrentTime();
-                            if (checkTime !== null && Math.abs(checkTime - initialStartSeconds) > 1) {
-                              playerRef.current.seekTo(initialStartSeconds, true);
-                            }
-                          }
-                        }, 200);
-                      }
-                    } catch (err) {
-                      console.warn('Error seeking to start position on play:', err);
-                    }
-                  }
-                });
-              }
-              
-              onStateChange?.(state);
+            onStateChange: (event: { data: YTPlayerState }) => {
+              onStateChangeRef.current?.(event.data);
             },
-            onError: (event) => {
+            onError: (event: { data: number }) => {
               setError(`YouTube player error: ${event.data}`);
-              onError?.(event.data);
+              onErrorRef.current?.(event.data);
             },
           },
-        });
+        };
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const player = new (window.YT.Player as any)(containerRef.current, playerOptions);
 
         return () => {
-          try {
-            if (player && typeof player.destroy === 'function') {
+          if (player && typeof player.destroy === 'function') {
+            try {
               player.destroy();
+            } catch (e) {
+              console.warn('Error destroying YouTube player:', e);
             }
-          } catch (e) {
-            console.warn('Error destroying YouTube player:', e);
           }
           playerRef.current = null;
           setIsPlayerReady(false);
@@ -242,9 +209,9 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
         const errorMessage = err instanceof Error ? err.message : 'Failed to initialize YouTube player';
         setError(errorMessage);
       }
-    }, [isApiReady, videoIdOrUrl, autoplay, startSeconds, controls, showRelatedVideos, enablejsapi]);
+    }, [isApiReady, videoIdOrUrl, startSeconds, autoplay, controls]); // Initialize once API and core props are ready
 
-    // Update video if videoIdOrUrl changes
+    // Update video and state via API instead of re-creating player
     useEffect(() => {
       if (!isPlayerReady || !playerRef.current) return;
 
@@ -252,20 +219,27 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
       if (!videoId) return;
 
       try {
-        // Get current video ID from player
         const currentVideoId = playerRef.current.getVideoData()?.video_id;
+        const initialStartSeconds = startSeconds > 0 ? Math.floor(startSeconds) : undefined;
         
-        // Only load new video if it's different
         if (currentVideoId !== videoId) {
-          playerRef.current.loadVideoById(videoId, startSeconds > 0 ? Math.floor(startSeconds) : undefined);
-        } else if (startSeconds > 0) {
-          // Same video but different start time
-          playerRef.current.seekTo(startSeconds, false);
+          // New video: load it
+          if (autoplay) {
+            playerRef.current.loadVideoById(videoId, initialStartSeconds);
+          } else {
+            playerRef.current.cueVideoById(videoId, initialStartSeconds);
+          }
+        } else {
+          // Same video: check if we need to seek (only if significantly different)
+          const currentTime = playerRef.current.getCurrentTime();
+          if (initialStartSeconds !== undefined && Math.abs(currentTime - initialStartSeconds) > 2) {
+            playerRef.current.seekTo(initialStartSeconds, true);
+          }
         }
       } catch (err) {
-        console.warn('Error updating YouTube player video:', err);
+        console.warn('Error updating YouTube player via API:', err);
       }
-    }, [isPlayerReady, videoIdOrUrl, startSeconds]);
+    }, [isPlayerReady, videoIdOrUrl, startSeconds, autoplay]); // Handle updates reactively
 
     // Expose player control methods via ref
     useImperativeHandle(

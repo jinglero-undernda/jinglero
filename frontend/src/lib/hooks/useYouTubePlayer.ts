@@ -96,7 +96,7 @@ export function useYouTubePlayer(
 ): UseYouTubePlayerReturn {
   const {
     enablePolling = true,
-    pollingInterval = 1000,
+    pollingInterval = 500, // Increased frequency for better sync
     onTimeUpdate,
     onStateChange,
     onEnd,

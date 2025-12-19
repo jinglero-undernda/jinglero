@@ -73,7 +73,8 @@
   height: var(--monitor-height);
   padding: 0;
   overflow: hidden;
-  pointer-events: auto;
+  /* CRITICAL: Allow taps to pass through to the YouTube player underneath */
+  pointer-events: none;
   z-index: 1; /* Frame is lowest */
 }
 
@@ -102,6 +103,7 @@
   z-index: 2; /* Same as screen */
   width: 100%;
   height: 100%;
+  pointer-events: auto; /* Ensure video is clickable */
 }
 
 .crt-monitor-player-screen::before {

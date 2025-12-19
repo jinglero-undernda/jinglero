@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { publicApi } from '../../lib/api/client';
 import EntityCard from '../common/EntityCard';
-import { sortEntities } from '../../lib/utils/entitySorters';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import type { Fabrica, Jingle, Cancion, Artista, Tematica } from '../../types';
+import featuredEntitiesConfig from '../../lib/config/featuredEntities.json';
 import '../../styles/sections/featured-entities-section.css';
 
 interface FeaturedEntities {
@@ -61,21 +61,29 @@ export default function FeaturedEntitiesSection() {
         const proveedores = artistas.filter((a) => proveedoresIds.has(a.id));
         const jingleros = artistas.filter((a) => jinglerosIds.has(a.id));
 
-        // Sort by recency (date or createdAt) and take first 5
-        const sortedFabricas = sortEntities(fabricas.filter((f) => f.date), 'date', 'fabrica').slice(0, 5);
-        const sortedCanciones = sortEntities(canciones, 'date', 'cancion').slice(0, 5);
-        const sortedProveedores = sortEntities(proveedores, 'stageName', 'artista').slice(0, 5);
-        const sortedJingleros = sortEntities(jingleros, 'stageName', 'artista').slice(0, 5);
-        const sortedJingles = sortEntities(jingles, 'date', 'jingle').slice(0, 5);
-        const sortedTematicas = sortEntities(tematicas, 'name', 'tematica').slice(0, 5);
+        // Helper function to get featured entities by IDs, or fallback to first 5 if config is empty
+        const getFeaturedEntities = <T extends { id: string }>(
+          allEntities: T[],
+          configIds: string[]
+        ): T[] => {
+          if (configIds.length > 0) {
+            // Filter by configured IDs and maintain order
+            const entityMap = new Map(allEntities.map(e => [e.id, e]));
+            return configIds
+              .map(id => entityMap.get(id))
+              .filter((e): e is T => e !== undefined);
+          }
+          // Fallback: return first 5 if no IDs configured
+          return allEntities.slice(0, 5);
+        };
 
         setEntities({
-          fabricas: sortedFabricas as Fabrica[],
-          canciones: sortedCanciones as Cancion[],
-          proveedores: sortedProveedores as Artista[],
-          jingleros: sortedJingleros as Artista[],
-          jingles: sortedJingles as Jingle[],
-          tematicas: sortedTematicas as Tematica[],
+          fabricas: getFeaturedEntities(fabricas.filter((f) => f.date), featuredEntitiesConfig.fabricas) as Fabrica[],
+          canciones: getFeaturedEntities(canciones, featuredEntitiesConfig.canciones) as Cancion[],
+          proveedores: getFeaturedEntities(proveedores, featuredEntitiesConfig.proveedores) as Artista[],
+          jingleros: getFeaturedEntities(jingleros, featuredEntitiesConfig.jingleros) as Artista[],
+          jingles: getFeaturedEntities(jingles, featuredEntitiesConfig.jingles) as Jingle[],
+          tematicas: getFeaturedEntities(tematicas, featuredEntitiesConfig.tematicas) as Tematica[],
         });
       } catch (err: any) {
         console.error('Error fetching featured entities:', err);
@@ -106,7 +114,7 @@ export default function FeaturedEntitiesSection() {
 
   const sections = [
     { key: 'fabricas', label: 'Fábricas Destacadas', icon: '🏭', entities: entities.fabricas, type: 'fabrica' as const },
-    { key: 'canciones', label: 'Canciones Destacadas', icon: '🎵', entities: entities.canciones, type: 'cancion' as const },
+    { key: 'canciones', label: 'Materiales (Canciones) Destacadas', icon: '🎵', entities: entities.canciones, type: 'cancion' as const },
     { key: 'proveedores', label: 'Proveedores Destacados', icon: '👤', entities: entities.proveedores, type: 'artista' as const },
     { key: 'jingleros', label: 'Jingleros Destacados', icon: '🎤', entities: entities.jingleros, type: 'artista' as const },
     { key: 'jingles', label: 'Jingles Destacados', icon: '📻', entities: entities.jingles, type: 'jingle' as const },
@@ -122,7 +130,7 @@ export default function FeaturedEntitiesSection() {
             {section.label}
           </h2>
           {section.entities.length > 0 ? (
-            <div className="featured-entities-section__grid">
+            <div className="featured-entities-section__list">
               {section.entities.map((entity) => {
                 const relationshipData = extractRelationshipData(entity, section.type);
                 return (
