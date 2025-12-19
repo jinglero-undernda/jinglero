@@ -535,7 +535,7 @@ Artista represents a musical artist or performer. Artists can author Canciones, 
 - **Default**: None
 - **Range**: 0.0 to 1.0
 - **Description**: Confidence score for MusicBrainz ID match. Indicates the quality/reliability of the MusicBrainz ID assignment. Values below 0.8 indicate low confidence and require manual review before automation. Set when MusicBrainz ID is assigned via cleanup scripts. Updated when MusicBrainz match is re-evaluated. Cleared (set to null) when MusicBrainz ID is manually changed or removed.
-- **Thresholds**: 
+- **Thresholds**:
   - High Confidence (>= 0.8): Can be automated without review
   - Low Confidence (< 0.8): Requires manual review before automation
   - Very Low Confidence (< 0.6): Likely incorrect match, should not be automated
@@ -665,7 +665,7 @@ Cancion represents a song or musical composition. Songs can have multiple author
 - **Type**: string (optional)
 - **Required**: No
 - **Default**: None
-- **Description**: YouTube Music URL for the song.
+- **Description**: YouTube video ID for the song (11 characters, alphanumeric + `-` and `_`). Used to play the video using the CRT skin player.
 - **Code Reference**: `backend/src/server/db/schema/schema.ts:154`
 
 ### lyrics
@@ -699,7 +699,7 @@ Cancion represents a song or musical composition. Songs can have multiple author
 - **Default**: None
 - **Range**: 0.0 to 1.0
 - **Description**: Confidence score for MusicBrainz ID match. Indicates the quality/reliability of the MusicBrainz ID assignment. Values below 0.8 indicate low confidence and require manual review before automation. Set when MusicBrainz ID is assigned via cleanup scripts. Updated when MusicBrainz match is re-evaluated. Cleared (set to null) when MusicBrainz ID is manually changed or removed.
-- **Thresholds**: 
+- **Thresholds**:
   - High Confidence (>= 0.8): Can be automated without review
   - Low Confidence (< 0.8): Requires manual review before automation
   - Very Low Confidence (< 0.6): Likely incorrect match, should not be automated

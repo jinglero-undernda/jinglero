@@ -172,7 +172,6 @@ const YouTubePlayer = forwardRef<YouTubePlayerRef, YouTubePlayerProps>(
             modestbranding: 1,
             playsinline: 1,      // CRITICAL: Prevent iOS native fullscreen
             fs: 0,               // CRITICAL: Disable fullscreen button to keep in skin
-            origin: window.location.origin,
           },
           events: {
             onReady: (event: { target: YTPlayer }) => {

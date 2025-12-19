@@ -186,7 +186,7 @@ Nodes:
    - album: string (optional)
    - year: number (optional)
    - genre: string (optional)
-   - youtubeMusic: string (optional)
+   - youtubeMusic: string (optional, YouTube video ID - 11 characters)
   - lyrics: string (optional, URL to retrieve lyrics)
   - autorIds: string[] (optional, redundant with AUTOR_DE relationships - for performance)
   - musicBrainzId: string (optional)

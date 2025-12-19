@@ -13,6 +13,7 @@
     "migrate:ids": "ts-node src/server/db/migration/migrate-entity-ids.ts",
     "migrate:ids:dry-run": "ts-node src/server/db/migration/migrate-entity-ids.ts --dry-run",
     "db:export-csv": "ts-node src/server/db/migration/export-to-csv.ts",
+    "db:export-canciones": "ts-node src/server/db/migration/export-canciones-to-csv.ts",
     "db:generate-id": "ts-node src/server/db/migration/generate-id.ts",
     "db:import-fabricas": "ts-node src/server/db/migration/import-fabricas.ts",
     "db:audit-relationships": "ts-node src/server/db/quality/audit-relationships-cli.ts",

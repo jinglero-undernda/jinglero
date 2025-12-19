@@ -156,7 +156,10 @@ export const cancionSchema = z.object({
   album: z.string().nullish(),
   year: optionalYearSchema,
   genre: z.string().nullish(),
-  youtubeMusic: optionalUrlSchema,
+  youtubeMusic: z.string().trim().optional().nullable().refine(
+    (val) => !val || val === '' || isValidYouTubeId(val),
+    'Debe ser un ID de YouTube válido (11 caracteres alfanuméricos)'
+  ),
   lyrics: z.string().nullish(),
   status: z.enum(['DRAFT', 'REVIEW', 'PUBLISHED', 'ARCHIVED', 'DELETED']).optional(),
   createdAt: z.string().optional(),
