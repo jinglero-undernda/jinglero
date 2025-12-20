@@ -243,7 +243,7 @@ export default function FileteSign({
             filter="url(#textShadow)"
             letterSpacing="3"
           >
-            USINA
+            COOPERATIVA
           </text>
 
           {/* Bottom Line: "de la Fábrica de Jingles" */}

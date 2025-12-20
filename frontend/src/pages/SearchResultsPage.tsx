@@ -39,13 +39,6 @@ export default function SearchResultsPage() {
   };
 
   useEffect(() => {
-    if (!query.trim()) {
-      setResults({ jingles: [], canciones: [], artistas: [], tematicas: [], fabricas: [] });
-      setLoading(false);
-      setError(null);
-      return;
-    }
-
     setLoading(true);
     setError(null);
 

@@ -159,10 +159,6 @@ router.get('/', asyncHandler(async (req, res) => {
   const offsetParam = req.query.offset as string;
   const typesParam = (req.query.types as string) || '';
 
-  if (!q.trim()) {
-    return res.json({ jingles: [], canciones: [], artistas: [], tematicas: [], fabricas: [] });
-  }
-
   const limitInt = Math.floor(Math.min(Math.max(parseInt(limitParam || '100', 10), 1), 100));
   const offsetInt = Math.floor(Math.max(parseInt(offsetParam || '0', 10), 0));
   const limit = neo4j.int(limitInt);
@@ -223,6 +219,17 @@ router.get('/', asyncHandler(async (req, res) => {
     return db.executeQuery<any>(cypher, { tokens, limit, offset });
   }
 
+  async function runGetAll(label: string, alias: string) {
+    const cypher = `
+      MATCH (node:${label})
+      RETURN node { .id, .displayPrimary, .displaySecondary, .displayBadges, score: 1.0 } AS ${alias}
+      ORDER BY ${alias}.displayPrimary ASC
+      SKIP $offset
+      LIMIT $limit
+    `;
+    return db.executeQuery<any>(cypher, { limit, offset });
+  }
+
   async function runTypeWithFallback(params: {
     label: string;
     indexName: string;
@@ -253,22 +260,27 @@ router.get('/', asyncHandler(async (req, res) => {
   const typeTasks = [
     async () => {
       if (!active.includes('jingles')) return { rows: [], usedFallback: false };
+      if (!q.trim()) return { rows: await runGetAll('Jingle', 'j'), usedFallback: false };
       return runTypeWithFallback({ label: 'Jingle', indexName: 'jingle_search', alias: 'j' });
     },
     async () => {
       if (!active.includes('canciones')) return { rows: [], usedFallback: false };
+      if (!q.trim()) return { rows: await runGetAll('Cancion', 'c'), usedFallback: false };
       return runTypeWithFallback({ label: 'Cancion', indexName: 'cancion_search', alias: 'c' });
     },
     async () => {
       if (!active.includes('artistas')) return { rows: [], usedFallback: false };
+      if (!q.trim()) return { rows: await runGetAll('Artista', 'a'), usedFallback: false };
       return runTypeWithFallback({ label: 'Artista', indexName: 'artista_search', alias: 'a' });
     },
     async () => {
       if (!active.includes('tematicas')) return { rows: [], usedFallback: false };
+      if (!q.trim()) return { rows: await runGetAll('Tematica', 't'), usedFallback: false };
       return runTypeWithFallback({ label: 'Tematica', indexName: 'tematica_search', alias: 't' });
     },
     async () => {
       if (!active.includes('fabricas')) return { rows: [], usedFallback: false };
+      if (!q.trim()) return { rows: await runGetAll('Fabrica', 'f'), usedFallback: false };
       return runTypeWithFallback({ label: 'Fabrica', indexName: 'fabrica_search', alias: 'f' });
     },
   ];
@@ -297,7 +309,7 @@ router.get('/', asyncHandler(async (req, res) => {
   const artistas = artistasRaw.map((r: any) => ({ ...convertNeo4jDates(r.a || r), type: 'artista' }));
   const tematicas = tematicasRaw.map((r: any) => ({ ...convertNeo4jDates(r.t || r), type: 'tematica' }));
   const fabricas = fabricasRaw.map((r: any) => ({ ...convertNeo4jDates(r.f || r), type: 'fabrica' }));
-  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: usedFallback ? 'basic_fallback' : 'fulltext' } });
+  res.json({ jingles, canciones, artistas, tematicas, fabricas, meta: { limit: limitInt, offset: offsetInt, types: active, mode: q.trim() ? (usedFallback ? 'basic_fallback' : 'fulltext') : 'all' } });
 }));
 
 export default router;

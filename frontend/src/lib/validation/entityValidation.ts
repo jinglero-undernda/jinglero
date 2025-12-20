@@ -17,7 +17,7 @@ const REQUIRED_FIELDS: Record<string, string[]> = {
 };
 
 // URL fields that need URL format validation
-const URL_FIELDS = ['youtubeUrl', 'youtubeClipUrl', 'youtubeMusic', 'lyrics', 'website'];
+const URL_FIELDS = ['youtubeUrl', 'youtubeClipUrl', 'lyrics', 'website'];
 
 // Social media handle fields
 const SOCIAL_HANDLE_FIELDS = ['youtubeHandle', 'instagramHandle', 'twitterHandle'];
@@ -186,6 +186,11 @@ export function validateEntityField(
   
   // Format validations
   if (fieldName === 'id' && entityType === 'fabrica') {
+    return validateYouTubeId(value);
+  }
+  
+  // youtubeMusic for Cancion should be validated as YouTube ID, not URL
+  if (fieldName === 'youtubeMusic' && entityType === 'cancion') {
     return validateYouTubeId(value);
   }
   

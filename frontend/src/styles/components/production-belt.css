@@ -1080,6 +1080,7 @@
 
   .crt-monitor-section {
     padding: 20px 10px 10px;
+    margin-right: 66.66%; /* Reserve 2/3 space for the panel */
   }
 
   .crt-monitor-frame {
@@ -1096,11 +1097,11 @@
   }
 
   .control-panel-section {
-    width: 100%;
+    width: 66.66%; /* Changed from 100% to 2/3 */
     min-width: unset;
     max-width: unset;
-    height: auto;
-    max-height: 50vh;
+    height: 100%; /* Full height of container */
+    max-height: none; /* Remove 50vh limit */
   }
 
   .conveyor-belt-section {
@@ -1111,6 +1112,7 @@
   /* Boxes closer together on small screens */
   .conveyor-belt-track {
     gap: 15px;
+    padding-right: calc(50px + 66.66vw); /* Add 2/3 of viewport width to right padding */
   }
 
   .jingle-box-metallic {

@@ -155,11 +155,16 @@ export default function ProductionBelt({ fabricaId, initialTimestamp, className,
         const IMAGE_INVERSE_ASPECT = IMAGE_HEIGHT / IMAGE_WIDTH; // 0.7308
         
         // Calculate monitor/image size in pixels
-        const monitorWidthOption1 = 0.5 * containerWidth;
+        // On narrow screens (<= 768px), the control panel takes 2/3 width (66.66%),
+        // leaving 1/3 (33.33%) for the monitor.
+        const isMobile = window.innerWidth <= 768;
+        const widthRatio = isMobile ? 0.25 : 0.5; // Use 1/4 of width for monitor on mobile
+
+        const monitorWidthOption1 = widthRatio * containerWidth;
         const monitorWidthOption2 = 0.8 * containerHeight * IMAGE_ASPECT;
         const monitorWidth = Math.min(monitorWidthOption1, monitorWidthOption2);
         
-        const monitorHeightOption1 = 0.5 * containerWidth * IMAGE_INVERSE_ASPECT;
+        const monitorHeightOption1 = widthRatio * containerWidth * IMAGE_INVERSE_ASPECT;
         const monitorHeightOption2 = 0.8 * containerHeight;
         const monitorHeight = Math.min(monitorHeightOption1, monitorHeightOption2);
         

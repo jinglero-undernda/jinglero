@@ -1220,10 +1220,8 @@ const RelatedEntities = forwardRef<{
         // Sort entities
         const sorted = sortEntities(entities, rel.sortKey, rel.entityType);
         
-        // Filter entities (cycle prevention in User Mode only)
-        const filtered = isAdmin 
-          ? sorted 
-          : sorted.filter((e) => !entityPath.includes(e.id));
+        // Filter entities (show all entities, parent entities will be marked as non-expandable)
+        const filtered = sorted; // Don't filter out entities in path - show them but make them non-expandable
         
         // Store in cache
         requestCacheRef.current[cacheKey] = filtered;
@@ -1754,10 +1752,8 @@ const RelatedEntities = forwardRef<{
               // Task 23: Filtering is done here (memoization not needed as it's one-time per fetch)
               // Task 19: Disable cycle prevention in Admin Mode
               // In Admin Mode, show all entities even if they appear in entityPath
-              // In User Mode, filter out entities in path to prevent cycles
-              const filtered = isAdmin 
-                ? sorted 
-                : sorted.filter((e) => !entityPath.includes(e.id));
+              // In User Mode, show all entities but mark parent entities as non-expandable
+              const filtered = sorted; // Don't filter out entities in path - show them but make them non-expandable
 
               // Task 26: Store in cache
               if (entity?.id) {
@@ -2068,6 +2064,11 @@ const RelatedEntities = forwardRef<{
                               })()
                             : [];
                           const hasNested = !isAdmin && hasNestedRelationships && canExpand;
+                          
+                          // Check if this entity is in the entityPath (it's a parent entity)
+                          const isParentEntity = entityPath.includes(relatedEntity.id);
+                          // If it's a parent entity, disable expansion and navigation
+                          const canExpandEntity = hasNested && !isParentEntity;
                           
                           // In admin mode, handle relationship properties expansion
                           const relationshipPropsKey = `${relatedEntity.id}-${key}`;
@@ -2394,10 +2395,10 @@ const RelatedEntities = forwardRef<{
                                   indentationLevel={0}
                                   relationshipLabel={rel.label}
                                   relationshipData={relationshipData}
-                                  hasNestedEntities={hasNested}
+                                  hasNestedEntities={canExpandEntity} // Only true if not a parent entity
                                   isExpanded={isEntityExpanded}
-                                  onClick={handleAdminClick || handleUserClick}
-                                  to={isAdmin || hasNested ? undefined : getEntityRoute(rel.entityType, relatedEntity.id)} // Don't navigate if in admin mode or if entity has nested entities
+                                  onClick={isParentEntity ? undefined : (handleAdminClick || handleUserClick)} // Disable click if parent
+                                  to={isAdmin || hasNested || isParentEntity ? undefined : getEntityRoute(rel.entityType, relatedEntity.id)} // Don't navigate if parent entity
                                   showAdminNavButton={isAdmin}
                                   adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${relatedEntity.id}`}
                                   onAdminNavClick={() => {
@@ -2410,8 +2411,8 @@ const RelatedEntities = forwardRef<{
                                       onNavigateToEntity(rel.entityType, relatedEntity.id);
                                     }
                                   }}
-                                  showUserNavButton={!isAdmin}
-                                  onUserNavClick={() => {
+                                  showUserNavButton={!isAdmin && !isParentEntity} // Don't show nav button for parent
+                                  onUserNavClick={isParentEntity ? undefined : () => {
                                     const route = getEntityRoute(rel.entityType, relatedEntity.id);
                                     if (onNavigateToEntity) {
                                       onNavigateToEntity(rel.entityType, relatedEntity.id);
@@ -2830,6 +2831,8 @@ const RelatedEntities = forwardRef<{
                                         const nestedEntityRelationships = getRelationshipsForEntityType(row.entityType);
                                         const nestedEntityPath = [...entityPath, entity.id];
                                         const nestedEntityCanExpand = nestedEntityPath.length < maxDepth;
+                                        // Check if this nested entity is in the path (it's a parent entity)
+                                        const isNestedParentEntity = nestedEntityPath.includes(row.entity.id);
                                         // Filter to only expandable relationships
                                         const expandableNestedRelationships = nestedEntityRelationships.filter(rel => rel.expandable);
                                         // Check if nested entity has expandable relationships
@@ -2911,7 +2914,7 @@ const RelatedEntities = forwardRef<{
                                         })();
                                         
                                         // Handle click in user mode for nested entities - expand if entity has nested entities, otherwise navigate
-                                        const handleNestedUserClick = !isAdmin && nestedEntityHasNested && nestedEntityCanExpand ? async () => {
+                                        const handleNestedUserClick = !isAdmin && nestedEntityHasNested && nestedEntityCanExpand && !isNestedParentEntity ? async () => {
                                           // Use the same logic as onToggleExpand
                                           console.log(`[DEBUG] onToggleExpand called for nested entity ${row.entity.id} (${row.entityType})`);
                                           const currentState = stateRef.current;
@@ -2950,7 +2953,7 @@ const RelatedEntities = forwardRef<{
                                                 
                                                 const nestedNestedEntities = await nestedNestedRel.fetchFn(row.entity.id, row.entityType);
                                                 const sorted = sortEntities(nestedNestedEntities, nestedNestedRel.sortKey, nestedNestedRel.entityType);
-                                                const filtered = sorted.filter((e) => !nestedEntityPath.includes(e.id));
+                                                const filtered = sorted; // Don't filter out entities in path - show them but make them non-expandable
                                                 
                                                 // Cache the data
                                                 requestCacheRef.current[cacheKey] = filtered;
@@ -2985,12 +2988,12 @@ const RelatedEntities = forwardRef<{
                                                 indentationLevel={row.indentLevel}
                                                 relationshipLabel={row.relationshipLabel}
                                                 relationshipData={nestedRelationshipData}
-                                                hasNestedEntities={nestedEntityHasNested && nestedEntityCanExpand}
+                                                hasNestedEntities={nestedEntityHasNested && nestedEntityCanExpand && !isNestedParentEntity} // Disable if parent
                                                 isExpanded={nestedEntityIsExpanded}
-                                                onClick={handleNestedUserClick}
-                                                to={isAdmin || (nestedEntityHasNested && nestedEntityCanExpand) ? undefined : getEntityRoute(row.entityType, row.entity.id)} // Don't navigate if in admin mode or if entity has nested entities
-                                                showUserNavButton={!isAdmin}
-                                                onUserNavClick={() => {
+                                                onClick={isNestedParentEntity ? undefined : handleNestedUserClick} // Disable click if parent
+                                                to={isAdmin || (nestedEntityHasNested && nestedEntityCanExpand) || isNestedParentEntity ? undefined : getEntityRoute(row.entityType, row.entity.id)} // Don't navigate if parent
+                                                showUserNavButton={!isAdmin && !isNestedParentEntity} // Don't show nav button for parent
+                                                onUserNavClick={isNestedParentEntity ? undefined : () => {
                                                   const route = getEntityRoute(row.entityType, row.entity.id);
                                                   if (onNavigateToEntity) {
                                                     onNavigateToEntity(row.entityType, row.entity.id);
@@ -3113,6 +3116,8 @@ const RelatedEntities = forwardRef<{
                                                 // Calculate the correct path: entityPath + parent entity + nested entity
                                                 const deeperPath = [...nestedEntityPath, row.entity.id, nestedNestedRow.entity.id];
                                                 const deeperCanExpand = deeperPath.length < maxDepth;
+                                                // Check if this deeper entity is in the path (it's a parent entity)
+                                                const isDeeperParentEntity = deeperPath.includes(nestedNestedRow.entity.id);
                                                 const deeperHasNested = !isAdmin && deeperRelationships.length > 0 && deeperCanExpand;
                                                 const deeperIsExpanded = state.expandedEntities.has(nestedNestedRow.entity.id);
                                                 
@@ -3154,7 +3159,7 @@ const RelatedEntities = forwardRef<{
                                                 );
                                                 
                                                 // Handle click in user mode for deeper nested entities - expand if entity has nested entities, otherwise navigate
-                                                const handleDeeperUserClick = !isAdmin && deeperHasNested && deeperCanExpand ? async () => {
+                                                const handleDeeperUserClick = !isAdmin && deeperHasNested && deeperCanExpand && !isDeeperParentEntity ? async () => {
                                                   // Use the same logic as onToggleExpand
                                                   const currentState = stateRef.current;
                                                   const wasExpanded = currentState.expandedEntities.has(nestedNestedRow.entity.id);
@@ -3185,7 +3190,7 @@ const RelatedEntities = forwardRef<{
                                                         
                                                         const deeperEntities = await deeperRel.fetchFn(nestedNestedRow.entity.id, nestedNestedRow.entityType);
                                                         const sorted = sortEntities(deeperEntities, deeperRel.sortKey, deeperRel.entityType);
-                                                        const filtered = sorted.filter((e) => !deeperPath.includes(e.id));
+                                                        const filtered = sorted; // Don't filter out entities in path - show them but make them non-expandable
                                                         
                                                         requestCacheRef.current[cacheKey] = filtered;
                                                         
@@ -3219,12 +3224,12 @@ const RelatedEntities = forwardRef<{
                                                         indentationLevel={nestedNestedRow.indentLevel}
                                                         relationshipLabel={nestedNestedRow.relationshipLabel}
                                                         relationshipData={deeperRelationshipData}
-                                                        hasNestedEntities={deeperHasNested && deeperCanExpand}
+                                                        hasNestedEntities={deeperHasNested && deeperCanExpand && !isDeeperParentEntity} // Disable if parent
                                                         isExpanded={deeperIsExpanded}
-                                                        onClick={handleDeeperUserClick}
-                                                        to={isAdmin || (deeperHasNested && deeperCanExpand) ? undefined : getEntityRoute(nestedNestedRow.entityType, nestedNestedRow.entity.id)} // Don't navigate if in admin mode or if entity has nested entities
-                                                        showUserNavButton={!isAdmin}
-                                                        onUserNavClick={() => {
+                                                        onClick={isDeeperParentEntity ? undefined : handleDeeperUserClick} // Disable click if parent
+                                                        to={isAdmin || (deeperHasNested && deeperCanExpand) || isDeeperParentEntity ? undefined : getEntityRoute(nestedNestedRow.entityType, nestedNestedRow.entity.id)} // Don't navigate if parent
+                                                        showUserNavButton={!isAdmin && !isDeeperParentEntity} // Don't show nav button for parent
+                                                        onUserNavClick={isDeeperParentEntity ? undefined : () => {
                                                           const route = getEntityRoute(nestedNestedRow.entityType, nestedNestedRow.entity.id);
                                                           if (onNavigateToEntity) {
                                                             onNavigateToEntity(nestedNestedRow.entityType, nestedNestedRow.entity.id);
