@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { Jingle, Fabrica, Cancion, Artista, Tematica } from '../../types';
 import EntityCard from '../../components/common/EntityCard';
 import RelatedEntities from '../../components/common/RelatedEntities';
@@ -9,6 +9,8 @@ import { clearJingleRelationshipsCache } from '../../lib/services/relationshipSe
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import CRTMonitorPlayer from '../../components/production-belt/CRTMonitorPlayer';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
+import FloatingHeader from '../../components/composite/FloatingHeader';
+import { adminApi } from '../../lib/api/client';
 
 // Extended Jingle type that includes relationship data from API
 interface JingleWithRelationships extends Jingle {
@@ -25,6 +27,20 @@ export default function InspectJingle() {
   const [jingle, setJingle] = useState<JingleWithRelationships | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const status = await adminApi.getAuthStatus();
+        setIsAuthenticated(status.authenticated);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const fetchJingle = async () => {
@@ -73,12 +89,10 @@ export default function InspectJingle() {
   
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <nav style={{ marginBottom: '2rem' }}>
-        <Link to="/">Inicio</Link> | <Link to="/show">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
-      </nav>
-      
-      {loading && <p>Loading...</p>}
+    <>
+      <FloatingHeader isAuthenticated={isAuthenticated} />
+      <main style={{ padding: '2rem', paddingTop: '6rem', maxWidth: '1200px', margin: '0 auto' }}>
+        {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       
       {jingle && (
@@ -120,7 +134,8 @@ export default function InspectJingle() {
           />
         </>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

@@ -374,6 +374,31 @@
   box-shadow: var(--shadow-sm);
 }
 
+.entity-card__user-nav-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: var(--font-size-body-small);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  color: var(--color-accent-primary);
+  border-radius: var(--border-radius-sm);
+  transition: background-color var(--transition-fast);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.entity-card__user-nav-button:hover,
+.entity-card__user-nav-button:focus-visible {
+  background-color: var(--color-bg-tertiary);
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  box-shadow: var(--shadow-glow-interactive);
+}
+
 .entity-card__delete-relationship-button {
   padding: var(--spacing-xs) var(--spacing-sm);
   background-color: var(--color-error);

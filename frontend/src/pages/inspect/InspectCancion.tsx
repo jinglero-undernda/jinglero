@@ -1,16 +1,33 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { Cancion } from '../../types';
 import EntityCard from '../../components/common/EntityCard';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { publicApi } from '../../lib/api';
+import FloatingHeader from '../../components/composite/FloatingHeader';
+import { adminApi } from '../../lib/api/client';
+import CRTMonitorPlayer from '../../components/production-belt/CRTMonitorPlayer';
 
 export default function InspectCancion() {
   const { cancionId } = useParams();
   const [cancion, setCancion] = useState<Cancion | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const status = await adminApi.getAuthStatus();
+        setIsAuthenticated(status.authenticated);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const fetchCancion = async () => {
@@ -34,13 +51,14 @@ export default function InspectCancion() {
 
   const relationships = getRelationshipsForEntityType('cancion');
 
+  // Get YouTube video ID from cancion
+  const videoIdOrUrl = cancion?.youtubeMusic || null;
+
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <nav style={{ marginBottom: '2rem' }}>
-        <Link to="/">Inicio</Link> | <Link to="/show">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
-      </nav>
-      
-      {loading && <p>Loading...</p>}
+    <>
+      <FloatingHeader isAuthenticated={isAuthenticated} />
+      <main style={{ padding: '2rem', paddingTop: '6rem', maxWidth: '1200px', margin: '0 auto' }}>
+        {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       
       {cancion && (
@@ -51,6 +69,20 @@ export default function InspectCancion() {
             variant="heading"
             indentationLevel={0}
           />
+          {videoIdOrUrl && (
+            <div style={{ 
+              margin: '0.5rem calc(50% - 50vw)', 
+              width: '100vw',
+              aspectRatio: '1 / 0.4',
+              position: 'relative'
+            }}>
+              <CRTMonitorPlayer
+                videoIdOrUrl={videoIdOrUrl}
+                startSeconds={0}
+                autoplay={false}
+              />
+            </div>
+          )}
           <RelatedEntities
             entity={cancion}
             entityType="cancion"
@@ -59,7 +91,8 @@ export default function InspectCancion() {
           />
         </>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 

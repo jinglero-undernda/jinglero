@@ -61,6 +61,10 @@ export interface EntityCardProps {
   onAdminNavClick?: () => void;
   /** Admin route for navigation (e.g., /admin/c/{id}) */
   adminRoute?: string;
+  /** Whether to show user navigation button (for public inspect pages) */
+  showUserNavButton?: boolean;
+  /** Callback when user navigation button is clicked */
+  onUserNavClick?: () => void;
   /** Phase 6: Whether to show delete button (only in admin edit mode for contents variant) */
   showDeleteButton?: boolean;
   /** Phase 6: Callback when delete button is clicked */
@@ -188,6 +192,8 @@ function EntityCard({
   showAdminNavButton = false,
   onAdminNavClick,
   adminRoute: _adminRoute, // eslint-disable-line @typescript-eslint/no-unused-vars
+  showUserNavButton = false,
+  onUserNavClick,
   showDeleteButton = false,
   onDeleteClick,
 }: EntityCardProps) {
@@ -397,7 +403,24 @@ function EntityCard({
       aria-label={`Editar ${primaryText} en modo administrador`}
       title={`Editar ${primaryText} en modo administrador`}
     >
-      🔧
+      🔍
+    </button>
+  ) : null;
+
+  // User navigation button (for public inspect pages)
+  const userNavButton = showUserNavButton && actualVariant === 'contents' && onUserNavClick ? (
+    <button
+      type="button"
+      className="entity-card__user-nav-button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onUserNavClick();
+      }}
+      aria-label={`Ver detalles de ${primaryText}`}
+      title={`Ver detalles de ${primaryText}`}
+    >
+      🔍
     </button>
   ) : null;
 
@@ -479,13 +502,14 @@ function EntityCard({
           )}
         </div>
       </div>
-      {(showButton || expandIcon || adminEditButton || adminNavButton || deleteButton) && (
+      {(showButton || expandIcon || adminEditButton || adminNavButton || userNavButton || deleteButton) && (
         <div className="entity-card__actions-container">
           {showButton}
           {expandIcon}
           {adminEditButton}
           {deleteButton}
           {adminNavButton}
+          {userNavButton}
         </div>
       )}
     </>

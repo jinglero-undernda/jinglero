@@ -1,16 +1,32 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { Artista } from '../../types';
 import EntityCard from '../../components/common/EntityCard';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { publicApi } from '../../lib/api';
+import FloatingHeader from '../../components/composite/FloatingHeader';
+import { adminApi } from '../../lib/api/client';
 
 export default function InspectArtista() {
   const { artistaId } = useParams();
   const [artista, setArtista] = useState<Artista | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const status = await adminApi.getAuthStatus();
+        setIsAuthenticated(status.authenticated);
+      } catch (error) {
+        setIsAuthenticated(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     const fetchArtista = async () => {
@@ -35,12 +51,10 @@ export default function InspectArtista() {
   const relationships = getRelationshipsForEntityType('artista');
 
   return (
-    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-      <nav style={{ marginBottom: '2rem' }}>
-        <Link to="/">Inicio</Link> | <Link to="/show">Fabrica</Link> | <Link to="/j/sample-jingle">Jingle</Link> | <Link to="/c/sample-cancion">Cancion</Link> | <Link to="/admin">Admin</Link>
-      </nav>
-      
-      {loading && <p>Loading...</p>}
+    <>
+      <FloatingHeader isAuthenticated={isAuthenticated} />
+      <main style={{ padding: '2rem', paddingTop: '6rem', maxWidth: '1200px', margin: '0 auto' }}>
+        {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       
       {artista && (
@@ -59,7 +73,8 @@ export default function InspectArtista() {
           />
         </>
       )}
-    </main>
+      </main>
+    </>
   );
 }
 
