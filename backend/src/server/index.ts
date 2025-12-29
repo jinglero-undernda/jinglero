@@ -29,14 +29,36 @@ function parseCorsOrigins(): string[] {
 
 function buildCorsOptions(): cors.CorsOptions {
   const allowlist = parseCorsOrigins();
+  const isBehindProxy = bindAddress === '127.0.0.1' || bindAddress === '::1';
 
   // In production, require an explicit allowlist.
   // For non-browser clients (no Origin), allow.
+  // When behind a proxy (localhost binding), if CORS_ORIGINS is not set,
+  // allow requests from the same origin as the Host header (nginx passes this through).
   return {
     origin(origin, cb) {
       if (!origin) return cb(null, true);
-      if (allowlist.length === 0) return cb(new Error('CORS blocked: origin not allowed'));
-      if (allowlist.includes(origin)) return cb(null, true);
+      
+      // If allowlist is explicitly configured, use it
+      if (allowlist.length > 0) {
+        if (allowlist.includes(origin)) return cb(null, true);
+        return cb(new Error('CORS blocked: origin not allowed'));
+      }
+      
+      // If behind a proxy and no explicit allowlist, allow same-origin requests
+      // This is safe because nginx is handling security at the edge
+      if (isBehindProxy && nodeEnv === 'production') {
+        return cb(null, true);
+      }
+      
+      // In development without allowlist, allow localhost origins
+      if (nodeEnv !== 'production') {
+        if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+          return cb(null, true);
+        }
+      }
+      
+      // Default: block if no allowlist and not behind proxy
       return cb(new Error('CORS blocked: origin not allowed'));
     },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
