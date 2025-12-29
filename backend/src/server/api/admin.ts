@@ -64,6 +64,22 @@ function getAdminJwtSecretOrThrow(): string {
   throw new UnauthorizedError('La autenticación de administrador no está configurada');
 }
 
+function parseJwtExpiresIn(value: string | undefined): jwt.SignOptions['expiresIn'] {
+  const fallback = '12h' as jwt.SignOptions['expiresIn'];
+  if (!value) return fallback;
+  const s = value.trim();
+  if (!s) return fallback;
+
+  // If numeric, treat as seconds
+  if (/^\d+$/.test(s)) return Number(s);
+
+  // Common ms-style duration strings supported by jsonwebtoken types (via `ms` StringValue)
+  // Examples: 30s, 15m, 12h, 7d, 2w, 1y
+  if (/^\d+(ms|s|m|h|d|w|y)$/.test(s)) return s as unknown as jwt.SignOptions['expiresIn'];
+
+  return fallback;
+}
+
 // Rate limiting for admin endpoints (defense in depth; still recommend nginx IP allowlist)
 router.use(
   createRateLimiter({
@@ -252,7 +268,7 @@ router.post('/login', adminLoginLimiter, asyncHandler(async (req, res) => {
   
   // Generate JWT token
   const secret = getAdminJwtSecretOrThrow();
-  const expiresIn = process.env.ADMIN_JWT_EXPIRES_IN || '12h';
+  const expiresIn = parseJwtExpiresIn(process.env.ADMIN_JWT_EXPIRES_IN);
   const token = jwt.sign(
     { admin: true, jti: randomUUID() },
     secret,
@@ -268,7 +284,7 @@ router.post('/login', adminLoginLimiter, asyncHandler(async (req, res) => {
   res.json({
     success: true,
     token,
-    expiresIn
+    expiresIn: String(expiresIn)
   });
 }));
 
