@@ -145,5 +145,5 @@ See [`playbooks/README.md`](./playbooks/README.md) for available playbooks to:
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-12-29
 

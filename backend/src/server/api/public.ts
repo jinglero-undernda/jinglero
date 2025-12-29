@@ -6,6 +6,16 @@ import neo4j from 'neo4j-driver';
 const router = Router();
 const db = Neo4jClient.getInstance();
 
+function sendInternalServerError(res: any, error: any) {
+  // eslint-disable-next-line no-console
+  console.error('[ERROR] public API error:', error?.stack || error);
+  const message =
+    process.env.NODE_ENV === 'development'
+      ? (error?.message || 'Internal Server Error')
+      : 'Internal Server Error';
+  res.status(500).json({ error: message });
+}
+
 // Helper function to convert Neo4j dates to ISO strings
 function convertNeo4jDates(obj: any): any {
   if (obj === null || obj === undefined) return obj;
@@ -106,11 +116,15 @@ function parseTimestampToSeconds(timestamp: string): number {
 
 // Schema introspection endpoint
 router.get('/schema', async (req, res) => {
+  // Avoid leaking internal schema details in production.
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(404).json({ error: 'Not Found' });
+  }
   try {
     const schemaInfo = await getSchemaInfo();
     res.json(schemaInfo);
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -130,7 +144,7 @@ router.get('/usuarios', async (req, res) => {
     
     res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -146,7 +160,7 @@ router.get('/usuarios/:id', async (req, res) => {
     
     res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -195,7 +209,7 @@ router.get('/artistas', async (req, res) => {
     
     res.json(artistas);
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -211,7 +225,7 @@ router.get('/artistas/:id', async (req, res) => {
     
     res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -310,7 +324,7 @@ router.get('/canciones', async (req, res) => {
     
     res.json(canciones);
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -326,7 +340,7 @@ router.get('/canciones/:id', async (req, res) => {
     
     res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -345,7 +359,7 @@ router.get('/fabricas', async (req, res) => {
     
     res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -395,7 +409,7 @@ router.get('/fabricas/:id', async (req, res) => {
     
     res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -623,7 +637,7 @@ router.get('/tematicas', async (req, res) => {
     
     res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -639,7 +653,7 @@ router.get('/tematicas/:id', async (req, res) => {
     
     res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -658,7 +672,7 @@ router.get('/jingles', async (req, res) => {
     
     res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -734,7 +748,7 @@ router.get('/jingles/:id', async (req, res) => {
     
     res.json(response);
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -776,7 +790,7 @@ router.get('/entities/:type', async (req, res) => {
     
     res.json(entities.map((entity: any) => convertNeo4jDates(entity.n.properties)));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -813,7 +827,7 @@ router.get('/entities/:type/:id', async (req, res) => {
     
     res.json(convertNeo4jDates(result[0].n.properties));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -853,7 +867,7 @@ router.get('/relationships/:type', async (req, res) => {
     
     res.json(relationships.map((rel: any) => convertNeo4jDates(rel.r.properties)));
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -911,7 +925,7 @@ router.get('/entities/:type/:id/relationships', async (req, res) => {
       incoming: relationships.incoming.filter((r: any) => r.type !== null)
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -981,7 +995,7 @@ router.get('/entities/jingles/:id/related', async (req, res) => {
       meta: { limit, types: active }
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -998,7 +1012,10 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
       RETURN c.id AS cancionId, count(j) AS jingleCount, collect(j.id) AS jingleIds
     `;
     const verifyResult = await db.executeQuery<any>(verifyQuery, { cId: id });
-    console.log(`[DEBUG] Verification query for CAN-002:`, verifyResult);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Verification query for CAN-002:`, verifyResult);
+    }
     
     // Get autores for root Cancion with counts
     const autoresQuery = `
@@ -1049,7 +1066,9 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
     ]);
 
     // Debug logging
-    console.log(`[DEBUG] /entities/canciones/${id}/related - Query results:`, {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] /entities/canciones/${id}/related - Query results:`, {
       cancionId: id,
       jinglesUsingCancionCount: jinglesUsingCancion.length,
       jinglesUsingCancionRaw: jinglesUsingCancion,
@@ -1057,10 +1076,14 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
       jinglesUsingCancionFirstJingle: jinglesUsingCancion[0]?.jingle,
       otherCancionesByAutorCount: otherCancionesByAutor.length,
       jinglesByAutorIfJingleroCount: jinglesByAutorIfJinglero.length,
-    });
+      });
+    }
 
     const filteredJingles = jinglesUsingCancion.filter((r: any) => r && r.jingle);
-    console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
+    }
     // Include fabrica data with each jingle for EntityCard display
     const convertedJingles = filteredJingles.map((r: any) => {
       const jingle = convertNeo4jDates(r.jingle);
@@ -1070,7 +1093,10 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
         fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
       };
     });
-    console.log(`[DEBUG] Converted jingles with fabrica:`, convertedJingles);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Converted jingles with fabrica:`, convertedJingles);
+    }
 
     // Process otherCancionesByAutor with metadata
     // First, get counts for all autores that appear in the results
@@ -1235,7 +1261,9 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
     ]);
 
     // Debug logging
-    console.log(`[DEBUG] /entities/artistas/${id}/related - Query results:`, {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] /entities/artistas/${id}/related - Query results:`, {
       artistaId: id,
       jinglesByJingleroCount: jinglesByJinglero.length,
       jinglesByJingleroRaw: jinglesByJinglero,
@@ -1243,7 +1271,8 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
       cancionesByAutorCount: cancionesByAutor.length,
       cancionesByAutorRaw: cancionesByAutor,
       cancionesByAutorFirst: cancionesByAutor[0],
-    });
+      });
+    }
     
     // Additional debug: Check if relationships exist
     const debugQuery = `
@@ -1252,15 +1281,21 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
       ORDER BY c.displayPrimary ASC
     `;
     const debugResults = await db.executeQuery<any>(debugQuery, { aId: id });
-    console.log(`[DEBUG] /entities/artistas/${id}/related - Direct relationship check:`, {
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] /entities/artistas/${id}/related - Direct relationship check:`, {
       artistaId: id,
       relationshipCount: debugResults.length,
       relationships: debugResults,
-    });
+      });
+    }
 
     // Include fabrica data with each jingle for EntityCard display
     const filteredJingles = jinglesByJinglero.filter((r: any) => r && r.jingle);
-    console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
+    }
     const convertedJingles = filteredJingles.map((r: any) => {
       const jingle = convertNeo4jDates(r.jingle);
       const fabrica = r.fabrica ? convertNeo4jDates(r.fabrica) : null;
@@ -1269,7 +1304,10 @@ router.get('/entities/artistas/:id/related', async (req, res) => {
         fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
       };
     });
-    console.log(`[DEBUG] Converted jingles with fabrica:`, convertedJingles);
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.log(`[DEBUG] Converted jingles with fabrica:`, convertedJingles);
+    }
 
     // Process cancionesByAutor with metadata
     // First, get counts for all autores that appear in the results
@@ -1730,7 +1768,7 @@ router.get('/search', async (req, res) => {
       fabricas: [] // Search doesn't currently support fabricas
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 
@@ -1791,7 +1829,7 @@ router.get('/volumetrics', async (req, res) => {
       proveedores: typeof counts.proveedores === 'object' && counts.proveedores?.low !== undefined ? counts.proveedores.low : Number(counts.proveedores)
     });
   } catch (error: any) {
-    res.status(500).json({ error: error?.message || 'Internal server error' });
+    sendInternalServerError(res, error);
   }
 });
 

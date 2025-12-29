@@ -2,6 +2,32 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UnauthorizedError } from '../api/core';
 
+type JwtVerifyOptions = {
+  secret: string;
+  issuer?: string;
+  audience?: string;
+};
+
+function getJwtVerifyOptions(): JwtVerifyOptions {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const secret = process.env.JWT_SECRET;
+
+  // Backwards-compat (DEV ONLY): allow falling back to ADMIN_PASSWORD if JWT_SECRET isn't set.
+  // In production, JWT_SECRET must be set and distinct from the admin password.
+  const fallbackSecret = nodeEnv !== 'production' ? process.env.ADMIN_PASSWORD : undefined;
+
+  const finalSecret = secret || fallbackSecret;
+  if (!finalSecret) {
+    throw new UnauthorizedError('JWT secret not configured');
+  }
+
+  return {
+    secret: finalSecret,
+    issuer: process.env.JWT_ISSUER || undefined,
+    audience: process.env.JWT_AUDIENCE || undefined,
+  };
+}
+
 /**
  * Admin authentication middleware
  * 
@@ -21,16 +47,18 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
   }
 
   try {
-    // Use JWT_SECRET if available, otherwise fall back to ADMIN_PASSWORD
-    // Note: For production, JWT_SECRET should be a separate, strong secret
-    const secret = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD;
-    
-    if (!secret) {
-      throw new UnauthorizedError('JWT secret not configured');
-    }
+    const { secret, issuer, audience } = getJwtVerifyOptions();
     
     // Verify JWT token
-    const decoded = jwt.verify(token, secret) as { admin: boolean; iat?: number; exp?: number };
+    const decoded = jwt.verify(
+      token,
+      secret,
+      {
+        algorithms: ['HS256'],
+        issuer: issuer || undefined,
+        audience: audience || undefined,
+      }
+    ) as { admin: boolean; iat?: number; exp?: number; jti?: string; sub?: string };
     
     // Check if token is for admin
     if (!decoded.admin) {
@@ -38,7 +66,7 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
     }
     
     // Attach admin info to request for use in route handlers
-    (req as any).admin = { authenticated: true };
+    (req as any).admin = { authenticated: true, token: decoded };
     
     next();
   } catch (error) {
@@ -82,17 +110,15 @@ export function optionalAdminAuth(req: Request, res: Response, next: NextFunctio
   }
 
   try {
-    const secret = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD;
-    
-    if (!secret) {
-      (req as any).admin = { authenticated: false };
-      return next();
-    }
-    
-    const decoded = jwt.verify(token, secret) as { admin: boolean };
+    const { secret, issuer, audience } = getJwtVerifyOptions();
+    const decoded = jwt.verify(token, secret, {
+      algorithms: ['HS256'],
+      issuer: issuer || undefined,
+      audience: audience || undefined,
+    }) as { admin: boolean; iat?: number; exp?: number; jti?: string; sub?: string };
     
     if (decoded.admin) {
-      (req as any).admin = { authenticated: true };
+      (req as any).admin = { authenticated: true, token: decoded };
     } else {
       (req as any).admin = { authenticated: false };
     }

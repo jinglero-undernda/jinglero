@@ -2,10 +2,10 @@
 
 ## Status
 
-- **Status**: draft
-- **Last Updated**: [DATE_PLACEHOLDER - TO BE CONFIRMED]
-- **Last Validated**: 2025-11-26
-- **Code Reference**: `backend/src/server/index.ts:38-42`, `backend/src/server/api/admin.ts:180-250`, `frontend/src/pages/AdminPage.tsx:31-96`
+- **Status**: current_implementation
+- **Last Updated**: 2025-12-29
+- **Last Validated**: not yet validated
+- **Code Reference**: `backend/src/server/index.ts:13-69,91-96`, `backend/src/server/api/admin.ts:67-80,230-305`, `backend/src/server/middleware/auth.ts:11-131`, `frontend/src/pages/AdminPage.tsx:31-96`
 
 ## Overview
 
@@ -28,8 +28,8 @@ This document defines security requirements for admin access control, specifical
 
 **Code Reference**:
 
-- Backend: `backend/src/server/index.ts:38-42` (server binding)
-- Backend API: `backend/src/server/api/admin.ts:180-250` (admin routes)
+- Backend: `backend/src/server/index.ts:13-69,91-96` (server binding, CORS, rate limiting)
+- Backend API: `backend/src/server/api/admin.ts:67-80,230-305` (admin auth routes, rate limiting, protected routes)
 - Frontend: `frontend/src/pages/AdminPage.tsx:31-96` (admin routes)
 
 **Context**:
@@ -41,7 +41,7 @@ This requirement applies to the initial local deployment phase. Admin functional
 
 **Validation**:
 
-- Verify backend only accepts connections from localhost/local network
+- Verify backend only accepts connections from localhost/local network (`BIND_ADDRESS=127.0.0.1`)
 - Verify reverse proxy blocks admin routes from external access
 - Verify admin frontend routes are not accessible from public internet
 - Test that external IP addresses cannot access admin endpoints
@@ -68,8 +68,8 @@ This requirement applies to the initial local deployment phase. Admin functional
 
 **Code Reference**:
 
-- `backend/src/server/middleware/auth.ts:16-50` (requireAdminAuth)
-- `backend/src/server/api/admin.ts:188-219` (login endpoint)
+- `backend/src/server/middleware/auth.ts:11-131` (JWT verification + admin auth middleware)
+- `backend/src/server/api/admin.ts:45-80,230-305` (timing-safe password compare, JWT issuance, admin rate limiting)
 
 **Context**:
 Authentication is implemented via JWT tokens. The login endpoint (`/api/admin/login`) is currently publicly accessible but should be restricted to local network only.
@@ -78,7 +78,7 @@ Authentication is implemented via JWT tokens. The login endpoint (`/api/admin/lo
 
 - Verify all admin routes require authentication
 - Verify JWT tokens are validated correctly
-- Verify tokens expire appropriately (7 days)
+- Verify tokens expire appropriately (`ADMIN_JWT_EXPIRES_IN`, default `12h`)
 - Test that unauthenticated requests are rejected
 
 **Monitoring**:
@@ -231,42 +231,35 @@ For initial local deployment, **Option 1 (Network-Level Restrictions)** is recom
 
 ### Summary
 
-- **REQ-ADMIN-001**: ❌ **Not Fully Implemented** - Network-level restrictions missing
+- **REQ-ADMIN-001**: ⚠️ **Partially Implemented** - Backend supports localhost binding; nginx restrictions still required
 
-  - Backend doesn't bind to localhost (binds to `0.0.0.0`)
-  - No `BIND_ADDRESS` environment variable support
-  - nginx configuration doesn't block admin routes from external access
-  - Frontend routes correctly defined but need network-level protection
+  - Backend defaults to `BIND_ADDRESS=127.0.0.1` (can be overridden for non-nginx deployments)
+  - nginx configuration must still block `/admin/*` and `/api/admin/*` from external access (defense in depth)
 
-- **REQ-ADMIN-002**: ✅ **Fully Implemented** - Authentication correctly implemented
-  - Authentication middleware correctly implemented
-  - All admin routes require authentication
-  - JWT tokens expire in 7 days as required
-  - Token validation handles expired tokens correctly
+- **REQ-ADMIN-002**: ✅ **Implemented (current)** - Authentication and rate limiting in place
+  - Authentication middleware enforces JWT validation for protected routes
+  - Login uses timing-safe password compare and issues JWT tokens with configurable expiry
+  - Basic admin rate limiting is enabled in the backend (defense in depth)
 
 ### Discrepancies Found
 
-1. **Backend Server Binding**: Server binds to `0.0.0.0` (all interfaces) instead of `127.0.0.1` (localhost). No `BIND_ADDRESS` environment variable support.
-
-2. **nginx Configuration**: Current nginx configuration doesn't block `/admin/*` and `/api/admin/*` routes from external IP addresses. All routes are accessible from external networks.
+1. **nginx Configuration**: nginx must block `/admin/*` and `/api/admin/*` from external IP addresses (IP allowlist / VPN / additional auth).
 
 ### Gap Analysis Summary
 
-**Total Gaps Identified**: 2 Critical (P0)  
+**Total Gaps Identified**: 1 Critical (P0)  
 **Gap Analysis Report**: See `gap-analysis/admin-access-control-gap-analysis-2025-11-26.md`
 
 **Critical Gaps**:
 
-1. **Backend Server Binding Configuration** (P0) - Backend binds to all interfaces instead of localhost only
-2. **nginx Reverse Proxy Admin Route Blocking** (P0) - nginx doesn't block admin routes from external IPs
+1. **nginx Reverse Proxy Admin Route Blocking** (P0) - nginx must block admin routes from external IPs
 
-Both gaps must be fixed immediately to meet REQ-ADMIN-001. See gap analysis report for detailed analysis, impact assessment, and implementation recommendations.
+This gap must be fixed to meet REQ-ADMIN-001. See gap analysis report for detailed analysis, impact assessment, and implementation recommendations.
 
 ### Recommendations
 
-1. Implement `BIND_ADDRESS` environment variable support in `backend/src/server/index.ts`
-2. Update nginx configuration to block admin routes from external access
-3. Re-validate after implementing network-level restrictions
+1. Ensure nginx blocks admin routes from external access (IP allowlist / VPN / basic auth)
+2. Re-validate after applying nginx restrictions in production
 
 See validation report and gap analysis report for detailed findings and recommendations.
 
@@ -284,5 +277,5 @@ See validation report and gap analysis report for detailed findings and recommen
 
 | Date       | Change                         | Author       | Notes                                  |
 | ---------- | ------------------------------ | ------------ | -------------------------------------- |
-| [DATE]     | Initial requirement definition | -            | Local deployment security requirements |
+| 2025-12-29 | Updated current implementation | AI Assistant | Updated binding defaults, JWT handling, and rate limiting |
 | 2025-11-26 | Validation completed           | AI Assistant | See validation report for details      |

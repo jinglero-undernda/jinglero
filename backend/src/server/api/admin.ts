@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import jwt from 'jsonwebtoken';
-import { randomUUID, randomBytes } from 'crypto';
+import { randomUUID, randomBytes, timingSafeEqual } from 'crypto';
 import neo4j from 'neo4j-driver';
 import { Neo4jClient } from '../db';
 import { 
@@ -12,6 +12,7 @@ import {
 } from '../db/schema/setup';
 import { asyncHandler, BadRequestError, NotFoundError, ConflictError, UnauthorizedError, InternalServerError } from './core';
 import { optionalAdminAuth, requireAdminAuth } from '../middleware/auth';
+import { createRateLimiter } from '../middleware/rateLimit';
 import {
   validateEntity,
   validateRelationship,
@@ -40,6 +41,43 @@ import { searchRecording, type MusicBrainzMatch } from '../utils/musicbrainz';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
+
+function safeStringEqual(a: string, b: string): boolean {
+  const aBuf = Buffer.from(a, 'utf8');
+  const bBuf = Buffer.from(b, 'utf8');
+  if (aBuf.length !== bBuf.length) return false;
+  return timingSafeEqual(aBuf, bBuf);
+}
+
+function getAdminJwtSecretOrThrow(): string {
+  const nodeEnv = process.env.NODE_ENV || 'development';
+  const secret = process.env.JWT_SECRET;
+  if (secret) return secret;
+
+  // Backwards-compat for local/dev only. Do NOT allow this in production.
+  if (nodeEnv !== 'production' && process.env.ADMIN_PASSWORD) {
+    // eslint-disable-next-line no-console
+    console.warn('[SECURITY] JWT_SECRET not set; falling back to ADMIN_PASSWORD (development only)');
+    return process.env.ADMIN_PASSWORD;
+  }
+
+  throw new UnauthorizedError('La autenticación de administrador no está configurada');
+}
+
+// Rate limiting for admin endpoints (defense in depth; still recommend nginx IP allowlist)
+router.use(
+  createRateLimiter({
+    windowMs: Number(process.env.ADMIN_RATE_LIMIT_WINDOW_MS) || 60_000,
+    max: Number(process.env.ADMIN_RATE_LIMIT_MAX) || 240,
+    keyPrefix: 'admin',
+  })
+);
+
+const adminLoginLimiter = createRateLimiter({
+  windowMs: Number(process.env.ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS) || 60_000,
+  max: Number(process.env.ADMIN_LOGIN_RATE_LIMIT_MAX) || 10,
+  keyPrefix: 'admin-login',
+});
 
 // Helper function to convert Neo4j dates to ISO strings
 function convertNeo4jDates(obj: any): any {
@@ -194,7 +232,7 @@ function generateIdSync(type: string): string {
  * Authenticate admin user with password
  * Returns JWT token on success
  */
-router.post('/login', asyncHandler(async (req, res) => {
+router.post('/login', adminLoginLimiter, asyncHandler(async (req, res) => {
   const { password } = req.body;
   
   if (!password || typeof password !== 'string') {
@@ -208,22 +246,29 @@ router.post('/login', asyncHandler(async (req, res) => {
   }
   
   // Compare password (don't reveal if password is wrong vs not configured)
-  if (password !== adminPassword) {
+  if (!safeStringEqual(password, adminPassword)) {
     throw new UnauthorizedError('Contraseña incorrecta');
   }
   
   // Generate JWT token
-  const secret = process.env.JWT_SECRET || adminPassword;
+  const secret = getAdminJwtSecretOrThrow();
+  const expiresIn = process.env.ADMIN_JWT_EXPIRES_IN || '12h';
   const token = jwt.sign(
-    { admin: true },
+    { admin: true, jti: randomUUID() },
     secret,
-    { expiresIn: '7d' } // Token expires in 7 days
+    {
+      expiresIn,
+      algorithm: 'HS256',
+      issuer: process.env.JWT_ISSUER || undefined,
+      audience: process.env.JWT_AUDIENCE || undefined,
+      subject: 'admin',
+    }
   );
   
   res.json({
     success: true,
     token,
-    expiresIn: '7d'
+    expiresIn
   });
 }));
 

@@ -6,7 +6,10 @@ This directory contains detailed security requirements documentation for differe
 
 ## Requirements Documents
 
-_Requirements documents will be created when documenting security using PLAYBOOK_01._
+Current requirements docs:
+
+- `admin-access-control.md`
+- `backend-api-security.md`
 
 ## Requirements Structure
 
@@ -33,5 +36,5 @@ See `../playbooks/PLAYBOOK_01_DOCUMENT_REQUIREMENTS.md` for instructions on docu
 
 ---
 
-**Last Updated:** 2025-01-XX
+**Last Updated:** 2025-12-29
 

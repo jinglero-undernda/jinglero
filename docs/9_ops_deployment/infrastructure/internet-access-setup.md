@@ -407,7 +407,28 @@ Many routers support Dynamic DNS directly:
    sudo apt-get install -y certbot python3-certbot-nginx
    ```
 
-3. **Obtain SSL certificate** (replace with your domain):
+3. **Update nginx configuration** (if not already done):
+
+   Before running certbot, ensure your nginx configuration has the correct `server_name` directive:
+   
+   ```bash
+   sudo nano /etc/nginx/sites-available/jinglero
+   ```
+   
+   Change the `server_name` line to match your domain:
+   
+   ```nginx
+   server_name jinglero.duckdns.org;  # Replace with your domain
+   ```
+   
+   Save and exit, then test and reload nginx:
+   
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+
+4. **Obtain SSL certificate** (replace with your domain):
 
    ```bash
    sudo certbot --nginx -d yourdomain.com
@@ -419,25 +440,33 @@ Many routers support Dynamic DNS directly:
    sudo certbot --nginx -d jinglero.duckdns.org
    ```
 
-4. **Follow the prompts**:
+5. **Follow the prompts**:
 
    - Enter your email address (for renewal notifications)
    - Agree to terms of service
    - Choose whether to redirect HTTP to HTTPS (recommended: Yes)
 
-5. **Certbot will automatically**:
+6. **Certbot will automatically**:
 
    - Obtain the certificate
    - Configure nginx for HTTPS
    - Set up automatic renewal
 
-6. **Test automatic renewal**:
+   **Note**: If certbot says it couldn't install the certificate automatically, you can manually install it:
+   
+   ```bash
+   sudo certbot install --cert-name jinglero.duckdns.org
+   ```
+   
+   Or manually configure nginx for HTTPS (see troubleshooting section below).
+
+7. **Test automatic renewal**:
 
    ```bash
    sudo certbot renew --dry-run
    ```
 
-7. **Verify HTTPS access**:
+8. **Verify HTTPS access**:
    - Open browser: `https://yourdomain.com`
    - Should show a secure connection (lock icon)
 
@@ -690,6 +719,98 @@ If your router doesn't support DHCP reservation:
 3. Verify Let's Encrypt can access port 80 for validation
 4. Check certificate: `sudo certbot certificates`
 5. Renew certificate: `sudo certbot renew`
+
+### Issue 3a: Certbot Can't Install Certificate Automatically
+
+**Symptoms**: Certificate obtained but certbot says "Could not install certificate" or "Could not automatically find a matching server block"
+
+**Solutions**:
+
+1. **Update nginx server_name** (most common fix):
+   
+   ```bash
+   sudo nano /etc/nginx/sites-available/jinglero
+   ```
+   
+   Change `server_name _;` to `server_name jinglero.duckdns.org;` (or your domain)
+   
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
+   
+   Then install the certificate:
+   
+   ```bash
+   sudo certbot install --cert-name jinglero.duckdns.org
+   ```
+
+2. **Manually configure HTTPS** (if automatic installation fails):
+   
+   Edit nginx config to add HTTPS server block:
+   
+   ```bash
+   sudo nano /etc/nginx/sites-available/jinglero
+   ```
+   
+   Add this server block (after your HTTP block):
+   
+   ```nginx
+   server {
+       listen 443 ssl;
+       server_name jinglero.duckdns.org;
+       
+       ssl_certificate /etc/letsencrypt/live/jinglero.duckdns.org/fullchain.pem;
+       ssl_certificate_key /etc/letsencrypt/live/jinglero.duckdns.org/privkey.pem;
+       
+       # Include SSL configuration (optional but recommended)
+       include /etc/letsencrypt/options-ssl-nginx.conf;
+       ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+       
+       # Your existing location blocks here
+       root /var/www/jinglero/frontend/dist;
+       index index.html;
+       
+       location / {
+           try_files $uri $uri/ /index.html;
+       }
+       
+       location /api/health {
+           proxy_pass http://localhost:3000/health;
+           proxy_http_version 1.1;
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+       }
+       
+       location /api {
+           proxy_pass http://localhost:3000;
+           proxy_http_version 1.1;
+           proxy_set_header Upgrade $http_upgrade;
+           proxy_set_header Connection 'upgrade';
+           proxy_set_header Host $host;
+           proxy_set_header X-Real-IP $remote_addr;
+           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+           proxy_set_header X-Forwarded-Proto $scheme;
+           proxy_cache_bypass $http_upgrade;
+       }
+   }
+   
+   # Redirect HTTP to HTTPS
+   server {
+       listen 80;
+       server_name jinglero.duckdns.org;
+       return 301 https://$server_name$request_uri;
+   }
+   ```
+   
+   Then test and reload:
+   
+   ```bash
+   sudo nginx -t
+   sudo systemctl reload nginx
+   ```
 
 ### Issue 4: Slow Performance
 

@@ -7,7 +7,13 @@ export function notFoundHandler(req: Request, res: Response) {
 
 export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   const isHttpError = err instanceof HttpError;
-  const normalized = isHttpError ? err : new InternalServerError((err as any)?.message || 'Internal Server Error');
+  const normalized = isHttpError
+    ? err
+    : new InternalServerError(
+        process.env.NODE_ENV !== 'production'
+          ? ((err as any)?.message || 'Internal Server Error')
+          : 'Internal Server Error'
+      );
 
   // Always log server errors (safe: no secrets should be in message/stack; details are only sent to client in non-prod).
   // This is critical for debugging 500s behind the Vite proxy.
