@@ -33,57 +33,92 @@ export default function FeaturedEntitiesSection() {
         setLoading(true);
         setError(null);
 
-        // Fetch all entities in parallel
-        const [fabricas, canciones, artistas, jingles, tematicas, autorDeRels, jingleroDeRels] = await Promise.all([
-          publicApi.getFabricas(),
-          publicApi.getCanciones(),
-          publicApi.getArtistas(),
-          publicApi.getJingles(),
-          publicApi.getTematicas(),
-          publicApi.get<unknown[]>('/relationships/autor_de?limit=10000').catch(() => []),
-          publicApi.get<unknown[]>('/relationships/jinglero_de?limit=10000').catch(() => []),
-        ]);
-
-        // Get unique artist IDs from relationships
-        const proveedoresIds = new Set(
-          (autorDeRels as Array<{ from?: { id?: string }; start?: { id?: string } }>)
-            .map((rel) => rel.from?.id || rel.start?.id)
-            .filter((id): id is string => Boolean(id))
-        );
-
-        const jinglerosIds = new Set(
-          (jingleroDeRels as Array<{ from?: { id?: string }; start?: { id?: string } }>)
-            .map((rel) => rel.from?.id || rel.start?.id)
-            .filter((id): id is string => Boolean(id))
-        );
-
-        // Filter and get artistas
-        const proveedores = artistas.filter((a) => proveedoresIds.has(a.id));
-        const jingleros = artistas.filter((a) => jinglerosIds.has(a.id));
-
-        // Helper function to get featured entities by IDs, or fallback to first 5 if config is empty
-        const getFeaturedEntities = <T extends { id: string }>(
-          allEntities: T[],
-          configIds: string[]
-        ): T[] => {
-          if (configIds.length > 0) {
-            // Filter by configured IDs and maintain order
-            const entityMap = new Map(allEntities.map(e => [e.id, e]));
-            return configIds
-              .map(id => entityMap.get(id))
-              .filter((e): e is T => e !== undefined);
+        // Helper function to fetch entities by their IDs
+        const fetchEntitiesByIds = async <T extends { id: string }>(
+          ids: string[],
+          fetchFn: (id: string) => Promise<T>,
+          fallbackFn?: () => Promise<T[]>
+        ): Promise<T[]> => {
+          if (ids.length > 0) {
+            // Fetch all entities in parallel, filtering out nulls for missing entities
+            const results = await Promise.all(
+              ids.map(id => 
+                fetchFn(id).catch((err) => {
+                  console.warn(`Failed to fetch entity ${id}:`, err);
+                  return null;
+                })
+              )
+            );
+            
+            // Filter out nulls and maintain order from config
+            return results.filter((e): e is T => e !== null);
           }
-          // Fallback: return first 5 if no IDs configured
-          return allEntities.slice(0, 5);
+          
+          // Fallback: return first 5 if no IDs configured and fallback function provided
+          if (fallbackFn) {
+            const allEntities = await fallbackFn();
+            return allEntities.slice(0, 5);
+          }
+          
+          return [];
         };
 
+        // Fetch featured entities by ID from config, with fallback
+        const [
+          fabricasRaw,
+          canciones,
+          proveedoresRaw,
+          jinglerosRaw,
+          jingles,
+          tematicas,
+        ] = await Promise.all([
+          fetchEntitiesByIds(
+            featuredEntitiesConfig.fabricas, 
+            (id) => publicApi.getFabrica(id),
+            () => publicApi.getFabricas()
+          ),
+          fetchEntitiesByIds(
+            featuredEntitiesConfig.canciones, 
+            (id) => publicApi.getCancion(id),
+            () => publicApi.getCanciones()
+          ),
+          fetchEntitiesByIds(
+            featuredEntitiesConfig.proveedores, 
+            (id) => publicApi.getArtista(id),
+            () => publicApi.getArtistas()
+          ),
+          fetchEntitiesByIds(
+            featuredEntitiesConfig.jingleros, 
+            (id) => publicApi.getArtista(id),
+            () => publicApi.getArtistas()
+          ),
+          fetchEntitiesByIds(
+            featuredEntitiesConfig.jingles, 
+            (id) => publicApi.getJingle(id),
+            () => publicApi.getJingles()
+          ),
+          fetchEntitiesByIds(
+            featuredEntitiesConfig.tematicas, 
+            (id) => publicApi.getTematica(id),
+            () => publicApi.getTematicas()
+          ),
+        ]);
+
+        // Filter fabricas to only those with date property
+        const fabricas = fabricasRaw.filter((f) => f.date) as Fabrica[];
+
+        // For proveedores and jingleros, show all artistas from config
+        // (no relationship validation needed since they're explicitly selected)
+        const proveedores = proveedoresRaw;
+        const jingleros = jinglerosRaw;
+
         setEntities({
-          fabricas: getFeaturedEntities(fabricas.filter((f) => f.date), featuredEntitiesConfig.fabricas) as Fabrica[],
-          canciones: getFeaturedEntities(canciones, featuredEntitiesConfig.canciones) as Cancion[],
-          proveedores: getFeaturedEntities(proveedores, featuredEntitiesConfig.proveedores) as Artista[],
-          jingleros: getFeaturedEntities(jingleros, featuredEntitiesConfig.jingleros) as Artista[],
-          jingles: getFeaturedEntities(jingles, featuredEntitiesConfig.jingles) as Jingle[],
-          tematicas: getFeaturedEntities(tematicas, featuredEntitiesConfig.tematicas) as Tematica[],
+          fabricas,
+          canciones,
+          proveedores,
+          jingleros,
+          jingles,
+          tematicas,
         });
       } catch (err: any) {
         console.error('Error fetching featured entities:', err);
