@@ -5,6 +5,7 @@ This script analyzes nginx access logs to map visitor IP addresses to their geog
 ## Setup on Server
 
 1. **Transfer the script to your server:**
+
    ```bash
    # From your local machine, copy the script to the server
    scp backend/src/server/scripts/map-visitor-locations.ts user@your-server:/path/to/jinglero/backend/src/server/scripts/
@@ -21,16 +22,19 @@ This script analyzes nginx access logs to map visitor IP addresses to their geog
 ## Usage
 
 ### Option 1: Using npm script (recommended)
+
 ```bash
 sudo zcat -f /var/log/nginx/access.log* | sudo npm run map:visitor-locations
 ```
 
 ### Option 2: Using ts-node directly
+
 ```bash
 sudo zcat -f /var/log/nginx/access.log* | sudo ts-node src/server/scripts/map-visitor-locations.ts
 ```
 
 ### Option 3: Using the shell wrapper
+
 ```bash
 # Make it executable first
 chmod +x map-visitor-locations.sh
@@ -40,6 +44,7 @@ sudo zcat -f /var/log/nginx/access.log* | sudo ./map-visitor-locations.sh
 ```
 
 ### Option 4: Analyze a single log file
+
 ```bash
 sudo cat /var/log/nginx/access.log | sudo npm run map:visitor-locations
 ```
@@ -49,10 +54,12 @@ sudo cat /var/log/nginx/access.log | sudo npm run map:visitor-locations
 The script provides:
 
 1. **Summary by Country** - Aggregated statistics showing:
+
    - Total requests per country
    - Number of unique IPs per country
 
 2. **Detailed IP List (Top 50)** - Shows:
+
    - IP address
    - Number of requests
    - Location (City, Region, Country)
@@ -76,6 +83,7 @@ The script provides:
 The script uses ip-api.com which has a free tier limit of 45 requests per minute. The script automatically implements rate limiting with delays between batches.
 
 For large numbers of unique IPs, the script may take some time to complete. Consider:
+
 - Analyzing a subset of logs first
 - Using a paid geolocation service for faster processing
 - Running during off-peak hours
@@ -106,16 +114,18 @@ IP Address         | Requests | Location
 ## Troubleshooting
 
 **If you get "command not found" errors:**
+
 - Make sure Node.js and npm are installed on the server
 - Make sure you're in the backend directory when running the script
 - Try using the full path: `sudo ts-node /path/to/backend/src/server/scripts/map-visitor-locations.ts`
 
 **If the script is slow:**
+
 - This is normal for large log files with many unique IPs
 - The script respects API rate limits (45 requests/minute)
 - Consider analyzing a smaller time range first
 
 **If some IPs show "Unknown location":**
+
 - Private/local IPs (192.168.x.x, 10.x.x.x, etc.) cannot be geolocated
 - Some IPs may fail geolocation lookup (the script will continue)
-
