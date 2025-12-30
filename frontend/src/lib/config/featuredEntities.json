@@ -1,9 +1,9 @@
 {
   "fabricas": [],
-  "canciones": [],
-  "proveedores": [],
-  "jingleros": [],
-  "jingles": [],
+  "canciones": ["c1x3om2ae", "c12srs9a4", "ckd6lvpt1", "cv0r39997", "c1nfkga44"],
+  "proveedores": ["aanouznc1", "a22mtc7lj", "a15alzuwl", "axjk6gczt", "agomdv2a8"],
+  "jingleros": ["a2md1xe6r", "ak5bctkks", "a1hq0jpnl", "a1i1o58qg", "a1s77cy27"],
+  "jingles": ["j11p0sq29", "j1jllnj3h", "j1vitk19q", "j6quy7nq5", "j2c051xl1"],
   "tematicas": []
 }
 
