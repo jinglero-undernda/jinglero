@@ -80,6 +80,13 @@ function parseJwtExpiresIn(value: string | undefined): jwt.SignOptions['expiresI
   return fallback;
 }
 
+function getOptionalEnvString(key: string): string | undefined {
+  const raw = process.env[key];
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 // Rate limiting for admin endpoints (defense in depth; still recommend nginx IP allowlist)
 router.use(
   createRateLimiter({
@@ -269,16 +276,21 @@ router.post('/login', adminLoginLimiter, asyncHandler(async (req, res) => {
   // Generate JWT token
   const secret = getAdminJwtSecretOrThrow();
   const expiresIn = parseJwtExpiresIn(process.env.ADMIN_JWT_EXPIRES_IN);
+  const issuer = getOptionalEnvString('JWT_ISSUER');
+  const audience = getOptionalEnvString('JWT_AUDIENCE');
+
+  const signOptions: jwt.SignOptions = {
+    expiresIn,
+    algorithm: 'HS256',
+    subject: 'admin',
+  };
+  if (issuer) signOptions.issuer = issuer;
+  if (audience) signOptions.audience = audience;
+
   const token = jwt.sign(
     { admin: true, jti: randomUUID() },
     secret,
-    {
-      expiresIn,
-      algorithm: 'HS256',
-      issuer: process.env.JWT_ISSUER || undefined,
-      audience: process.env.JWT_AUDIENCE || undefined,
-      subject: 'admin',
-    }
+    signOptions
   );
   
   res.json({

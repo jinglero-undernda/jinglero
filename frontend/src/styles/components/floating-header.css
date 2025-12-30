@@ -89,6 +89,13 @@
   /* Same as base button, can be customized if needed */
 }
 
+/* Reduce padding on wide screens for a more compact header */
+@media (min-width: 1024px) {
+  .floating-header__nav {
+    padding: var(--spacing-sm) var(--spacing-lg);
+  }
+}
+
 /* Responsive design */
 @media (max-width: 768px) {
   .floating-header__nav {

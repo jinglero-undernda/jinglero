@@ -9,7 +9,6 @@ import { clearJingleRelationshipsCache } from '../../lib/services/relationshipSe
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
 import CRTMonitorPlayer from '../../components/production-belt/CRTMonitorPlayer';
 import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
-import FloatingHeader from '../../components/composite/FloatingHeader';
 import { adminApi } from '../../lib/api/client';
 
 // Extended Jingle type that includes relationship data from API
@@ -89,9 +88,7 @@ export default function InspectJingle() {
   
 
   return (
-    <>
-      <FloatingHeader isAuthenticated={isAuthenticated} />
-      <main style={{ padding: '2rem', paddingTop: '6rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       
@@ -135,7 +132,6 @@ export default function InspectJingle() {
         </>
       )}
       </main>
-    </>
   );
 }
 

@@ -16,6 +16,7 @@
 
 - **Admin access control**: `requirements/admin-access-control.md`
 - **Backend API hardening**: `requirements/backend-api-security.md`
+- **Edge/Perimeter security**: `requirements/edge-perimeter-security.md`
 
 ## Immediate Follow-ups (Production)
 

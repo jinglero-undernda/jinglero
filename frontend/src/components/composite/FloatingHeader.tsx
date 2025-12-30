@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 import AboutModal from '../common/AboutModal';
 import '../../styles/components/floating-header.css';
 
@@ -11,13 +11,13 @@ interface FloatingHeaderProps {
   onLoginClick?: () => void;
 }
 
-export default function FloatingHeader({
+const FloatingHeader = forwardRef<HTMLElement, FloatingHeaderProps>(function FloatingHeader({
   showAdvancedSearch = true,
   showLogin = true,
   onAdvancedSearchClick,
   isAuthenticated = false, // Reserved for future use
   onLoginClick, // Reserved for future use
-}: FloatingHeaderProps) {
+}, ref) {
   // Suppress unused variable warnings for reserved props
   void isAuthenticated;
   void onLoginClick;
@@ -71,7 +71,10 @@ export default function FloatingHeader({
 
   return (
     <>
-      <header className={`floating-header ${isVisible ? 'floating-header--visible' : 'floating-header--hidden'}`}>
+      <header 
+        ref={ref}
+        className={`floating-header ${isVisible ? 'floating-header--visible' : 'floating-header--hidden'}`}
+      >
         <nav className="floating-header__nav">
           {!isLandingPage && (
             <button
@@ -110,5 +113,7 @@ export default function FloatingHeader({
       />
     </>
   );
-}
+});
+
+export default FloatingHeader;
 

@@ -1,0 +1,5 @@
+.public-layout__content {
+  transition: padding-top var(--transition-normal);
+  min-height: 100vh;
+}
+

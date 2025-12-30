@@ -5,7 +5,6 @@ import EntityCard from '../../components/common/EntityCard';
 import RelatedEntities from '../../components/common/RelatedEntities';
 import { getRelationshipsForEntityType } from '../../lib/utils/relationshipConfigs';
 import { publicApi } from '../../lib/api';
-import FloatingHeader from '../../components/composite/FloatingHeader';
 import { adminApi } from '../../lib/api/client';
 
 export default function InspectFabrica() {
@@ -51,9 +50,7 @@ export default function InspectFabrica() {
   const relationships = getRelationshipsForEntityType('fabrica');
 
   return (
-    <>
-      <FloatingHeader isAuthenticated={isAuthenticated} />
-      <main style={{ padding: '2rem', paddingTop: '6rem', maxWidth: '1200px', margin: '0 auto' }}>
+    <main style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
         {loading && <p>Loading...</p>}
       {error && <p style={{ color: 'red' }}>Error: {error}</p>}
       
@@ -74,7 +71,6 @@ export default function InspectFabrica() {
         </>
       )}
       </main>
-    </>
   );
 }
 

@@ -10,6 +10,7 @@ Current requirements docs:
 
 - `admin-access-control.md`
 - `backend-api-security.md`
+- `edge-perimeter-security.md`
 
 ## Requirements Structure
 

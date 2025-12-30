@@ -12,6 +12,7 @@ import AdminPage from './pages/AdminPage';
 import SearchResultsPage from './pages/SearchResultsPage';
 import { adminApi } from './lib/api/client';
 import { ToastProvider } from './components/common/ToastContext';
+import PublicLayout from './components/layout/PublicLayout';
 
 /**
  * Admin/Usuario link component that shows "Usuario" when authenticated and acts as logout button
@@ -104,21 +105,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <header>
-          <nav>
-            <Link to="/">Inicio</Link> | <Link to="/search">Búsqueda</Link> | <AdminLink />
-          </nav>
-        </header>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/search" element={<SearchResultsPage />} />
-          <Route path="/show/:fabricaId" element={<FabricaPage />} />
-          <Route path="/show" element={<FabricaPage />} />
-          <Route path="/j/:jingleId" element={<InspectJingle />} />
-          <Route path="/c/:cancionId" element={<InspectCancion />} />
-          <Route path="/f/:fabricaId" element={<InspectFabrica />} />
-          <Route path="/a/:artistaId" element={<InspectArtista />} />
-          <Route path="/t/:tematicaId" element={<InspectTematica />} />
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/search" element={<SearchResultsPage />} />
+            <Route path="/show/:fabricaId" element={<FabricaPage />} />
+            <Route path="/show" element={<FabricaPage />} />
+            <Route path="/j/:jingleId" element={<InspectJingle />} />
+            <Route path="/c/:cancionId" element={<InspectCancion />} />
+            <Route path="/f/:fabricaId" element={<InspectFabrica />} />
+            <Route path="/a/:artistaId" element={<InspectArtista />} />
+            <Route path="/t/:tematicaId" element={<InspectTematica />} />
+          </Route>
           <Route path="/admin/*" element={<AdminPage />} />
         </Routes>
       </ToastProvider>

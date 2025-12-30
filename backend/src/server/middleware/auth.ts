@@ -8,6 +8,13 @@ type JwtVerifyOptions = {
   audience?: string;
 };
 
+function getOptionalEnvString(key: string): string | undefined {
+  const raw = process.env[key];
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 function getJwtVerifyOptions(): JwtVerifyOptions {
   const nodeEnv = process.env.NODE_ENV || 'development';
   const secret = process.env.JWT_SECRET;
@@ -23,8 +30,8 @@ function getJwtVerifyOptions(): JwtVerifyOptions {
 
   return {
     secret: finalSecret,
-    issuer: process.env.JWT_ISSUER || undefined,
-    audience: process.env.JWT_AUDIENCE || undefined,
+    issuer: getOptionalEnvString('JWT_ISSUER'),
+    audience: getOptionalEnvString('JWT_AUDIENCE'),
   };
 }
 
@@ -50,15 +57,18 @@ export function requireAdminAuth(req: Request, res: Response, next: NextFunction
     const { secret, issuer, audience } = getJwtVerifyOptions();
     
     // Verify JWT token
-    const decoded = jwt.verify(
-      token,
-      secret,
-      {
-        algorithms: ['HS256'],
-        issuer: issuer || undefined,
-        audience: audience || undefined,
-      }
-    ) as { admin: boolean; iat?: number; exp?: number; jti?: string; sub?: string };
+    const verifyOptions: jwt.VerifyOptions = {
+      algorithms: ['HS256'],
+    };
+    if (issuer) verifyOptions.issuer = issuer;
+    if (audience) verifyOptions.audience = audience;
+    const decoded = jwt.verify(token, secret, verifyOptions) as {
+      admin: boolean;
+      iat?: number;
+      exp?: number;
+      jti?: string;
+      sub?: string;
+    };
     
     // Check if token is for admin
     if (!decoded.admin) {
@@ -111,11 +121,18 @@ export function optionalAdminAuth(req: Request, res: Response, next: NextFunctio
 
   try {
     const { secret, issuer, audience } = getJwtVerifyOptions();
-    const decoded = jwt.verify(token, secret, {
+    const verifyOptions: jwt.VerifyOptions = {
       algorithms: ['HS256'],
-      issuer: issuer || undefined,
-      audience: audience || undefined,
-    }) as { admin: boolean; iat?: number; exp?: number; jti?: string; sub?: string };
+    };
+    if (issuer) verifyOptions.issuer = issuer;
+    if (audience) verifyOptions.audience = audience;
+    const decoded = jwt.verify(token, secret, verifyOptions) as {
+      admin: boolean;
+      iat?: number;
+      exp?: number;
+      jti?: string;
+      sub?: string;
+    };
     
     if (decoded.admin) {
       (req as any).admin = { authenticated: true, token: decoded };

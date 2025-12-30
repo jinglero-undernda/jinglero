@@ -9,9 +9,42 @@ const db = Neo4jClient.getInstance();
 function sendInternalServerError(res: any, error: any) {
   // eslint-disable-next-line no-console
   console.error('[ERROR] public API error:', error?.stack || error);
+  
+  // Check for Neo4j authentication errors
+  const errorMessage = error?.message || '';
+  const errorCode = error?.code || '';
+  
+  // Detect Neo4j authentication errors
+  if (errorMessage.includes('authentication failure') || 
+      errorMessage.includes('authentication details') ||
+      errorCode.includes('Security.Unauthorized')) {
+    const message = process.env.NODE_ENV === 'development'
+      ? 'Database authentication failed. Please check NEO4J_PASSWORD and database connection settings.'
+      : 'Database connection error. Please contact the administrator.';
+    return res.status(503).json({ 
+      error: message,
+      code: 'DATABASE_AUTH_ERROR',
+      ...(process.env.NODE_ENV === 'development' && { details: errorMessage })
+    });
+  }
+  
+  // Detect Neo4j connection errors
+  if (errorMessage.includes('ServiceUnavailable') || 
+      errorCode.includes('ServiceUnavailable') ||
+      errorMessage.includes('connection') && errorMessage.includes('refused')) {
+    const message = process.env.NODE_ENV === 'development'
+      ? 'Database connection unavailable. The database may be paused or unreachable.'
+      : 'Database connection error. Please contact the administrator.';
+    return res.status(503).json({ 
+      error: message,
+      code: 'DATABASE_CONNECTION_ERROR',
+      ...(process.env.NODE_ENV === 'development' && { details: errorMessage })
+    });
+  }
+  
   const message =
     process.env.NODE_ENV === 'development'
-      ? (error?.message || 'Internal Server Error')
+      ? (errorMessage || 'Internal Server Error')
       : 'Internal Server Error';
   res.status(500).json({ error: message });
 }

@@ -1,6 +1,5 @@
 import { useNavigate } from 'react-router-dom';
 import { SearchBar } from '../components/search/SearchBar';
-import FloatingHeader from '../components/composite/FloatingHeader';
 import FileteSign from '../components/composite/FileteSign';
 import FeaturedFabricaPlaceholder from '../components/composite/FeaturedFabricaPlaceholder';
 import VolumetricIndicators from '../components/sections/VolumetricIndicators';
@@ -20,9 +19,7 @@ export default function Home() {
   };
 
   return (
-    <>
-      <FloatingHeader />
-      <main className="home-page">
+    <main className="home-page">
       <FileteSign />
       <div className="home-page__hero">
         <div className="home-page__search-bar">
@@ -44,6 +41,5 @@ export default function Home() {
         </div>
       </div>
     </main>
-    </>
   );
 }
