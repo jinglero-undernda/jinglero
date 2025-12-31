@@ -38,6 +38,8 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           ui: ['@emotion/react', '@emotion/styled'],
+          markdown: ['react-markdown'],
+          admin: ['react-datepicker', 'react-select'],
         },
       },
     },

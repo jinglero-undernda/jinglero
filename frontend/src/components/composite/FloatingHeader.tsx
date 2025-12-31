@@ -1,6 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useState, useEffect, forwardRef } from 'react';
-import AboutModal from '../common/AboutModal';
+import { useState, useEffect, forwardRef, lazy, Suspense } from 'react';
+const AboutModal = lazy(() => import('../common/AboutModal'));
 import '../../styles/components/floating-header.css';
 import { openWhatsAppShareForCurrentPage } from '../../lib/share/whatsappShare';
 import waIconPng from '../../assets/images/wa-whatsapp-icon.png';
@@ -134,10 +134,12 @@ const FloatingHeader = forwardRef<HTMLElement, FloatingHeaderProps>(function Flo
           </div>
         </nav>
       </header>
-      <AboutModal
-        isOpen={isAboutModalOpen}
-        onClose={() => setIsAboutModalOpen(false)}
-      />
+      <Suspense fallback={null}>
+        <AboutModal
+          isOpen={isAboutModalOpen}
+          onClose={() => setIsAboutModalOpen(false)}
+        />
+      </Suspense>
     </>
   );
 });

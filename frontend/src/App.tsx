@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import './App.css';
 import Home from './pages/Home';
 import FabricaPage from './pages/FabricaPage';
@@ -8,7 +8,7 @@ import InspectCancion from './pages/inspect/InspectCancion';
 import InspectFabrica from './pages/inspect/InspectFabrica';
 import InspectArtista from './pages/inspect/InspectArtista';
 import InspectTematica from './pages/inspect/InspectTematica';
-import AdminPage from './pages/AdminPage';
+const AdminPage = lazy(() => import('./pages/AdminPage'));
 import SearchResultsPage from './pages/SearchResultsPage';
 import { adminApi } from './lib/api/client';
 import { ToastProvider } from './components/common/ToastContext';
@@ -117,7 +117,14 @@ export default function App() {
             <Route path="/a/:artistaId" element={<InspectArtista />} />
             <Route path="/t/:tematicaId" element={<InspectTematica />} />
           </Route>
-          <Route path="/admin/*" element={<AdminPage />} />
+          <Route 
+            path="/admin/*" 
+            element={
+              <Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center' }}>Cargando...</div>}>
+                <AdminPage />
+              </Suspense>
+            } 
+          />
         </Routes>
       </ToastProvider>
     </BrowserRouter>
