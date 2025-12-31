@@ -2,6 +2,9 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect, forwardRef } from 'react';
 import AboutModal from '../common/AboutModal';
 import '../../styles/components/floating-header.css';
+import { openWhatsAppShareForCurrentPage } from '../../lib/share/whatsappShare';
+import waIconPng from '../../assets/images/wa-whatsapp-icon.png';
+import waIconWebp from '../../assets/images/wa-whatsapp-icon.webp';
 
 interface FloatingHeaderProps {
   showAdvancedSearch?: boolean;
@@ -69,6 +72,10 @@ const FloatingHeader = forwardRef<HTMLElement, FloatingHeaderProps>(function Flo
     navigate('/');
   };
 
+  const handleWhatsAppShare = () => {
+    void openWhatsAppShareForCurrentPage();
+  };
+
   return (
     <>
       <header 
@@ -86,6 +93,26 @@ const FloatingHeader = forwardRef<HTMLElement, FloatingHeaderProps>(function Flo
             </button>
           )}
           <div className="floating-header__right">
+            <button
+              className="floating-header__button floating-header__button--whatsapp"
+              onClick={handleWhatsAppShare}
+              aria-label="Compartir en WhatsApp"
+              title="Compartir en WhatsApp"
+              type="button"
+            >
+              <picture>
+                <source srcSet={waIconWebp} type="image/webp" />
+                <img
+                  className="floating-header__icon"
+                  src={waIconPng}
+                  alt=""
+                  width={22}
+                  height={22}
+                  loading="eager"
+                  decoding="async"
+                />
+              </picture>
+            </button>
             {showAdvancedSearch && (
               <button
                 className="floating-header__button floating-header__button--advanced-search"

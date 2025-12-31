@@ -4,26 +4,26 @@ overview: Implement a “Compartir en WhatsApp” button in the public FloatingH
 todos:
   - id: add-og-tags
     content: Add static Open Graph meta tags to the SPA entrypoint `frontend/index.html` using a single preview (same for all routes).
-    status: pending
+    status: completed
   - id: add-og-image-asset
     content: Add a static OG preview image (from `frontend/src/assets/images/Cooperativa jingle.ar.jpg`) into `frontend/public/` and reference it from OG tags via a stable URL.
-    status: pending
+    status: completed
   - id: whatsapp-share-util
     content: Create a share utility that normalizes URLs to `https://www.jingle.ar`, parses entity routes, fetches entity display fields (emojis preserved), and builds the WhatsApp message + wa.me URL.
-    status: pending
+    status: completed
   - id: floatingheader-button
     content: Add a “Compartir en WhatsApp” button to `FloatingHeader.tsx` (public pages) and wire it to the share utility.
-    status: pending
+    status: completed
     dependencies:
       - whatsapp-share-util
   - id: style-button
     content: Update `floating-header.css` for spacing/appearance of the new button (and optional icon).
-    status: pending
+    status: completed
     dependencies:
       - floatingheader-button
   - id: manual-verify
     content: Verify share message formatting and that WhatsApp previews show the static billboard OG image across a few routes.
-    status: pending
+    status: completed
     dependencies:
       - add-og-tags
       - add-og-image-asset
@@ -67,8 +67,8 @@ Why this works: nginx serves the built SPA via `try_files ... /index.html`, so c
 - [frontend/src/components/composite/FloatingHeader.tsx](frontend/src/components/composite/FloatingHeader.tsx)
 - Button content: **icon-only** (WhatsApp logo)
 - Icon assets:
-  - Primary: [frontend/src/assets/images/wa-whatsapp-icon.webp](frontend/src/assets/images/wa-whatsapp-icon.webp)
-  - Fallback: [frontend/src/assets/images/wa-whatsapp-icon.png](frontend/src/assets/images/wa-whatsapp-icon.png)
+- Primary: [frontend/src/assets/images/wa-whatsapp-icon.webp](frontend/src/assets/images/wa-whatsapp-icon.webp)
+- Fallback: [frontend/src/assets/images/wa-whatsapp-icon.png](frontend/src/assets/images/wa-whatsapp-icon.png)
 - Accessibility: `aria-label="Compartir en WhatsApp"` (and/or visually-hidden text)
 
 ### 3) Share URL + message builder (entity-specific)
@@ -163,6 +163,8 @@ sequenceDiagram
   UI->>WA: window.open(wa.me?text=encoded)
 ```
 
+
+
 ## Files to change/add
 
 - Update: [frontend/src/components/composite/FloatingHeader.tsx](frontend/src/components/composite/FloatingHeader.tsx)
@@ -172,7 +174,3 @@ sequenceDiagram
 - Update (optional): [frontend/src/styles/components/floating-header.css](frontend/src/styles/components/floating-header.css)
 
 ## Implementation todos
-
-- **add-og-tags**: Add static OG meta tags in `frontend/index.html` referencing the static OG image `https://www.jingle.ar/share/og-image.jpg`.
-- **add-og-image-asset**: Add `frontend/public/share/og-image.jpg` copied from `frontend/src/assets/images/Cooperativa jingle.ar.jpg`.
-- **whatsapp-share-util**: Implement URL normalization + route parsing + message builder + WhatsApp URL construction.

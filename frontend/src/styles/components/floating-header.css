@@ -58,6 +58,20 @@
   min-height: 44px; /* Accessibility: minimum touch target */
 }
 
+.floating-header__button--whatsapp {
+  padding: var(--spacing-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.floating-header__icon {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+
 .floating-header__button:hover {
   background-color: var(--color-accent-interactive);
   transform: scale(1.05);
