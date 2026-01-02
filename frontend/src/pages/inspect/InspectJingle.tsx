@@ -78,7 +78,9 @@ export default function InspectJingle() {
 
   // Get fabrica from jingle or relationshipData for YouTube player
   const fabrica = jingle?.fabrica || (relationshipData?.fabrica as Fabrica | undefined);
-  const videoIdOrUrl = fabrica?.youtubeUrl || fabrica?.id || null;
+  // For Jingles with Fabrica: use Fabrica's URL/ID
+  // For INEDITO Jingles (no Fabrica): use youtubeClipUrl if available
+  const videoIdOrUrl = fabrica?.youtubeUrl || fabrica?.id || jingle?.youtubeClipUrl || null;
   
   // IMPORTANT: The timestamp is on the fabrica object (from APPEARS_IN relationship), not on jingle directly
   // The API returns it as fabrica.timestamp from the relationship

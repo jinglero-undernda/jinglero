@@ -582,7 +582,7 @@ async function generateFabricaDisplayBadges(
 
 /**
  * Generate displayBadges for Jingle
- * Format: ['JINGLAZO', 'PRECARIO', 'JDD', 'VIVO', 'CLASICO'] based on boolean props
+ * Format: ['INEDITO', 'JINGLAZO', 'PRECARIO', 'JDD', 'VIVO', 'CLASICO'] based on Fabrica relationship and boolean props
  */
 async function generateJingleDisplayBadges(
   db: Neo4jClient,
@@ -590,11 +590,14 @@ async function generateJingleDisplayBadges(
 ): Promise<string[]> {
   const query = `
     MATCH (j:Jingle {id: $id})
+    OPTIONAL MATCH (j)-[:APPEARS_IN]->(f:Fabrica)
     RETURN j.isJinglazo AS isJinglazo,
            j.isPrecario AS isPrecario,
            j.isJinglazoDelDia AS isJinglazoDelDia,
            j.isLive AS isLive,
-           j.isRepeat AS isRepeat
+           j.isRepeat AS isRepeat,
+           j.fabricaId AS fabricaId,
+           count(f) AS fabricaCount
   `;
   
   const result = await db.executeQuery(query, { id: jingleId });
@@ -605,6 +608,16 @@ async function generateJingleDisplayBadges(
   
   const record: any = result[0];
   const badges: string[] = [];
+  
+  // Check if Jingle has no Fabrica relationship
+  // Check both fabricaId (redundant property) and relationship count
+  const hasFabrica = (record.fabricaId !== null && record.fabricaId !== undefined) || 
+                     (record.fabricaCount && record.fabricaCount > 0);
+  
+  // Add INEDITO badge first if no Fabrica relationship exists
+  if (!hasFabrica) {
+    badges.push('INEDITO');
+  }
   
   if (record.isJinglazo === true) {
     badges.push('JINGLAZO');

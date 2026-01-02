@@ -194,6 +194,19 @@ export function validateEntityField(
     return validateYouTubeId(value);
   }
   
+  // youtubeClipUrl for Jingle should accept YouTube ID or URL (like youtubeMusic)
+  if (fieldName === 'youtubeClipUrl' && entityType === 'jingle') {
+    // If it's a valid YouTube ID (11 chars), accept it
+    if (value && typeof value === 'string' && value.trim().length === 11) {
+      const youtubeIdError = validateYouTubeId(value);
+      if (!youtubeIdError) {
+        return null; // Valid YouTube ID
+      }
+    }
+    // Otherwise validate as URL (allows full URLs or empty)
+    return validateURL(value);
+  }
+  
   if (URL_FIELDS.includes(fieldName)) {
     return validateURL(value);
   }

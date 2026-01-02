@@ -237,6 +237,7 @@ function EntityCard({
           'CLASICO': 'entity-badge--repeat',
           'ARG': 'entity-badge--arg',
           'PRIMARY': 'entity-badge--primary',
+          'INEDITO': 'entity-badge',
         };
         const className = badgeClassMap[badge] || 'entity-badge';
         return (
