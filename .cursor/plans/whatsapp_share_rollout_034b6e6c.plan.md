@@ -172,5 +172,3 @@ sequenceDiagram
 - Update: [frontend/index.html](frontend/index.html)
 - Add: `frontend/public/share/og-image.jpg` (copied from `frontend/src/assets/images/Cooperativa jingle.ar.jpg` for a stable OG URL)
 - Update (optional): [frontend/src/styles/components/floating-header.css](frontend/src/styles/components/floating-header.css)
-
-## Implementation todos

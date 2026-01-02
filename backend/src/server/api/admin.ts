@@ -38,6 +38,7 @@ import {
   isScriptAutomatable,
 } from '../db/cleanup';
 import { searchRecording, type MusicBrainzMatch } from '../utils/musicbrainz';
+import { parseDateToISORequired } from '../utils/dateUtils';
 
 const router = Router();
 const db = Neo4jClient.getInstance();
@@ -1783,15 +1784,6 @@ router.post('/:type', asyncHandler(async (req, res) => {
   }
   // Always use current timestamp for creation, ignore any timestamps in payload
   const now = new Date().toISOString();
-  const createQuery = `
-    CREATE (n:${label} {
-      id: $id,
-      createdAt: datetime($createdAt),
-      updatedAt: datetime($updatedAt)
-    })
-    SET n += $properties
-    RETURN n
-  `;
   const properties = { ...payload, id } as any;
   // Remove timestamp fields from properties to ensure they're always set to current time
   delete properties.createdAt;
@@ -1800,8 +1792,12 @@ router.post('/:type', asyncHandler(async (req, res) => {
   // Handle Fabrica date conversion to datetime object
   let dateValue: string | undefined;
   if (label === 'Fabrica' && properties.date) {
-    dateValue = properties.date;
-    delete properties.date; // Remove from properties to set separately
+    try {
+      dateValue = parseDateToISORequired(properties.date);
+    } catch (error: any) {
+      throw new BadRequestError(`Invalid date format: ${error.message}`);
+    }
+    delete properties.date; // Remove from properties to set in CREATE statement
   }
   
   // Set default status for entities that support it (Jingle, Cancion, Artista, Tematica)
@@ -1809,22 +1805,41 @@ router.post('/:type', asyncHandler(async (req, res) => {
     properties.status = 'DRAFT';
   }
   
-  const result = await db.executeQuery<{ n: { properties: any } }>(createQuery, {
+  // Build CREATE query - include date for Fabricas in the initial CREATE to satisfy NOT NULL constraint
+  const createQuery = label === 'Fabrica' && dateValue
+    ? `
+      CREATE (n:${label} {
+        id: $id,
+        createdAt: datetime($createdAt),
+        updatedAt: datetime($updatedAt),
+        date: datetime($date)
+      })
+      SET n += $properties
+      RETURN n
+    `
+    : `
+      CREATE (n:${label} {
+        id: $id,
+        createdAt: datetime($createdAt),
+        updatedAt: datetime($updatedAt)
+      })
+      SET n += $properties
+      RETURN n
+    `;
+  
+  const queryParams: any = {
     id,
     createdAt: now, // Always use current timestamp for creation
     updatedAt: now, // Always use current timestamp for creation
     properties
-  }, undefined, true);
+  };
   
-  // Set Fabrica date as datetime object if provided
+  // Include date parameter for Fabricas
   if (label === 'Fabrica' && dateValue) {
-    const dateUpdateQuery = `
-      MATCH (n:${label} { id: $id })
-      SET n.date = datetime($date)
-      RETURN n
-    `;
-    await db.executeQuery(dateUpdateQuery, { id, date: dateValue }, undefined, true);
+    queryParams.date = dateValue;
   }
+  
+  const result = await db.executeQuery<{ n: { properties: any } }>(createQuery, queryParams, undefined, true);
   
   // Sync redundant properties with relationships (auto-create relationships if needed)
   if (label === 'Jingle') {
@@ -1909,7 +1924,11 @@ router.put('/:type/:id', asyncHandler(async (req, res) => {
   // Handle Fabrica date conversion to datetime object
   let dateValue: string | undefined;
   if (label === 'Fabrica' && properties.date) {
-    dateValue = properties.date;
+    try {
+      dateValue = parseDateToISORequired(properties.date);
+    } catch (error: any) {
+      throw new BadRequestError(`Invalid date format: ${error.message}`);
+    }
     delete properties.date; // Remove from properties to set separately
   }
   
@@ -1993,7 +2012,11 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
   // Handle Fabrica date conversion to datetime object
   let dateValue: string | undefined;
   if (label === 'Fabrica' && cleanPayload.date) {
-    dateValue = cleanPayload.date;
+    try {
+      dateValue = parseDateToISORequired(cleanPayload.date);
+    } catch (error: any) {
+      throw new BadRequestError(`Invalid date format: ${error.message}`);
+    }
     delete cleanPayload.date; // Remove from payload to set separately
   }
   
