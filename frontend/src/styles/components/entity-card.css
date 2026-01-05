@@ -15,7 +15,7 @@
   cursor: pointer;
   text-decoration: none;
   color: inherit;
-  --indent-base: var(--spacing-md);
+  --indent-base: var(--spacing-lg);
 }
 
 /* Heading variant: light background, standard height for title rows */

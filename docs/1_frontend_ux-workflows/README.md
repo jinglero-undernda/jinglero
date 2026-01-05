@@ -161,7 +161,7 @@ Workflow documents can be used to validate code by:
 | WORKFLOW_005 | Landing Page                    | Guest Experience | planned  | -            |
 | WORKFLOW_006 | Search and Discovery            | Guest Experience | planned  | -            |
 | WORKFLOW_007 | Fabrica Viewing                 | Guest Experience | planned  | -            |
-| WORKFLOW_008 | Entity Inspection               | Guest Experience | planned  | -            |
+| WORKFLOW_008 | Entity Inspection               | Guest Experience | draft    | 2026-01-04   |
 | WORKFLOW_009 | Admin Authentication            | Authentication   | planned  | -            |
 | WORKFLOW_010 | Basic Navigation Access         | Navigation       | draft    | 2025-01-20   |
 | WORKFLOW_011 | Database Cleanup and Validation | Admin Experience | draft    | 2025-11-28   |
