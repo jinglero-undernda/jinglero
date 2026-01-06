@@ -103,11 +103,22 @@ const adminLoginLimiter = createRateLimiter({
   keyPrefix: 'admin-login',
 });
 
-// Helper function to convert Neo4j dates to ISO strings
+// Helper function to convert Neo4j dates and integers to primitives
 function convertNeo4jDates(obj: any): any {
   if (obj === null || obj === undefined) return obj;
   
   if (typeof obj === 'object') {
+    // Handle Neo4j Integer types (have low and high properties)
+    if (obj.low !== undefined && obj.high !== undefined) {
+      // Convert Neo4j Integer to JavaScript number
+      // For 32-bit integers, high is usually 0
+      if (obj.high === 0) {
+        return obj.low;
+      }
+      // For 64-bit integers, combine high and low
+      return obj.high * 0x100000000 + (obj.low >= 0 ? obj.low : 0x100000000 + obj.low);
+    }
+    
     // Handle Neo4j DateTime objects
     if (obj.year !== undefined && obj.month !== undefined && obj.day !== undefined) {
       const year = typeof obj.year === 'object' ? obj.year.low : obj.year;
@@ -2003,7 +2014,8 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
   if (existing.length === 0) {
     throw new NotFoundError(`Not found: ${type}/${id}`);
   }
-  const existingProps = existing[0].n;
+  // Convert Neo4j types to primitives before merging
+  const existingProps = convertNeo4jDates(existing[0].n);
   // Remove timestamp fields from payload to ensure updatedAt is always set to current time
   const cleanPayload = { ...payload } as any;
   delete cleanPayload.createdAt; // Don't allow updating createdAt
@@ -2020,14 +2032,13 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
     delete cleanPayload.date; // Remove from payload to set separately
   }
   
-  const mergedProps = { ...existingProps, ...cleanPayload, id };
-  
-  // Build SET clause - include date conversion for Fabricas
+  // Use += to merge only the properties we want to update (not replace entire node)
+  // This avoids issues with Neo4j List types in existing properties
   const setClause = label === 'Fabrica' && dateValue
-    ? `SET n = $properties,
+    ? `SET n += $properties,
         n.date = datetime($date),
         n.updatedAt = datetime()`
-    : `SET n = $properties,
+    : `SET n += $properties,
         n.updatedAt = datetime()`;
   
   const updateQuery = `
@@ -2035,21 +2046,30 @@ router.patch('/:type/:id', asyncHandler(async (req, res) => {
     ${setClause}
     RETURN n
   `;
-  const queryParams: any = { id, properties: mergedProps };
+  const queryParams: any = { id, properties: cleanPayload };
   if (label === 'Fabrica' && dateValue) {
     queryParams.date = dateValue;
   }
   const result = await db.executeQuery<{ n: { properties: any } }>(updateQuery, queryParams, undefined, true);
   
   // Sync redundant properties with relationships (auto-create/delete relationships if needed)
+  // Get the updated node to access all properties (including ones we didn't update)
+  const updatedNode = await db.executeQuery<{ n: any }>(
+    `MATCH (n:${label} { id: $id }) RETURN n`,
+    { id },
+    undefined,
+    true
+  );
+  const allProps = convertNeo4jDates(updatedNode[0]?.n || {});
+  
   if (label === 'Jingle') {
     await syncJingleRedundantProperties(id, {
-      fabricaId: mergedProps.fabricaId,
-      cancionId: mergedProps.cancionId,
+      fabricaId: allProps.fabricaId,
+      cancionId: allProps.cancionId,
     });
   } else if (label === 'Cancion') {
     await syncCancionRedundantProperties(id, {
-      autorIds: mergedProps.autorIds,
+      autorIds: allProps.autorIds,
     });
   }
   

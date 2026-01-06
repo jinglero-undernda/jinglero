@@ -4,6 +4,7 @@
 **User Experience Category**: Guest Experience  
 **Access Level**: Public  
 **Last Updated**: 2026-01-04  
+**Last Validated**: 2025-01-06  
 **Related Components**:
 
 - `InspectJingle.tsx`

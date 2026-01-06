@@ -42,7 +42,7 @@ This specification defines the **future architecture** for EntityCard display pr
 - **ID Format**: `j{8-chars}` (e.g., `j5e6f7g8`)
 - **Properties**: `id`, `youtubeUrl`, `timestamp`, `youtubeClipUrl`, `title`, `comment`, `lyrics`, `songTitle`, `artistName`, `genre`, `isJinglazo`, `isJinglazoDelDia`, `isPrecario`, `fabricaId`, `fabricaDate`, `cancionId`, `isLive`, `isRepeat`, `autoComment`, `status`, `createdAt`, `updatedAt`
 - **Relationship Data Needed**:
-  - `fabrica`: Fabrica object (for date display, show button)
+  - `fabrica`: Fabrica object (for date display, show button, 'INEDITO' tag if missing)
   - `cancion`: Cancion object (for title fallback: `{cancion} ({autor})`)
   - `autores`: Artista[] (for title fallback, derived from cancion)
   - `jingleros`: Artista[] (for display)
@@ -216,9 +216,9 @@ Pre-computed property `entity.displayBadges` contains an array of badge labels. 
 **Indentation**:
 
 - `indentationLevel` prop controls visual indentation for nested table rows
-- Uses CSS custom property `--indent-base` (defaults to `var(--spacing-md)` = 16px)
+- Uses CSS custom property `--indent-base` (defaults to `var(--spacing-lg)` = 24px)
 - Responsive: Automatically adjusts to 12px on screens < 600px
-- Calculation: `paddingLeft = calc(var(--indent-base, 16px) * indentationLevel)`
+- Calculation: `paddingLeft = calc(var(--indent-base, 24px) * indentationLevel)`
 - Level 0 = no indent, Level 1 = 1x base, Level 2 = 2x base, etc.
 - Used when nesting tables to indicate hierarchy depth
 
