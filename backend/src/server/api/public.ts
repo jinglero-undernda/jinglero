@@ -471,14 +471,30 @@ router.get('/fabricas/:id/jingles', async (req, res) => {
       });
     }
     
-    // Fetch all Jingles that appear in this Fabrica with their timestamps and order
+    // Fetch all Jingles that appear in this Fabrica with their timestamps, order, and nested relationships
+    // Enriched for GuestEntity spec: includes cancion, autores, jingleros, tematicas, and fabrica (for CTR)
     const query = `
       MATCH (j:Jingle)-[r:APPEARS_IN]->(f:Fabrica {id: $id})
+      OPTIONAL MATCH (j)-[:VERSIONA]->(c:Cancion)
+      OPTIONAL MATCH (c)<-[:AUTOR_DE]-(autor:Artista)
+      OPTIONAL MATCH (j)-[:JINGLERO_DE]->(jinglero:Artista)
+      OPTIONAL MATCH (j)-[:TAGGED_WITH]->(t:Tematica)
+      WITH j, r, f, c, collect(DISTINCT autor) AS autores, collect(DISTINCT jinglero) AS jingleros, collect(DISTINCT t) AS tematicas
       RETURN j {
         .*,
         timestamp: r.timestamp,
         order: r.order
-      } AS jingle
+      } AS jingle,
+      c AS cancion,
+      autores,
+      jingleros,
+      tematicas,
+      f {
+        .id,
+        .youtubeUrl,
+        .date,
+        .title
+      } AS fabrica
       ORDER BY r.order ASC, r.timestamp ASC
     `;
     
@@ -501,10 +517,27 @@ router.get('/fabricas/:id/jingles', async (req, res) => {
       const timestampSeconds = typeof jingle.timestamp === 'number' ? jingle.timestamp : 0;
       const timestampFormatted = formatSecondsToTimestamp(timestampSeconds);
       
+      // Convert nested relationships
+      const cancion = record.cancion ? convertNeo4jDates(record.cancion) : null;
+      const autores = (record.autores || []).filter((a: any) => a !== null).map((a: any) => convertNeo4jDates(a));
+      const jingleros = (record.jingleros || []).filter((j: any) => j !== null).map((j: any) => convertNeo4jDates(j));
+      const tematicas = (record.tematicas || []).filter((t: any) => t !== null).map((t: any) => convertNeo4jDates(t));
+      const fabrica = record.fabrica ? convertNeo4jDates(record.fabrica) : null;
+      
       return {
         ...jingle,
         timestamp: timestampSeconds,
-        timestampFormatted
+        timestampFormatted,
+        // Include nested relationships for GuestEntity spec
+        cancion: cancion || undefined,
+        autores: autores.length > 0 ? autores : undefined,
+        jingleros: jingleros.length > 0 ? jingleros : undefined,
+        tematicas: tematicas.length > 0 ? tematicas : undefined,
+        // Include fabrica for CTR (with timestamp from relationship for start time)
+        fabrica: fabrica ? {
+          ...fabrica,
+          timestamp: timestampSeconds, // Include APPEARS_IN timestamp for CTR start time
+        } : undefined,
       };
     });
     
@@ -1065,11 +1098,19 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
     `;
     const autoresResult = await db.executeQuery<any>(autoresQuery, { cId: id });
 
+    // Enriched query for GuestEntity spec: includes APPEARS_IN timestamp/order, jingleros, tematicas, and fabrica
     const jinglesUsingCancionQuery = `
       MATCH (c:Cancion {id: $cId})<-[:VERSIONA]-(j:Jingle)
       OPTIONAL MATCH (j)-[appearsIn:APPEARS_IN]->(f:Fabrica)
+      OPTIONAL MATCH (j)-[:JINGLERO_DE]->(jinglero:Artista)
+      OPTIONAL MATCH (j)-[:TAGGED_WITH]->(t:Tematica)
+      WITH j, appearsIn, f, collect(DISTINCT jinglero) AS jingleros, collect(DISTINCT t) AS tematicas
       RETURN j { .id, .title, .songTitle, .updatedAt, .fabricaId, .fabricaDate, .isLive, .isRepeat, .displayPrimary, .displaySecondary, .displayBadges } AS jingle,
-             f { .id, .title, .date, .updatedAt, .displayPrimary, .displaySecondary, .displayBadges } AS fabrica
+             appearsIn.timestamp AS appearsInTimestamp,
+             appearsIn.order AS appearsInOrder,
+             f { .id, .title, .date, .youtubeUrl, .updatedAt, .displayPrimary, .displaySecondary, .displayBadges } AS fabrica,
+             jingleros,
+             tematicas
       ORDER BY j.displayPrimary ASC
       LIMIT $limit
     `;
@@ -1117,13 +1158,37 @@ router.get('/entities/canciones/:id/related', async (req, res) => {
       // eslint-disable-next-line no-console
       console.log(`[DEBUG] Filtered jingles count:`, filteredJingles.length);
     }
-    // Include fabrica data with each jingle for EntityCard display
+    // Include fabrica data and nested relationships with each jingle for GuestEntity spec
     const convertedJingles = filteredJingles.map((r: any) => {
       const jingle = convertNeo4jDates(r.jingle);
       const fabrica = r.fabrica ? convertNeo4jDates(r.fabrica) : null;
+      
+      // Convert nested relationships
+      const jingleros = (r.jingleros || []).filter((j: any) => j !== null).map((j: any) => convertNeo4jDates(j));
+      const tematicas = (r.tematicas || []).filter((t: any) => t !== null).map((t: any) => convertNeo4jDates(t));
+      
+      // Get APPEARS_IN timestamp and order (for CTR start time)
+      const appearsInTimestamp = typeof r.appearsInTimestamp === 'number' ? r.appearsInTimestamp : 
+                                 (typeof r.appearsInTimestamp === 'object' && r.appearsInTimestamp?.low !== undefined) ? r.appearsInTimestamp.low : 
+                                 undefined;
+      const appearsInOrder = typeof r.appearsInOrder === 'number' ? r.appearsInOrder : 
+                             (typeof r.appearsInOrder === 'object' && r.appearsInOrder?.low !== undefined) ? r.appearsInOrder.low : 
+                             undefined;
+      
       return {
         ...jingle,
-        fabrica: fabrica, // Include fabrica in the jingle object for relationshipData
+        // Include fabrica with APPEARS_IN timestamp for CTR start time
+        fabrica: fabrica ? {
+          ...fabrica,
+          timestamp: appearsInTimestamp, // Include APPEARS_IN timestamp for CTR start time
+          order: appearsInOrder,
+        } : undefined,
+        // Include nested relationships for GuestEntity spec
+        jingleros: jingleros.length > 0 ? jingleros : undefined,
+        tematicas: tematicas.length > 0 ? tematicas : undefined,
+        // Include APPEARS_IN properties on the jingle itself for reference
+        timestamp: appearsInTimestamp,
+        order: appearsInOrder,
       };
     });
     if (process.env.NODE_ENV === 'development') {

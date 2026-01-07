@@ -118,6 +118,7 @@ export default function InspectJingle() {
             </div>
           )}
           <RelatedEntities
+            key={jingle.id}
             entity={jingle}
             entityType="jingle"
             relationships={relationships}

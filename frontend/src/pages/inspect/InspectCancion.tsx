@@ -81,6 +81,8 @@ export default function InspectCancion() {
             </div>
           )}
           <RelatedEntities
+            // Reset RelatedEntities internal expansion/cache state when navigating /c/:cancionId
+            key={cancion.id}
             entity={cancion}
             entityType="cancion"
             relationships={relationships}

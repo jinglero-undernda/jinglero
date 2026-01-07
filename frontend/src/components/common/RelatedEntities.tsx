@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useReducer, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useNavigate } from 'react-router-dom';
 import EntityCard, { type EntityType } from './EntityCard';
 import FilterSwitch from './FilterSwitch';
 import type { Artista, Cancion, Fabrica, Jingle, Tematica, Relationship } from '../../types';
@@ -20,14 +21,90 @@ function getEntityRoute(entityType: EntityType, entityId: string): string {
   };
   return routeMap[entityType];
 }
+
+/**
+ * Helper to create a lightweight relationship summary entity for Level 0 row rendering
+ * This creates a minimal entity object that EntityCard can use to display the relationship label and count
+ */
+function createRelationshipSummaryEntity(
+  relationshipLabel: string,
+  count: number,
+  entityType: EntityType
+): RelatedEntity {
+  // Create a minimal entity object with required fields
+  const baseEntity = {
+    id: `relationship-${relationshipLabel}`,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  // Add entity-type-specific fields
+  switch (entityType) {
+    case 'jingle':
+      return {
+        ...baseEntity,
+        title: relationshipLabel,
+        timestamp: 0,
+        isJinglazo: false,
+        isJinglazoDelDia: false,
+        isPrecario: false,
+        displayPrimary: relationshipLabel,
+        displaySecondary: count > 0 ? `${count} ${count === 1 ? 'entidad' : 'entidades'}` : '',
+      } as Jingle;
+    case 'fabrica':
+      return {
+        ...baseEntity,
+        title: relationshipLabel,
+        date: new Date().toISOString(),
+        status: 'COMPLETED' as const,
+        displayPrimary: relationshipLabel,
+        displaySecondary: count > 0 ? `${count} ${count === 1 ? 'entidad' : 'entidades'}` : '',
+      } as Fabrica;
+    case 'cancion':
+      return {
+        ...baseEntity,
+        title: relationshipLabel,
+        displayPrimary: relationshipLabel,
+        displaySecondary: count > 0 ? `${count} ${count === 1 ? 'entidad' : 'entidades'}` : '',
+      } as Cancion;
+    case 'artista':
+      return {
+        ...baseEntity,
+        name: relationshipLabel,
+        stageName: relationshipLabel,
+        displayPrimary: relationshipLabel,
+        displaySecondary: count > 0 ? `${count} ${count === 1 ? 'entidad' : 'entidades'}` : '',
+      } as Artista;
+    case 'tematica':
+      return {
+        ...baseEntity,
+        name: relationshipLabel,
+        displayPrimary: relationshipLabel,
+        displaySecondary: count > 0 ? `${count} ${count === 1 ? 'entidad' : 'entidades'}` : '',
+      } as Tematica;
+    default:
+      return baseEntity as RelatedEntity;
+  }
+}
 import { sortEntities } from '../../lib/utils/entitySorters';
 import { adminApi, publicApi } from '../../lib/api/client';
 import { parseTimestampFromText } from '../../lib/utils/timestampParser';
 import { parseTimestampToSeconds } from '../../lib/utils/timestamp';
 import { extractRelationshipData } from '../../lib/utils/relationshipDataExtractor';
+import CRTMonitorPlayer from '../production-belt/CRTMonitorPlayer';
+import { normalizeTimestampToSeconds } from '../../lib/utils/timestamp';
 import '../../styles/components/related-entities.css';
 
 export type RelatedEntity = Artista | Cancion | Fabrica | Jingle | Tematica;
+
+// Enriched payload used by some endpoints/components (kept optional to avoid coupling core types)
+type EnrichedJingle = Jingle & {
+  cancion?: Cancion;
+  autores?: Artista[];
+  jingleros?: Artista[];
+  tematicas?: Tematica[];
+  fabrica?: (Fabrica & { timestamp?: number });
+};
 
 /**
  * Map relationship config to API relationship type
@@ -503,7 +580,10 @@ const RelatedEntities = forwardRef<{
       timestamp: new Date().toISOString(),
     });
   }, [isEditing, isAdmin, entity?.id, entityType]);
+
+  // (debug instrumentation removed)
   const { showToast } = useToast();
+  const navigate = useNavigate();
   // IMPORTANT: The entity prop is always pre-loaded by the parent component.
   // RelatedEntities only loads RELATED entities (via relationship.fetchFn calls),
   // never the root entity itself. This ensures proper separation of concerns and
@@ -518,7 +598,18 @@ const RelatedEntities = forwardRef<{
     entity: RelatedEntity;
   } | null>(null);
   const [relationshipProperties, setRelationshipProperties] = useState<RelationshipProperties>({});
-  
+
+  // Jingle→Cancion CTR: relationship payload for Cancion often omits youtubeMusic.
+  // Cache fetched cancion.youtubeMusic by cancionId so CTR can show the Cancion video.
+  const [cancionVideoById, setCancionVideoById] = useState<Record<string, string>>({});
+  const cancionVideoFetchInFlightRef = useRef<Set<string>>(new Set());
+
+  // Cancion→Jingles nested content: /entities/canciones/:id/related can return minimal Jingle objects
+  // (runtime evidence: j23v16v8a raw payload lacks youtubeClipUrl/jingleros/tematicas).
+  // Cache full jingle details by jingleId and fetch lazily on expand.
+  const [cancionJingleDetailsById, setCancionJingleDetailsById] = useState<Record<string, EnrichedJingle>>({});
+  const cancionJingleDetailsFetchInFlightRef = useRef<Set<string>>(new Set());
+
   // State for expanded relationship properties in admin mode (key: `${entityId}-${relationshipKey}`)
   const [expandedRelationshipProps, setExpandedRelationshipProps] = useState<Set<string>>(new Set());
   const [relationshipPropsData, setRelationshipPropsData] = useState<RelationshipPropsMap>({});
@@ -1084,11 +1175,12 @@ const RelatedEntities = forwardRef<{
   }, [relationships, initialRelationshipData, getRelationshipKey]);
 
   // Initialize state with useReducer (must be before early return)
-  // Auto-expand all relationships on load to show content immediately
+  // Default UX (WORKFLOW_008): relationships are collapsed by default in User Mode.
+  // Admin Mode remains eagerly expanded.
   // Top level is when entityPath.length <= 1 (empty or contains just current entity)
   const initialExpandedRelationships = new Set<string>();
-  if (entityPath.length <= 1) {
-    // Top level: expand all relationships (both Admin and User Mode)
+  if (isAdmin && entityPath.length <= 1) {
+    // Top level: expand all relationships (Admin Mode)
     relationships.forEach(rel => {
       const key = getRelationshipKey(rel);
       initialExpandedRelationships.add(key);
@@ -1946,33 +2038,1309 @@ const RelatedEntities = forwardRef<{
             return null;
           }
 
+          // Create relationship summary entity for Level 0 row
+          const relationshipSummaryEntity = createRelationshipSummaryEntity(rel.label, count, rel.entityType);
+          // Hide secondary text when expanded (per spec: "related entities are visible, summary redundant")
+          if (isExpanded && !isAdmin) {
+            relationshipSummaryEntity.displaySecondary = '';
+          }
+
+          const isFabricaJinglesDirect =
+            !isAdmin &&
+            entityType === 'fabrica' &&
+            rel.label === 'Jingles' &&
+            rel.entityType === 'jingle';
+
+          // Fabrica Guest UX: render Jingles directly (no expandable "Jingles" group row).
+          // Each Jingle row is expandable (reveals nested entities + CRT) and has a nav icon for inspection.
+          if (isFabricaJinglesDirect) {
+            const fabricaEntity = entity as Fabrica | undefined;
+            // Backend sometimes omits youtubeUrl; Fabrica.id is the YouTube video ID and is always usable.
+            const fabricaVideoIdOrUrl = fabricaEntity?.youtubeUrl || fabricaEntity?.id || null;
+            const jingleRelsAll = getRelationshipsForEntityType('jingle');
+            // Guest spec for Fabrica→Jingles: only show Cancion, Autor, Jinglero, Tematica
+            const jingleRels = jingleRelsAll.filter((r) =>
+              r.label === 'Cancion' || r.label === 'Autor' || r.label === 'Jinglero' || r.label === 'Tematicas'
+            );
+
+            return (
+              <div key={key} className="related-entities__section">
+                {isLoading && entities.length === 0 ? (
+                  <div className="related-entities__skeleton-container" aria-label="Cargando">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                        <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : state.errors[key] ? (
+                  <div
+                    className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <span className="related-entities__error-text">
+                      {state.errors[key]?.name === 'AbortError'
+                        ? 'Carga cancelada'
+                        : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`
+                      }
+                    </span>
+                    {state.errors[key]?.name !== 'AbortError' && (
+                      <button
+                        className="related-entities__error-retry"
+                        onClick={() => {
+                          dispatch({ type: 'CLEAR_ERROR', key });
+                          // Retry the top-level relationship fetch
+                          handleToggleRelationship(rel);
+                        }}
+                        aria-label="Reintentar carga"
+                      >
+                        Reintentar
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {entities.map((relatedEntity) => {
+                      const jingle = relatedEntity as Jingle;
+                      const isJingleExpanded = state.expandedEntities.has(jingle.id);
+                      const jingleForCard: Jingle = isJingleExpanded ? { ...jingle, displaySecondary: '' } : jingle;
+
+                      const handleToggleJingle = async () => {
+                        const current = stateRef.current;
+                        const wasExpanded = current.expandedEntities.has(jingle.id);
+                        dispatch({ type: 'TOGGLE_ENTITY', entityId: jingle.id });
+
+                        // On expand, load nested relationships for this jingle (once)
+                        if (!wasExpanded) {
+                          for (const nestedRel of jingleRels) {
+                            const nestedKey = `${getRelationshipKey(nestedRel)}-${jingle.id}`;
+                            const s = stateRef.current;
+                            if (nestedKey in s.loadedData || s.loadingStates[nestedKey]) {
+                              continue;
+                            }
+
+                            const abortController = new AbortController();
+                            dispatch({ type: 'LOAD_START', key: nestedKey, abortController });
+                            try {
+                              const nestedEntities = await nestedRel.fetchFn(jingle.id, 'jingle');
+                              if (abortController.signal.aborted) continue;
+                              const sorted = sortEntities(nestedEntities, nestedRel.sortKey, nestedRel.entityType);
+                              dispatch({
+                                type: 'LOAD_SUCCESS',
+                                key: nestedKey,
+                                data: sorted,
+                                count: sorted.length,
+                              });
+                            } catch (error) {
+                              if (error instanceof Error && error.name === 'AbortError') continue;
+                              const errorMessage = error instanceof Error ? error.message : String(error);
+                              dispatch({ type: 'LOAD_ERROR', key: nestedKey, error: new Error(errorMessage) });
+                            }
+                          }
+                        }
+                      };
+
+                      const startSeconds = normalizeTimestampToSeconds(jingle.timestamp) || 0;
+
+                      return (
+                        <div key={`${key}-${jingle.id}`}>
+                          <div className="related-entities__row">
+                            <EntityCard
+                              entity={jingleForCard}
+                              entityType="jingle"
+                              variant="contents"
+                              indentationLevel={0}
+                              relationshipLabel="Jingles"
+                              hasNestedEntities={true}
+                              isExpanded={isJingleExpanded}
+                              onToggleExpand={handleToggleJingle}
+                              onClick={handleToggleJingle}
+                              to={undefined}
+                              showUserNavButton={true}
+                              onUserNavClick={() => {
+                                if (onNavigateToEntity) {
+                                  onNavigateToEntity('jingle', jingle.id);
+                                  return;
+                                }
+                                navigate(getEntityRoute('jingle', jingle.id));
+                              }}
+                            />
+                          </div>
+
+                          {isJingleExpanded && (
+                            <div
+                              className="related-entities__content"
+                              role="region"
+                              aria-label="Detalles del jingle"
+                              style={{ marginBottom: '18px' }}
+                            >
+                              {fabricaVideoIdOrUrl && (
+                                <div style={{ margin: '10px 0 12px 16px' }}>
+                                  <div style={{ height: '220px', minHeight: 0, minWidth: 0 }}>
+                                    <CRTMonitorPlayer
+                                      videoIdOrUrl={fabricaVideoIdOrUrl}
+                                      startSeconds={startSeconds}
+                                      autoplay={false}
+                                      style={{ height: '100%', minHeight: 0, minWidth: 0 }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px' }}>
+                                {jingleRels.map((nestedRel) => {
+                                  const nestedKey = `${getRelationshipKey(nestedRel)}-${jingle.id}`;
+                                  const nestedEntities = state.loadedData[nestedKey] || [];
+                                  if (state.loadingStates[nestedKey] && nestedEntities.length === 0) {
+                                    return null;
+                                  }
+                                  return nestedEntities.map((nestedEntity) => (
+                                    <EntityCard
+                                      key={`${nestedKey}-${nestedEntity.id}`}
+                                      entity={nestedEntity}
+                                      entityType={nestedRel.entityType}
+                                      variant="contents"
+                                      indentationLevel={1}
+                                      relationshipLabel={nestedRel.label}
+                                    />
+                                  ));
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          const isCancionDirectRelationships =
+            !isAdmin &&
+            entityType === 'cancion' &&
+            ((rel.label === 'Autor' && rel.entityType === 'artista') ||
+              (rel.label === 'Jingles' && rel.entityType === 'jingle'));
+
+          // Cancion Guest UX: remove holding rows ("Autor", "Jingles") by rendering related entities directly as Level 0 rows.
+          // Each Level 0 row is expandable (row click expands) with a dedicated nav icon (🔍) for navigation.
+          if (isCancionDirectRelationships) {
+            const toggleAndLoadNested = async (
+              rowEntity: RelatedEntity,
+              nestedRelationships: RelationshipConfig[],
+              fetchAsEntityType: EntityType
+            ) => {
+              const current = stateRef.current;
+              const wasExpanded = current.expandedEntities.has(rowEntity.id);
+              dispatch({ type: 'TOGGLE_ENTITY', entityId: rowEntity.id });
+              if (wasExpanded) return;
+
+              for (const nestedRel of nestedRelationships) {
+                const nestedKey = `${getRelationshipKey(nestedRel)}-${rowEntity.id}`;
+                const s = stateRef.current;
+                if (nestedKey in s.loadedData || s.loadingStates[nestedKey]) continue;
+
+                const abortController = new AbortController();
+                dispatch({ type: 'LOAD_START', key: nestedKey, abortController });
+                try {
+                  const nestedEntities = await nestedRel.fetchFn(rowEntity.id, fetchAsEntityType);
+                  if (abortController.signal.aborted) continue;
+                  const sorted = sortEntities(nestedEntities, nestedRel.sortKey, nestedRel.entityType);
+                  dispatch({
+                    type: 'LOAD_SUCCESS',
+                    key: nestedKey,
+                    data: sorted,
+                    count: sorted.length,
+                  });
+                } catch (error) {
+                  if (error instanceof Error && error.name === 'AbortError') continue;
+                  const errorMessage = error instanceof Error ? error.message : String(error);
+                  dispatch({ type: 'LOAD_ERROR', key: nestedKey, error: new Error(errorMessage) });
+                }
+              }
+            };
+
+            const renderAutorRows = () => {
+              const nestedRels = getRelationshipsForEntityType('artista').filter((r) => r.label === 'Canciones');
+
+              return entities.map((relatedEntity) => {
+                const artista = relatedEntity as Artista;
+                const isExpandedEntity = state.expandedEntities.has(artista.id);
+                const artistaForCard: Artista =
+                  isExpandedEntity ? ({ ...artista, displaySecondary: '' } as Artista) : artista;
+
+                const handleToggle = async () => {
+                  await toggleAndLoadNested(artista, nestedRels, 'artista');
+                };
+
+                return (
+                  <div key={`${key}-${artista.id}`}>
+                    <div className="related-entities__row">
+                      <EntityCard
+                        entity={artistaForCard}
+                        entityType="artista"
+                        variant="contents"
+                        indentationLevel={0}
+                        relationshipLabel="Autor"
+                        hasNestedEntities={true}
+                        isExpanded={isExpandedEntity}
+                        onToggleExpand={handleToggle}
+                        onClick={handleToggle}
+                        to={undefined}
+                        showUserNavButton={true}
+                        onUserNavClick={() => {
+                          if (onNavigateToEntity) {
+                            onNavigateToEntity('artista', artista.id);
+                            return;
+                          }
+                          navigate(getEntityRoute('artista', artista.id));
+                        }}
+                      />
+                    </div>
+
+                    {isExpandedEntity && (
+                      <div
+                        className="related-entities__content"
+                        role="region"
+                        aria-label="Canciones del autor"
+                        style={{ marginLeft: '16px', marginTop: '8px', marginBottom: '16px' }}
+                      >
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          {nestedRels.flatMap((nestedRel) => {
+                            const nestedKey = `${getRelationshipKey(nestedRel)}-${artista.id}`;
+                            const nestedEntities = state.loadedData[nestedKey] || [];
+                            return nestedEntities.map((nestedEntity) => (
+                              <EntityCard
+                                key={`${nestedKey}-${nestedEntity.id}`}
+                                entity={nestedEntity}
+                                entityType={nestedRel.entityType}
+                                variant="contents"
+                                indentationLevel={1}
+                                relationshipLabel={nestedRel.label}
+                              />
+                            ));
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            };
+
+            const renderJingleRows = () => {
+              return entities.map((relatedEntity) => {
+                // API returns enriched jingles with fabrica, jingleros, tematicas (backend includes them)
+                // Cast to EnrichedJingle to access nested fields even if TypeScript types don't include them
+                const jingleBase = relatedEntity as EnrichedJingle;
+                const jingle = cancionJingleDetailsById[jingleBase.id] || jingleBase;
+                const isExpandedEntity = state.expandedEntities.has(jingle.id);
+                const jingleForCard: EnrichedJingle =
+                  isExpandedEntity ? ({ ...jingle, displaySecondary: '' } as EnrichedJingle) : jingle;
+
+                const handleToggle = async () => {
+                  const current = stateRef.current;
+                  const wasExpanded = current.expandedEntities.has(jingle.id);
+                  dispatch({ type: 'TOGGLE_ENTITY', entityId: jingle.id });
+                  if (wasExpanded) return;
+
+                  // On expand, ensure we have full jingle details if nested fields/video source are missing
+                  const hasNestedFromPayload =
+                    Boolean((jingle as any)?.fabrica) ||
+                    Array.isArray((jingle as any)?.jingleros) ||
+                    Array.isArray((jingle as any)?.tematicas);
+                  const hasClip = typeof (jingle as any)?.youtubeClipUrl === 'string' && (jingle as any).youtubeClipUrl.length > 0;
+                  const inFlight = cancionJingleDetailsFetchInFlightRef.current.has(jingle.id);
+
+                  if ((!hasNestedFromPayload || !hasClip) && !inFlight && !cancionJingleDetailsById[jingle.id]) {
+                    cancionJingleDetailsFetchInFlightRef.current.add(jingle.id);
+                    (async () => {
+                      try {
+                        const full = (await publicApi.getJingle(jingle.id)) as EnrichedJingle;
+                        setCancionJingleDetailsById((prev) => ({ ...prev, [jingle.id]: full }));
+                      } catch {
+                        // ignore
+                      } finally {
+                        cancionJingleDetailsFetchInFlightRef.current.delete(jingle.id);
+                      }
+                    })();
+                  }
+                };
+
+                // Extract enriched fields (either from related endpoint payload or fetched full jingle)
+                const fabricaForCTR = (jingle as any)?.fabrica as (Fabrica & { timestamp?: number }) | undefined;
+                const jingleros = (jingle as any)?.jingleros as Artista[] | undefined;
+                const tematicas = (jingle as any)?.tematicas as Tematica[] | undefined;
+
+                // For Jingles with Fabrica: use Fabrica's URL/ID
+                // For INEDITO Jingles (no Fabrica): use youtubeClipUrl if available (matches Jingle inspection page pattern)
+                const videoIdOrUrl = fabricaForCTR?.youtubeUrl || fabricaForCTR?.id || (jingle as any)?.youtubeClipUrl || null;
+                const startSeconds =
+                  fabricaForCTR?.timestamp !== undefined
+                    ? normalizeTimestampToSeconds(fabricaForCTR.timestamp) || 0
+                    : 0;
+
+                return (
+                  <div key={`${key}-${jingle.id}`}>
+                    <div className="related-entities__row">
+                      <EntityCard
+                        entity={jingleForCard}
+                        entityType="jingle"
+                        variant="contents"
+                        indentationLevel={0}
+                        relationshipLabel="Jingles"
+                        hasNestedEntities={true}
+                        isExpanded={isExpandedEntity}
+                        onToggleExpand={handleToggle}
+                        onClick={handleToggle}
+                        to={undefined}
+                        showUserNavButton={true}
+                        onUserNavClick={() => {
+                          if (onNavigateToEntity) {
+                            onNavigateToEntity('jingle', jingle.id);
+                            return;
+                          }
+                          navigate(getEntityRoute('jingle', jingle.id));
+                        }}
+                      />
+                    </div>
+
+                    {isExpandedEntity && (
+                      <div
+                        className="related-entities__content"
+                        role="region"
+                        aria-label="Detalles del jingle"
+                        style={{ marginBottom: '18px' }}
+                      >
+                        {/* CTR monitor with spacing matching Fabrica→Jingles pattern */}
+                        {videoIdOrUrl && (
+                          <div style={{ margin: '10px 0 12px 16px' }}>
+                            <div style={{ height: '220px', minHeight: 0, minWidth: 0 }}>
+                              <CRTMonitorPlayer
+                                videoIdOrUrl={videoIdOrUrl}
+                                startSeconds={startSeconds}
+                                autoplay={false}
+                                style={{ height: '100%', minHeight: 0, minWidth: 0 }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Nested entities: Fabrica, Jingleros, Tematicas */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px' }}>
+                          {fabricaForCTR && (
+                            <EntityCard
+                              entity={fabricaForCTR}
+                              entityType="fabrica"
+                              variant="contents"
+                              indentationLevel={1}
+                              relationshipLabel="Fabrica"
+                            />
+                          )}
+                          {jingleros && jingleros.length > 0 && jingleros.map((jinglero) => (
+                            <EntityCard
+                              key={jinglero.id}
+                              entity={jinglero}
+                              entityType="artista"
+                              variant="contents"
+                              indentationLevel={1}
+                              relationshipLabel="Jinglero"
+                            />
+                          ))}
+                          {tematicas && tematicas.length > 0 && tematicas.map((tematica) => (
+                            <EntityCard
+                              key={tematica.id}
+                              entity={tematica}
+                              entityType="tematica"
+                              variant="contents"
+                              indentationLevel={1}
+                              relationshipLabel="Tematica"
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            };
+
+            return (
+              <div key={key} className="related-entities__section">
+                {isLoading && entities.length === 0 ? (
+                  <div className="related-entities__skeleton-container" aria-label="Cargando">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                        <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : state.errors[key] ? (
+                  <div
+                    className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <span className="related-entities__error-text">
+                      {state.errors[key]?.name === 'AbortError'
+                        ? 'Carga cancelada'
+                        : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`}
+                    </span>
+                    {state.errors[key]?.name !== 'AbortError' && (
+                      <button
+                        className="related-entities__error-retry"
+                        onClick={() => {
+                          dispatch({ type: 'CLEAR_ERROR', key });
+                          handleToggleRelationship(rel);
+                        }}
+                        aria-label="Reintentar carga"
+                      >
+                        Reintentar
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {rel.label === 'Autor' ? renderAutorRows() : renderJingleRows()}
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          const isArtistaDirectRelationships =
+            !isAdmin &&
+            entityType === 'artista' &&
+            ((rel.label === 'Canciones' && rel.entityType === 'cancion') ||
+              (rel.label === 'Jingles' && rel.entityType === 'jingle'));
+
+          // Artista Guest UX: remove holding rows ("Canciones", "Jingles") by rendering related entities directly as Level 0 rows.
+          // Each Level 0 row is expandable (row click expands) with a dedicated nav icon (🔍) for navigation.
+          if (isArtistaDirectRelationships) {
+            const renderCancionRows = () => {
+              // Expansion shows: [CTR limited height] + [Jingles] (per GuestEntity_Inspection_Specification.md)
+              const nestedRel = getRelationshipsForEntityType('cancion').find((r) => r.label === 'Jingles');
+
+              return entities.map((relatedEntity) => {
+                const cancion = relatedEntity as Cancion;
+                const isExpandedEntity = state.expandedEntities.has(cancion.id);
+                const cancionForCard: Cancion =
+                  isExpandedEntity ? ({ ...(cancion as any), displaySecondary: '' } as Cancion) : cancion;
+
+                const handleToggle = async () => {
+                  const current = stateRef.current;
+                  const wasExpanded = current.expandedEntities.has(cancion.id);
+                  dispatch({ type: 'TOGGLE_ENTITY', entityId: cancion.id });
+                  if (wasExpanded) return;
+
+                  // Ensure we have youtubeMusic for CTR (relationship payload may omit it)
+                  const cancionId = cancion.id;
+                  const alreadyHave =
+                    (cancionId && cancionVideoById[cancionId]) || (cancion as any)?.youtubeMusic;
+                  const inFlight = cancionId ? cancionVideoFetchInFlightRef.current.has(cancionId) : false;
+
+                  if (cancionId && !alreadyHave && !inFlight) {
+                    cancionVideoFetchInFlightRef.current.add(cancionId);
+                    (async () => {
+                      try {
+                        const full = await publicApi.getCancion(cancionId);
+                        const youtubeMusic = (full as any)?.youtubeMusic as string | undefined;
+                        if (youtubeMusic) {
+                          setCancionVideoById((prev) => ({ ...prev, [cancionId]: youtubeMusic }));
+                        }
+                      } catch {
+                        // ignore; CTR will fall back to null
+                      } finally {
+                        cancionVideoFetchInFlightRef.current.delete(cancionId);
+                      }
+                    })();
+                  }
+
+                  // Load nested jingles for this cancion (once)
+                  if (!nestedRel) return;
+                  const nestedKey = `${getRelationshipKey(nestedRel)}-${cancion.id}`;
+                  const s = stateRef.current;
+                  if (nestedKey in s.loadedData || s.loadingStates[nestedKey]) return;
+
+                  const abortController = new AbortController();
+                  dispatch({ type: 'LOAD_START', key: nestedKey, abortController });
+                  try {
+                    const nestedEntities = await nestedRel.fetchFn(cancion.id, 'cancion');
+                    if (abortController.signal.aborted) return;
+                    const sorted = sortEntities(nestedEntities, nestedRel.sortKey, nestedRel.entityType);
+                    dispatch({ type: 'LOAD_SUCCESS', key: nestedKey, data: sorted, count: sorted.length });
+                  } catch (error) {
+                    if (error instanceof Error && error.name === 'AbortError') return;
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    dispatch({ type: 'LOAD_ERROR', key: nestedKey, error: new Error(errorMessage) });
+                  }
+                };
+
+                const videoIdOrUrl =
+                  (cancionVideoById[cancion.id] || (cancion as any)?.youtubeMusic || null) as string | null;
+
+                return (
+                  <div key={`${key}-${cancion.id}`}>
+                    <div className="related-entities__row">
+                      <EntityCard
+                        entity={cancionForCard}
+                        entityType="cancion"
+                        variant="contents"
+                        indentationLevel={0}
+                        relationshipLabel="Canciones"
+                        hasNestedEntities={true}
+                        isExpanded={isExpandedEntity}
+                        onToggleExpand={handleToggle}
+                        onClick={handleToggle}
+                        to={undefined}
+                        showUserNavButton={true}
+                        onUserNavClick={() => {
+                          if (onNavigateToEntity) {
+                            onNavigateToEntity('cancion', cancion.id);
+                            return;
+                          }
+                          navigate(getEntityRoute('cancion', cancion.id));
+                        }}
+                      />
+                    </div>
+
+                    {isExpandedEntity && (
+                      <div
+                        className="related-entities__content"
+                        role="region"
+                        aria-label="Detalles de la canción"
+                        style={{ marginBottom: '18px' }}
+                      >
+                        {videoIdOrUrl && (
+                          <div style={{ margin: '10px 0 12px 16px' }}>
+                            <div style={{ height: '220px', minHeight: 0, minWidth: 0 }}>
+                              <CRTMonitorPlayer
+                                videoIdOrUrl={videoIdOrUrl}
+                                startSeconds={0}
+                                autoplay={false}
+                                style={{ height: '100%', minHeight: 0, minWidth: 0 }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px' }}>
+                          {nestedRel &&
+                            (() => {
+                              const nestedKey = `${getRelationshipKey(nestedRel)}-${cancion.id}`;
+                              const nestedEntities = state.loadedData[nestedKey] || [];
+                              return nestedEntities.map((nestedEntity) => (
+                                <EntityCard
+                                  key={`${nestedKey}-${nestedEntity.id}`}
+                                  entity={nestedEntity}
+                                  entityType="jingle"
+                                  variant="contents"
+                                  indentationLevel={1}
+                                  relationshipLabel="Jingles"
+                                />
+                              ));
+                            })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            };
+
+            const renderJingleRows = () => {
+              // Expansion shows: [CTR limited height] + [Canciones] (per GuestEntity_Inspection_Specification.md)
+              return entities.map((relatedEntity) => {
+                const jingleBase = relatedEntity as EnrichedJingle;
+                const jingle = cancionJingleDetailsById[jingleBase.id] || jingleBase;
+                const isExpandedEntity = state.expandedEntities.has(jingle.id);
+                const jingleForCard: EnrichedJingle =
+                  isExpandedEntity ? ({ ...(jingle as any), displaySecondary: '' } as EnrichedJingle) : jingle;
+
+                const handleToggle = async () => {
+                  const current = stateRef.current;
+                  const wasExpanded = current.expandedEntities.has(jingle.id);
+                  dispatch({ type: 'TOGGLE_ENTITY', entityId: jingle.id });
+                  if (wasExpanded) return;
+
+                  // Ensure we have full jingle details when nested fields/video source are missing
+                  const hasNestedFromPayload =
+                    Boolean((jingle as any)?.fabrica) ||
+                    Boolean((jingle as any)?.cancion) ||
+                    Array.isArray((jingle as any)?.jingleros) ||
+                    Array.isArray((jingle as any)?.tematicas);
+                  const hasClip =
+                    typeof (jingle as any)?.youtubeClipUrl === 'string' &&
+                    (jingle as any).youtubeClipUrl.length > 0;
+                  const inFlight = cancionJingleDetailsFetchInFlightRef.current.has(jingle.id);
+
+                  if ((!hasNestedFromPayload || !hasClip) && !inFlight && !cancionJingleDetailsById[jingle.id]) {
+                    cancionJingleDetailsFetchInFlightRef.current.add(jingle.id);
+                    (async () => {
+                      try {
+                        const full = (await publicApi.getJingle(jingle.id)) as EnrichedJingle;
+                        setCancionJingleDetailsById((prev) => ({ ...prev, [jingle.id]: full }));
+                      } catch {
+                        // ignore
+                      } finally {
+                        cancionJingleDetailsFetchInFlightRef.current.delete(jingle.id);
+                      }
+                    })();
+                  }
+                };
+
+                const fabricaForCTR = (jingle as any)?.fabrica as (Fabrica & { timestamp?: number }) | undefined;
+                const cancion = (jingle as any)?.cancion as Cancion | undefined;
+                const videoIdOrUrl =
+                  fabricaForCTR?.youtubeUrl || fabricaForCTR?.id || (jingle as any)?.youtubeClipUrl || null;
+                const startSeconds =
+                  fabricaForCTR?.timestamp !== undefined
+                    ? normalizeTimestampToSeconds(fabricaForCTR.timestamp) || 0
+                    : 0;
+
+                return (
+                  <div key={`${key}-${jingle.id}`}>
+                    <div className="related-entities__row">
+                      <EntityCard
+                        entity={jingleForCard}
+                        entityType="jingle"
+                        variant="contents"
+                        indentationLevel={0}
+                        relationshipLabel="Jingles"
+                        hasNestedEntities={true}
+                        isExpanded={isExpandedEntity}
+                        onToggleExpand={handleToggle}
+                        onClick={handleToggle}
+                        to={undefined}
+                        showUserNavButton={true}
+                        onUserNavClick={() => {
+                          if (onNavigateToEntity) {
+                            onNavigateToEntity('jingle', jingle.id);
+                            return;
+                          }
+                          navigate(getEntityRoute('jingle', jingle.id));
+                        }}
+                      />
+                    </div>
+
+                    {isExpandedEntity && (
+                      <div
+                        className="related-entities__content"
+                        role="region"
+                        aria-label="Detalles del jingle"
+                        style={{ marginBottom: '18px' }}
+                      >
+                        {videoIdOrUrl && (
+                          <div style={{ margin: '10px 0 12px 16px' }}>
+                            <div style={{ height: '220px', minHeight: 0, minWidth: 0 }}>
+                              <CRTMonitorPlayer
+                                videoIdOrUrl={videoIdOrUrl}
+                                startSeconds={startSeconds}
+                                autoplay={false}
+                                style={{ height: '100%', minHeight: 0, minWidth: 0 }}
+                              />
+                            </div>
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px' }}>
+                          {cancion && (
+                            <EntityCard
+                              entity={cancion}
+                              entityType="cancion"
+                              variant="contents"
+                              indentationLevel={1}
+                              relationshipLabel="Cancion"
+                            />
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              });
+            };
+
+            return (
+              <div key={key} className="related-entities__section">
+                {isLoading && entities.length === 0 ? (
+                  <div className="related-entities__skeleton-container" aria-label="Cargando">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                        <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : state.errors[key] ? (
+                  <div
+                    className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <span className="related-entities__error-text">
+                      {state.errors[key]?.name === 'AbortError'
+                        ? 'Carga cancelada'
+                        : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`}
+                    </span>
+                    {state.errors[key]?.name !== 'AbortError' && (
+                      <button
+                        className="related-entities__error-retry"
+                        onClick={() => {
+                          dispatch({ type: 'CLEAR_ERROR', key });
+                          handleToggleRelationship(rel);
+                        }}
+                        aria-label="Reintentar carga"
+                      >
+                        Reintentar
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {rel.label === 'Canciones' ? renderCancionRows() : renderJingleRows()}
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          const isTematicaJinglesDirect =
+            !isAdmin &&
+            entityType === 'tematica' &&
+            rel.label === 'Jingles' &&
+            rel.entityType === 'jingle';
+
+          // Tematica Guest UX: remove holding row ("Jingles") by rendering Jingles directly as Level 0 rows.
+          // Each Jingle row is expandable (reveals CTR + nested entities per spec) and has a nav icon.
+          if (isTematicaJinglesDirect) {
+            return (
+              <div key={key} className="related-entities__section">
+                {isLoading && entities.length === 0 ? (
+                  <div className="related-entities__skeleton-container" aria-label="Cargando">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                        <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : state.errors[key] ? (
+                  <div
+                    className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <span className="related-entities__error-text">
+                      {state.errors[key]?.name === 'AbortError'
+                        ? 'Carga cancelada'
+                        : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`}
+                    </span>
+                    {state.errors[key]?.name !== 'AbortError' && (
+                      <button
+                        className="related-entities__error-retry"
+                        onClick={() => {
+                          dispatch({ type: 'CLEAR_ERROR', key });
+                          handleToggleRelationship(rel);
+                        }}
+                        aria-label="Reintentar carga"
+                      >
+                        Reintentar
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {entities.map((relatedEntity) => {
+                      const jingleBase = relatedEntity as EnrichedJingle;
+                      const jingle = cancionJingleDetailsById[jingleBase.id] || jingleBase;
+                      const isExpandedEntity = state.expandedEntities.has(jingle.id);
+                      const jingleForCard: EnrichedJingle =
+                        isExpandedEntity ? ({ ...(jingle as any), displaySecondary: '' } as EnrichedJingle) : jingle;
+
+                      const handleToggle = async () => {
+                        const current = stateRef.current;
+                        const wasExpanded = current.expandedEntities.has(jingle.id);
+                        dispatch({ type: 'TOGGLE_ENTITY', entityId: jingle.id });
+                        if (wasExpanded) return;
+
+                        const hasNestedFromPayload =
+                          Boolean((jingle as any)?.fabrica) ||
+                          Boolean((jingle as any)?.cancion) ||
+                          Array.isArray((jingle as any)?.jingleros) ||
+                          Array.isArray((jingle as any)?.tematicas);
+                        const hasClip =
+                          typeof (jingle as any)?.youtubeClipUrl === 'string' &&
+                          (jingle as any).youtubeClipUrl.length > 0;
+                        const inFlight = cancionJingleDetailsFetchInFlightRef.current.has(jingle.id);
+
+                        if ((!hasNestedFromPayload || !hasClip) && !inFlight && !cancionJingleDetailsById[jingle.id]) {
+                          cancionJingleDetailsFetchInFlightRef.current.add(jingle.id);
+                          (async () => {
+                            try {
+                              const full = (await publicApi.getJingle(jingle.id)) as EnrichedJingle;
+                              setCancionJingleDetailsById((prev) => ({ ...prev, [jingle.id]: full }));
+                            } catch {
+                              // ignore
+                            } finally {
+                              cancionJingleDetailsFetchInFlightRef.current.delete(jingle.id);
+                            }
+                          })();
+                        }
+                      };
+
+                      const fabricaForCTR = (jingle as any)?.fabrica as (Fabrica & { timestamp?: number }) | undefined;
+                      const cancion = (jingle as any)?.cancion as Cancion | undefined;
+                      const jingleros = (jingle as any)?.jingleros as Artista[] | undefined;
+                      const tematicas = (jingle as any)?.tematicas as Tematica[] | undefined;
+
+                      const videoIdOrUrl =
+                        fabricaForCTR?.youtubeUrl || fabricaForCTR?.id || (jingle as any)?.youtubeClipUrl || null;
+                      const startSeconds =
+                        fabricaForCTR?.timestamp !== undefined
+                          ? normalizeTimestampToSeconds(fabricaForCTR.timestamp) || 0
+                          : 0;
+
+                      return (
+                        <div key={`${key}-${jingle.id}`}>
+                          <div className="related-entities__row">
+                            <EntityCard
+                              entity={jingleForCard}
+                              entityType="jingle"
+                              variant="contents"
+                              indentationLevel={0}
+                              relationshipLabel="Jingles"
+                              hasNestedEntities={true}
+                              isExpanded={isExpandedEntity}
+                              onToggleExpand={handleToggle}
+                              onClick={handleToggle}
+                              to={undefined}
+                              showUserNavButton={true}
+                              onUserNavClick={() => {
+                                if (onNavigateToEntity) {
+                                  onNavigateToEntity('jingle', jingle.id);
+                                  return;
+                                }
+                                navigate(getEntityRoute('jingle', jingle.id));
+                              }}
+                            />
+                          </div>
+
+                          {isExpandedEntity && (
+                            <div
+                              className="related-entities__content"
+                              role="region"
+                              aria-label="Detalles del jingle"
+                              style={{ marginBottom: '18px' }}
+                            >
+                              {videoIdOrUrl && (
+                                <div style={{ margin: '10px 0 12px 16px' }}>
+                                  <div style={{ height: '220px', minHeight: 0, minWidth: 0 }}>
+                                    <CRTMonitorPlayer
+                                      videoIdOrUrl={videoIdOrUrl}
+                                      startSeconds={startSeconds}
+                                      autoplay={false}
+                                      style={{ height: '100%', minHeight: 0, minWidth: 0 }}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '16px' }}>
+                                {fabricaForCTR && (
+                                  <EntityCard
+                                    entity={fabricaForCTR}
+                                    entityType="fabrica"
+                                    variant="contents"
+                                    indentationLevel={1}
+                                    relationshipLabel="Fabrica"
+                                  />
+                                )}
+                                {cancion && (
+                                  <EntityCard
+                                    entity={cancion}
+                                    entityType="cancion"
+                                    variant="contents"
+                                    indentationLevel={1}
+                                    relationshipLabel="Cancion"
+                                  />
+                                )}
+                                {Array.isArray(jingleros) &&
+                                  jingleros.length > 0 &&
+                                  jingleros.map((jinglero) => (
+                                    <EntityCard
+                                      key={jinglero.id}
+                                      entity={jinglero}
+                                      entityType="artista"
+                                      variant="contents"
+                                      indentationLevel={1}
+                                      relationshipLabel="Jinglero"
+                                    />
+                                  ))}
+                                {Array.isArray(tematicas) &&
+                                  tematicas.length > 0 &&
+                                  tematicas.map((tematica) => (
+                                    <EntityCard
+                                      key={tematica.id}
+                                      entity={tematica}
+                                      entityType="tematica"
+                                      variant="contents"
+                                      indentationLevel={1}
+                                      relationshipLabel="Tematica"
+                                    />
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            );
+          }
+
+          const isJingleDirectRelationships =
+            !isAdmin &&
+            entityType === 'jingle' &&
+            // per GuestEntity_Inspection_Specification.md, the Jingle page should not show "holding rows"
+            // for Fabrica/Cancion/etc; instead render the actual entity rows directly (Level 0).
+            (rel.label === 'Fabrica' ||
+              rel.label === 'Cancion' ||
+              rel.label === 'Jinglero' ||
+              rel.label === 'Tematicas' ||
+              rel.label === 'Versiones' ||
+              // Hide standalone "Autor" section on Jingle page (authors are shown under Cancion per spec).
+              rel.label === 'Autor');
+
+          if (isJingleDirectRelationships) {
+            // Hide standalone Autor section (authors are rendered in Cancion expansion per spec)
+            if (rel.label === 'Autor') {
+              return null;
+            }
+
+            const rootJingle = entity as Jingle;
+            const fabricaForVideo: Fabrica | undefined = (state.loadedData['Fabrica-fabrica'] || [])[0] as Fabrica | undefined;
+            const fabricaVideoIdOrUrl = fabricaForVideo?.youtubeUrl || fabricaForVideo?.id || null;
+
+            // Helper: toggle a Level 0 entity and lazily load its nested relationships (once)
+            const handleToggleDirectEntity = async (
+              rowEntity: RelatedEntity,
+              nestedRelationships: RelationshipConfig[]
+            ) => {
+              const current = stateRef.current;
+              const wasExpanded = current.expandedEntities.has(rowEntity.id);
+              dispatch({ type: 'TOGGLE_ENTITY', entityId: rowEntity.id });
+              if (wasExpanded) return;
+
+              for (const nestedRel of nestedRelationships) {
+                const nestedKey = `${getRelationshipKey(nestedRel)}-${rowEntity.id}`;
+                const s = stateRef.current;
+                if (nestedKey in s.loadedData || s.loadingStates[nestedKey]) continue;
+                const abortController = new AbortController();
+                dispatch({ type: 'LOAD_START', key: nestedKey, abortController });
+                try {
+                  const nestedEntities = await nestedRel.fetchFn(rowEntity.id, rel.entityType);
+                  if (abortController.signal.aborted) continue;
+                  const sorted = sortEntities(nestedEntities, nestedRel.sortKey, nestedRel.entityType);
+                  dispatch({
+                    type: 'LOAD_SUCCESS',
+                    key: nestedKey,
+                    data: sorted,
+                    count: sorted.length,
+                  });
+                } catch (error) {
+                  if (error instanceof Error && error.name === 'AbortError') continue;
+                  const errorMessage = error instanceof Error ? error.message : String(error);
+                  dispatch({ type: 'LOAD_ERROR', key: nestedKey, error: new Error(errorMessage) });
+                }
+              }
+            };
+
+            // Configure nested content per GuestEntity spec for Jingle page
+            const getDirectNestedRelationships = (directRelLabel: string): RelationshipConfig[] => {
+              if (directRelLabel === 'Fabrica') {
+                // Fabrica expansion: Jingles (including parent)
+                return getRelationshipsForEntityType('fabrica').filter((r) => r.label === 'Jingles');
+              }
+              if (directRelLabel === 'Cancion') {
+                // Cancion expansion: Autores + Jingles (including parent); plus CTR monitor (rendered, no fetch)
+                const cancionRels = getRelationshipsForEntityType('cancion');
+                return cancionRels.filter((r) => r.label === 'Autor' || r.label === 'Jingles');
+              }
+              if (directRelLabel === 'Jinglero') {
+                // Jinglero expansion: only Jingles (including parent)
+                return getRelationshipsForEntityType('artista').filter((r) => r.label === 'Jingles');
+              }
+              if (directRelLabel === 'Tematicas') {
+                // Tematica expansion: Jingles (including parent)
+                return getRelationshipsForEntityType('tematica').filter((r) => r.label === 'Jingles');
+              }
+              // Versiones: no nested relationships; only CTR monitor (rendered)
+              return [];
+            };
+
+            return (
+              <div key={key} className="related-entities__section">
+                {isLoading && entities.length === 0 ? (
+                  <div className="related-entities__skeleton-container" aria-label="Cargando">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-${idx}`} className="related-entities__skeleton" aria-hidden="true">
+                        <div className="related-entities__skeleton-item related-entities__skeleton-icon"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text"></div>
+                        <div className="related-entities__skeleton-item related-entities__skeleton-text--secondary"></div>
+                      </div>
+                    ))}
+                  </div>
+                ) : state.errors[key] ? (
+                  <div
+                    className={`related-entities__error-message ${state.errors[key]?.name === 'AbortError' ? '' : 'related-entities__error-message--critical'}`}
+                    role="alert"
+                    aria-live="assertive"
+                  >
+                    <span className="related-entities__error-text">
+                      {state.errors[key]?.name === 'AbortError'
+                        ? 'Carga cancelada'
+                        : `Error al cargar ${rel.label.toLowerCase()}: ${state.errors[key]?.message || 'Error desconocido'}`}
+                    </span>
+                    {state.errors[key]?.name !== 'AbortError' && (
+                      <button
+                        className="related-entities__error-retry"
+                        onClick={() => {
+                          dispatch({ type: 'CLEAR_ERROR', key });
+                          handleToggleRelationship(rel);
+                        }}
+                        aria-label="Reintentar carga"
+                      >
+                        Reintentar
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    {entities.map((directEntity) => {
+                      const isExpandedEntity = state.expandedEntities.has(directEntity.id);
+                      const nestedRels = getDirectNestedRelationships(rel.label);
+                      const hasNestedEntities = rel.label === 'Versiones' ? true : nestedRels.length > 0;
+
+                      const entityForCard =
+                        isExpandedEntity && (directEntity as RelatedEntity).displaySecondary !== undefined
+                          ? ({ ...(directEntity as RelatedEntity), displaySecondary: '' } as RelatedEntity)
+                          : (directEntity as RelatedEntity);
+
+                      const handleToggle = async () => {
+                        if (rel.label === 'Versiones') {
+                          dispatch({ type: 'TOGGLE_ENTITY', entityId: directEntity.id });
+                          return;
+                        }
+
+                        // If expanding Cancion on Jingle page, lazily fetch full Cancion to get youtubeMusic (CTR source)
+                        if (entityType === 'jingle' && rel.label === 'Cancion') {
+                          const cancion = directEntity as Cancion;
+                          const cancionId = (cancion as any)?.id as string | undefined;
+                          const alreadyHave =
+                            (cancionId && cancionVideoById[cancionId]) || (cancion as any)?.youtubeMusic;
+                          const inFlight = cancionId ? cancionVideoFetchInFlightRef.current.has(cancionId) : false;
+
+                          if (cancionId && !alreadyHave && !inFlight) {
+                            cancionVideoFetchInFlightRef.current.add(cancionId);
+
+                            (async () => {
+                              try {
+                                const full = await publicApi.getCancion(cancionId);
+                                const youtubeMusic = (full as any)?.youtubeMusic as string | undefined;
+                                if (youtubeMusic) {
+                                  setCancionVideoById((prev) => ({ ...prev, [cancionId]: youtubeMusic }));
+                                }
+                              } catch {
+                                // ignore; CTR will fall back
+                              } finally {
+                                cancionVideoFetchInFlightRef.current.delete(cancionId);
+                              }
+                            })();
+                          }
+                        }
+
+                        await handleToggleDirectEntity(directEntity as RelatedEntity, nestedRels);
+                      };
+
+                      // Jingle page: row click expands; nav icon navigates (Pattern 2)
+                      return (
+                        <div key={`${key}-${directEntity.id}`}>
+                          <div className="related-entities__row">
+                            <EntityCard
+                              entity={entityForCard}
+                              entityType={rel.entityType}
+                              variant="contents"
+                              indentationLevel={0}
+                              relationshipLabel={rel.label}
+                              hasNestedEntities={hasNestedEntities}
+                              isExpanded={isExpandedEntity}
+                              onClick={handleToggle}
+                              to={undefined}
+                              showUserNavButton={true}
+                              onUserNavClick={() => {
+                                if (onNavigateToEntity) {
+                                  onNavigateToEntity(rel.entityType, directEntity.id);
+                                  return;
+                                }
+                                navigate(getEntityRoute(rel.entityType, directEntity.id));
+                              }}
+                            />
+                          </div>
+
+                          {isExpandedEntity && (
+                            <div
+                              className="related-entities__nested-blocks"
+                              style={{ marginLeft: '16px', marginTop: '8px', marginBottom: '16px' }}
+                            >
+                              {/* Cancion expansion: embedded/compact CTR monitor (limited height) */}
+                              {rel.label === 'Cancion' &&
+                                (() => {
+                                  const cancion = directEntity as Cancion;
+                                  const cancionId = (cancion as any)?.id as string | undefined;
+                                  const cancionVideoIdOrUrl =
+                                    (cancionId && cancionVideoById[cancionId]) || (cancion as any)?.youtubeMusic || null;
+                                  // Per InspectCancion behavior: if Cancion has no youtubeMusic, hide CTR (no fallback to Fabrica).
+                                  const chosen = cancionVideoIdOrUrl || null;
+
+                                  if (!chosen) return null;
+                                  return (
+                                    <div
+                                      style={{
+                                        marginBottom: '12px',
+                                        maxHeight: '200px',
+                                        aspectRatio: '16 / 9',
+                                        position: 'relative',
+                                      }}
+                                    >
+                                      <CRTMonitorPlayer
+                                        videoIdOrUrl={chosen}
+                                        startSeconds={0}
+                                        autoplay={false}
+                                        style={{ height: '100%', minHeight: '100px', minWidth: '150px' }}
+                                      />
+                                    </div>
+                                  );
+                                })()}
+                              {/* end Cancion CTR */}
+
+                              {rel.label === 'Cancion' && false && fabricaVideoIdOrUrl && (
+                                <div
+                                  style={{
+                                    marginBottom: '12px',
+                                    maxHeight: '200px',
+                                    aspectRatio: '16 / 9',
+                                    position: 'relative',
+                                  }}
+                                >
+                                  <CRTMonitorPlayer
+                                    videoIdOrUrl={fabricaVideoIdOrUrl}
+                                    startSeconds={normalizeTimestampToSeconds(rootJingle.timestamp) || 0}
+                                    autoplay={false}
+                                    style={{ height: '100%', minHeight: '100px', minWidth: '150px' }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Versiones expansion: embedded/compact CTR monitor (limited height) */}
+                              {rel.label === 'Versiones' && fabricaVideoIdOrUrl && (
+                                <div
+                                  style={{
+                                    marginBottom: '12px',
+                                    maxHeight: '200px',
+                                    aspectRatio: '16 / 9',
+                                    position: 'relative',
+                                  }}
+                                >
+                                  <CRTMonitorPlayer
+                                    videoIdOrUrl={fabricaVideoIdOrUrl}
+                                    startSeconds={
+                                      normalizeTimestampToSeconds((directEntity as Jingle).timestamp) || 0
+                                    }
+                                    autoplay={false}
+                                    style={{ height: '100%', minHeight: '100px', minWidth: '150px' }}
+                                  />
+                                </div>
+                              )}
+
+                              {/* Nested entity blocks */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {nestedRels.map((nestedRel) => {
+                                  const nestedKey = `${getRelationshipKey(nestedRel)}-${directEntity.id}`;
+                                  const nestedEntities = (state.loadedData[nestedKey] || []) as RelatedEntity[];
+
+                                  // Ensure "including the parent" for Jingles lists where relevant
+                                  const maybeIncludeRootJingle =
+                                    nestedRel.entityType === 'jingle' && entityType === 'jingle'
+                                      ? (() => {
+                                          const hasRoot = nestedEntities.some((e) => e.id === rootJingle.id);
+                                          return hasRoot ? nestedEntities : ([rootJingle as unknown as RelatedEntity, ...nestedEntities]);
+                                        })()
+                                      : nestedEntities;
+
+                                  return maybeIncludeRootJingle.map((nestedEntity) => (
+                                    <EntityCard
+                                      key={`${nestedKey}-${nestedEntity.id}`}
+                                      entity={nestedEntity}
+                                      entityType={nestedRel.entityType}
+                                      variant="contents"
+                                      indentationLevel={1}
+                                      relationshipLabel={nestedRel.label}
+                                    />
+                                  ));
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+              </div>
+            );
+          }
+
           return (
             <div key={key} className="related-entities__section">
-              {/* Collapsed state - show expand button in User Mode */}
-              {!isAdmin && !isExpanded ? (
-                <button
-                  className="related-entities__collapsed"
-                  onClick={() => handleToggleRelationship(rel)}
-                  aria-label={`Expandir ${rel.label.toLowerCase()}`}
-                  aria-expanded="false"
-                  type="button"
+              {/* Level 0 relationship row - always rendered as EntityCard (both collapsed and expanded) */}
+              {!isAdmin && (
+                <div className="related-entities__row">
+                  <EntityCard
+                    entity={relationshipSummaryEntity}
+                    entityType={rel.entityType}
+                    variant="contents"
+                    indentationLevel={0}
+                    relationshipLabel={rel.label}
+                    hasNestedEntities={true}
+                    isExpanded={isExpanded}
+                    onClick={() => handleToggleRelationship(rel)}
+                    // Prevent navigation - row click toggles expand/collapse
+                    to={undefined}
+                    showUserNavButton={false}
+                  />
+                </div>
+              )}
+              
+              {/* Content area - show content rows when expanded */}
+              {isExpanded || isAdmin ? (
+                <div
+                  className="related-entities__content"
+                  role="region"
+                  aria-label={`${rel.label} relacionadas`}
+                  aria-live="polite"
+                  aria-busy={isLoading}
                 >
-                  <span className="related-entities__expand-icon" aria-hidden="true">▼</span>
-                  <span className="related-entities__label">{rel.label}</span>
-                  {count > 0 && (
-                    <span className="related-entities__count">({count})</span>
-                  )}
-                </button>
-              ) : (
-                /* Content area - show content rows when expanded */
-                <>
-                  <div
-                    className="related-entities__content"
-                    role="region"
-                    aria-label={`${rel.label} relacionadas`}
-                    aria-live="polite"
-                    aria-busy={isLoading}
-                  >
                     {isLoading && entities.length === 0 ? (
                       // Task 34: Skeleton loaders for loading states
                       <div className="related-entities__skeleton-container" aria-label="Cargando">
@@ -2032,7 +3400,7 @@ const RelatedEntities = forwardRef<{
                     ) : (
                       // Render direct entities for this relationship first
                       <>
-                        {entities.map((relatedEntity) => {
+                        {entities.map((relatedEntity, idx) => {
                           const rowId = `${key}-${relatedEntity.id}`;
                           // Check if this entity type has relationships configured (can be expanded)
                           const entityRelationships = getRelationshipsForEntityType(rel.entityType);
@@ -2308,97 +3676,33 @@ const RelatedEntities = forwardRef<{
                             }
                           } : undefined;
                           
-                          // Handle click in user mode - expand if entity has nested entities, otherwise navigate
-                          const handleUserClick = !isAdmin && hasNested ? async () => {
-                            // Use the same logic as onToggleExpand
-                            console.log('onToggleExpand called for entity:', relatedEntity.id, 'entityType:', rel.entityType);
-                            const currentState = stateRef.current;
-                            const wasExpanded = currentState.expandedEntities.has(relatedEntity.id);
-                            console.log('wasExpanded:', wasExpanded, 'hasNestedRelationships:', hasNestedRelationships);
-                            dispatch({ type: 'TOGGLE_ENTITY', entityId: relatedEntity.id });
-                            
-                            // If expanding, load nested relationships
-                            if (!wasExpanded && hasNestedRelationships) {
-                              const nestedRelationships = getRelationshipsForEntityType(rel.entityType);
-                              console.log('Loading nested relationships for entity:', relatedEntity.id, 'relationships:', nestedRelationships.map(r => r.label));
-                              
-                              for (const nestedRel of nestedRelationships) {
-                                const nestedKey = `${getRelationshipKey(nestedRel)}-${relatedEntity.id}`;
-                                
-                                // Check current state (may have updated)
-                                const latestState = stateRef.current;
-                                console.log('Checking nested key:', nestedKey, 'in loadedData:', nestedKey in latestState.loadedData);
-                                
-                                // Check if already loaded
-                                if (nestedKey in latestState.loadedData) {
-                                  console.log('Already loaded, skipping');
-                                  continue;
-                                }
-                                
-                                // Check cache
-                                const cacheKey = `${relatedEntity.id}-${rel.entityType}-${getRelationshipKey(nestedRel)}`;
-                                const cachedData = requestCacheRef.current[cacheKey];
-                                if (cachedData !== undefined) {
-                                  console.log('Using cached data:', cachedData.length, 'entities');
-                                  dispatch({
-                                    type: 'LOAD_SUCCESS',
-                                    key: nestedKey,
-                                    data: cachedData,
-                                    count: cachedData.length,
-                                  });
-                                  continue;
-                                }
-                                
-                                // Load nested relationships
-                                try {
-                                  console.log('Loading nested relationships for:', relatedEntity.id, 'relationship:', nestedRel.label);
-                                  const abortController = new AbortController();
-                                  dispatch({ type: 'LOAD_START', key: nestedKey, abortController });
-                                  
-                                  const nestedEntities = await nestedRel.fetchFn(relatedEntity.id, rel.entityType);
-                                  console.log('Fetched nested entities:', nestedEntities.length, nestedEntities);
-                                  const sorted = sortEntities(nestedEntities, nestedRel.sortKey, nestedRel.entityType);
-                                  const filtered = sorted.filter((e) => ![...entityPath, relatedEntity.id].includes(e.id));
-                                  
-                                  console.log('Filtered nested entities:', filtered.length, 'storing with key:', nestedKey);
-                                  
-                                  // Cache the data
-                                  requestCacheRef.current[cacheKey] = filtered;
-                                  
-                                  dispatch({
-                                    type: 'LOAD_SUCCESS',
-                                    key: nestedKey,
-                                    data: filtered,
-                                    count: filtered.length,
-                                  });
-                                } catch (error) {
-                                  console.error('Error loading nested relationships:', error);
-                                  if (error instanceof Error && error.name !== 'AbortError') {
-                                    dispatch({
-                                      type: 'LOAD_ERROR',
-                                      key: nestedKey,
-                                      error: error instanceof Error ? error : new Error(String(error)),
-                                    });
-                                  }
-                                }
-                              }
-                            }
-                          } : undefined;
+                          // For user mode: Level 1 rows are NOT expandable (no nesting loops)
+                          // Level 1 rows navigate on click, no expand icon, no nav icon
+                          const isLevel1Row = !isAdmin; // Level 1 rows are the direct entities in user mode
+                          const shouldDisableExpansion = isLevel1Row; // Disable expansion for Level 1 in user mode
                           
+                          // Hide secondary text for Level 1 rows (per spec: "related entities are visible, summary redundant")
+                          const entityForDisplay = shouldDisableExpansion && relatedEntity.displaySecondary !== undefined
+                            ? { ...relatedEntity, displaySecondary: '' }
+                            : relatedEntity;
+
                           return (
                             <React.Fragment key={rowId}>
                               <div className="related-entities__row">
                                 <EntityCard
-                                  entity={relatedEntity}
+                                  entity={entityForDisplay}
                                   entityType={rel.entityType}
                                   variant="contents"
-                                  indentationLevel={0}
+                                  indentationLevel={1} // Level 1 rows are indented
                                   relationshipLabel={rel.label}
                                   relationshipData={relationshipData}
-                                  hasNestedEntities={canExpandEntity} // Only true if not a parent entity
-                                  isExpanded={isEntityExpanded}
-                                  onClick={isParentEntity ? undefined : (handleAdminClick || handleUserClick)} // Disable click if parent
-                                  to={isAdmin || hasNested || isParentEntity ? undefined : getEntityRoute(rel.entityType, relatedEntity.id)} // Don't navigate if parent entity
+                                  // In user mode, Level 1 rows are NOT expandable
+                                  hasNestedEntities={isAdmin ? canExpandEntity : false}
+                                  isExpanded={isAdmin ? isEntityExpanded : undefined}
+                                  // In user mode, Level 1 row click navigates (no expansion)
+                                  onClick={isAdmin ? (isParentEntity ? undefined : handleAdminClick) : undefined}
+                                  // In user mode, use `to` prop for navigation (row click navigates)
+                                  to={isAdmin || isParentEntity ? undefined : getEntityRoute(rel.entityType, relatedEntity.id)}
                                   showAdminNavButton={isAdmin}
                                   adminRoute={`/admin/${rel.entityType === 'jingle' ? 'j' : rel.entityType === 'cancion' ? 'c' : rel.entityType === 'artista' ? 'a' : rel.entityType === 'fabrica' ? 'f' : 't'}/${relatedEntity.id}`}
                                   onAdminNavClick={() => {
@@ -2411,15 +3715,9 @@ const RelatedEntities = forwardRef<{
                                       onNavigateToEntity(rel.entityType, relatedEntity.id);
                                     }
                                   }}
-                                  showUserNavButton={!isAdmin && !isParentEntity} // Don't show nav button for parent
-                                  onUserNavClick={isParentEntity ? undefined : () => {
-                                    const route = getEntityRoute(rel.entityType, relatedEntity.id);
-                                    if (onNavigateToEntity) {
-                                      onNavigateToEntity(rel.entityType, relatedEntity.id);
-                                    } else {
-                                      window.location.href = route;
-                                    }
-                                  }}
+                                  // In user mode, no separate nav icon (row click is navigation)
+                                  showUserNavButton={false}
+                                  onUserNavClick={undefined}
                                   showDeleteButton={isAdmin && isEditing && !rel.isReadOnly}
                                   onDeleteClick={() => {
                                     const name = 'title' in relatedEntity ? relatedEntity.title : 
@@ -2428,7 +3726,8 @@ const RelatedEntities = forwardRef<{
                                                  relatedEntity.id;
                                     handleDeleteRelationshipClick(relatedEntity.id, name || relatedEntity.id, rel.label, rel.entityType);
                                   }}
-                                  onToggleExpand={async () => {
+                                  // In user mode, no onToggleExpand (Level 1 rows are not expandable)
+                                  onToggleExpand={isAdmin ? async () => {
                                     console.log('onToggleExpand called for entity:', relatedEntity.id, 'entityType:', rel.entityType);
                                     const currentState = stateRef.current;
                                     const wasExpanded = currentState.expandedEntities.has(relatedEntity.id);
@@ -2501,10 +3800,143 @@ const RelatedEntities = forwardRef<{
                                         }
                                       }
                                     }
-                                  }}
-                                  nestedCount={nestedRows.length}
+                                  } : undefined}
+                                  nestedCount={isAdmin ? nestedRows.length : undefined}
                                 />
                               </div>
+                              
+                              {/* Render nested blocks for GuestEntity spec (Fabrica→Jingles and Cancion→Jingles) */}
+                              {!isAdmin && rel.entityType === 'jingle' && (
+                                (() => {
+                                  // Check if this is Fabrica→Jingles or Cancion→Jingles
+                                  const isFabricaJingles = entityType === 'fabrica' && rel.label === 'Jingles';
+                                  const isCancionJingles = entityType === 'cancion' && rel.label === 'Jingles';
+
+                                  if (!isFabricaJingles && !isCancionJingles) {
+                                    return null;
+                                  }
+                                  
+                                  const jingle = relatedEntity as EnrichedJingle;
+                                  
+                                  // Get nested data from enriched payload
+                                  const cancion = jingle.cancion;
+                                  const autores = jingle.autores;
+                                  const jingleros = jingle.jingleros;
+                                  const tematicas = jingle.tematicas;
+                                  const fabricaForCTR = jingle.fabrica;
+                                  
+                                  // Get video ID/URL and start time for CTR
+                                  const videoIdOrUrl = fabricaForCTR?.youtubeUrl || fabricaForCTR?.id || null;
+                                  const startSeconds = fabricaForCTR?.timestamp !== undefined 
+                                    ? normalizeTimestampToSeconds(fabricaForCTR.timestamp) || 0
+                                    : 0;
+                                  
+                                  return (
+                                    <div className="related-entities__nested-blocks" style={{ marginLeft: '16px', marginTop: '8px', marginBottom: '8px' }}>
+                                      {/* Embedded/compact CTR monitor (limited height) */}
+                                      {videoIdOrUrl && (
+                                        <div style={{ 
+                                          marginBottom: '12px',
+                                          maxHeight: '200px',
+                                          aspectRatio: '16 / 9',
+                                          position: 'relative'
+                                        }}>
+                                          <CRTMonitorPlayer
+                                            videoIdOrUrl={videoIdOrUrl}
+                                            startSeconds={startSeconds}
+                                            autoplay={false}
+                                            style={{ height: '100%' }}
+                                          />
+                                        </div>
+                                      )}
+                                      
+                                      {/* Nested entity blocks */}
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        {/* Fabrica→Jingles: Cancion, Autor, Jinglero, Tematica */}
+                                        {isFabricaJingles && (
+                                          <>
+                                            {cancion && (
+                                              <EntityCard
+                                                entity={cancion}
+                                                entityType="cancion"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Cancion"
+                                              />
+                                            )}
+                                            {autores && autores.length > 0 && autores.map((autor) => (
+                                              <EntityCard
+                                                key={autor.id}
+                                                entity={autor}
+                                                entityType="artista"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Autor"
+                                              />
+                                            ))}
+                                            {jingleros && jingleros.length > 0 && jingleros.map((jinglero) => (
+                                              <EntityCard
+                                                key={jinglero.id}
+                                                entity={jinglero}
+                                                entityType="artista"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Jinglero"
+                                              />
+                                            ))}
+                                            {tematicas && tematicas.length > 0 && tematicas.map((tematica) => (
+                                              <EntityCard
+                                                key={tematica.id}
+                                                entity={tematica}
+                                                entityType="tematica"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Tematica"
+                                              />
+                                            ))}
+                                          </>
+                                        )}
+                                        
+                                        {/* Cancion→Jingles: Fabrica, Jingleros, Tematicas */}
+                                        {isCancionJingles && (
+                                          <>
+                                            {fabricaForCTR && (
+                                              <EntityCard
+                                                entity={fabricaForCTR}
+                                                entityType="fabrica"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Fabrica"
+                                              />
+                                            )}
+                                            {jingleros && jingleros.length > 0 && jingleros.map((jinglero) => (
+                                              <EntityCard
+                                                key={jinglero.id}
+                                                entity={jinglero}
+                                                entityType="artista"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Jinglero"
+                                              />
+                                            ))}
+                                            {tematicas && tematicas.length > 0 && tematicas.map((tematica) => (
+                                              <EntityCard
+                                                key={tematica.id}
+                                                entity={tematica}
+                                                entityType="tematica"
+                                                variant="contents"
+                                                indentationLevel={2}
+                                                relationshipLabel="Tematica"
+                                              />
+                                            ))}
+                                          </>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })()
+                              )}
+                              
                               {/* Render relationship properties in admin mode when expanded */}
                               {isAdmin && isRelationshipPropsExpanded && relType && (() => {
                                 // Try to get props from state, or fall back to relatedEntity properties
@@ -2781,8 +4213,8 @@ const RelatedEntities = forwardRef<{
                                   </div>
                                 );
                               })()}
-                              {/* Render nested rows if entity is expanded */}
-                              {isEntityExpanded && (
+                              {/* Render nested rows if entity is expanded (admin mode only - user mode Level 1 rows are not expandable) */}
+                              {isAdmin && isEntityExpanded && (
                                 <>
                                   {(() => {
                                     // Check if any nested relationships are loading
@@ -3503,8 +4935,7 @@ const RelatedEntities = forwardRef<{
                       </div>
                     )}
                   </div>
-                </>
-              )}
+              ) : null}
             </div>
           );
         })}

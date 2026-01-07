@@ -102,14 +102,64 @@ describe('RelatedEntities Integration Tests', () => {
         />
       );
 
-      // Find and click expand button
-      const expandButton = screen.getByLabelText(/expandir jingles/i);
+      // Find and click expand button on Level 0 relationship row (now an EntityCard)
+      // EntityCard expand button has aria-label "Expandir" or "Colapsar"
+      const expandButton = screen.getByLabelText(/expandir/i);
       await userEvent.click(expandButton);
 
       // Should call fetch when expanded
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith('fabrica-1', 'fabrica');
       });
+      
+      // Wait for entities to render
+      await waitFor(() => {
+        expect(screen.getByText(/jingle-1/i)).toBeInTheDocument();
+      });
+      
+      // Level 1 rows should NOT have expand icons in user mode (no nesting loops)
+      const expandIcons = screen.queryAllByLabelText(/expandir|colapsar/i);
+      // Should only have one expand icon (the Level 0 relationship row)
+      expect(expandIcons.length).toBe(1);
+    });
+    
+    it('should not show expand icons on Level 1 entity rows in User Mode', async () => {
+      const { fetchFabricaJingles } = await import('../../../lib/services/relationshipService');
+      const mockFetch = vi.mocked(fetchFabricaJingles);
+      mockFetch.mockResolvedValue(mockJingles);
+
+      const relationships: RelationshipConfig[] = [
+        {
+          label: 'Jingles',
+          entityType: 'jingle',
+          sortKey: 'timestamp',
+          expandable: true,
+          fetchFn: fetchFabricaJingles,
+        },
+      ];
+
+      render(
+        <RelatedEntities
+          entity={mockFabrica}
+          entityType="fabrica"
+          relationships={relationships}
+          isAdmin={false}
+        />
+      );
+
+      // Expand the relationship
+      const expandButton = screen.getByLabelText(/expandir/i);
+      await userEvent.click(expandButton);
+
+      // Wait for Level 1 entities to render
+      await waitFor(() => {
+        expect(screen.getByText(/jingle-1/i)).toBeInTheDocument();
+      });
+
+      // Level 1 entity rows should NOT have expand/collapse icons
+      // Only the Level 0 relationship row should have an expand icon
+      const allExpandButtons = screen.queryAllByLabelText(/expandir|colapsar/i);
+      expect(allExpandButtons.length).toBe(1); // Only the Level 0 row
     });
   });
 

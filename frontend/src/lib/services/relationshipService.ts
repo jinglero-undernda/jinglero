@@ -419,21 +419,34 @@ export async function fetchCancionAutores(cancionId: string): Promise<Artista[]>
  */
 export async function fetchCancionJingles(cancionId: string): Promise<Jingle[]> {
   try {
-    // Use related endpoint which includes jinglesUsingCancion
+    // Use related endpoint which includes jinglesUsingCancion with enriched fields (fabrica, jingleros, tematicas)
     const related = await publicApi.getCancionRelated(cancionId, 100);
     // Task 31: Validate jingles array - use partial schema since related endpoint returns partial data
     if (Array.isArray(related.jinglesUsingCancion)) {
+      // Preserve enriched fields from raw API response before schema validation (schema may strip them)
+      const rawJingles = related.jinglesUsingCancion as Array<Jingle & { fabrica?: Fabrica & { timestamp?: number }; jingleros?: Artista[]; tematicas?: Tematica[] }>;
+      
       const partialJingles = safeParseArray(JinglePartialArraySchema, related.jinglesUsingCancion, `fetchCancionJingles(${cancionId})`);
       // Convert partial jingles to full Jingle objects with defaults for missing required fields
-      return partialJingles.map(j => ({
-        ...j,
-        timestamp: j.timestamp || '',
-        isJinglazo: j.isJinglazo ?? false,
-        isJinglazoDelDia: j.isJinglazoDelDia ?? false,
-        isPrecario: j.isPrecario ?? false,
-        createdAt: j.createdAt || j.updatedAt || new Date().toISOString(),
-        updatedAt: j.updatedAt || new Date().toISOString(),
-      })) as Jingle[];
+      // AND preserve enriched fields (fabrica, jingleros, tematicas) from raw API response
+      return partialJingles.map((j, index) => {
+        const rawJingle = rawJingles[index];
+        return {
+          ...j,
+          timestamp: j.timestamp || '',
+          isJinglazo: j.isJinglazo ?? false,
+          isJinglazoDelDia: j.isJinglazoDelDia ?? false,
+          isPrecario: j.isPrecario ?? false,
+          createdAt: j.createdAt || j.updatedAt || new Date().toISOString(),
+          updatedAt: j.updatedAt || new Date().toISOString(),
+          // Preserve enriched fields from raw API response (for Cancion→Jingles nested content per GuestEntity spec)
+          fabrica: rawJingle?.fabrica,
+          jingleros: rawJingle?.jingleros,
+          tematicas: rawJingle?.tematicas,
+          // Preserve youtube clip for INEDITO jingles (no Fabrica)
+          youtubeClipUrl: (rawJingle as any)?.youtubeClipUrl,
+        } as Jingle & { fabrica?: Fabrica & { timestamp?: number }; jingleros?: Artista[]; tematicas?: Tematica[] };
+      }) as Jingle[];
     }
     return [];
   } catch (error) {

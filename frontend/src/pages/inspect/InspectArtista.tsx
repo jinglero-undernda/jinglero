@@ -63,6 +63,7 @@ export default function InspectArtista() {
             indentationLevel={0}
           />
           <RelatedEntities
+            key={artista.id}
             entity={artista}
             entityType="artista"
             relationships={relationships}

@@ -63,6 +63,7 @@ export default function InspectTematica() {
             indentationLevel={0}
           />
           <RelatedEntities
+            key={tematica.id}
             entity={tematica}
             entityType="tematica"
             relationships={relationships}
